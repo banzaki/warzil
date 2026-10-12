@@ -42,7 +42,7 @@ const dice = (...faces) => {
 function assertInvariants(state) {
   for (const id of STATE_IDS) {
     assert.ok(state.troops[id] >= 1, `${id} has ${state.troops[id]} troops`);
-    assert.ok(['lula', 'flavio'].includes(state.owner[id]));
+    assert.ok(state.factions.includes(state.owner[id]), `${id} owned by ${state.owner[id]}`);
   }
 }
 
@@ -328,4 +328,84 @@ test('AI vs AI games always reach a winner', () => {
     wins[g.winner]++;
   }
   assert.equal(wins.lula + wins.flavio, 200);
+});
+
+// ---------- Multi-faction (v0.3) ----------
+
+const total = (g, f) => territoriesOf(g, f).reduce((s, id) => s + g.troops[id], 0);
+
+test('deal for 3 and 4 factions: territories and armies', () => {
+  const g3 = createGame('flavio', seeded(2), ['lula', 'cury']);
+  assert.deepEqual(g3.factions, ['flavio', 'lula', 'cury']);
+  for (const f of g3.factions) {
+    assert.equal(territoriesOf(g3, f).length, 9);
+    assert.equal(total(g3, f), 30);
+  }
+  const g4 = createGame('lula', seeded(3), ['flavio', 'renan', 'caiado']);
+  assert.deepEqual(g4.factions.map((f) => territoriesOf(g4, f).length), [6, 7, 7, 7]);
+  for (const f of g4.factions) assert.equal(total(g4, f), 24);
+  for (let seed = 1; seed <= 200; seed++) {
+    const g = createGame('lula', seeded(seed), ['flavio', 'renan', 'caiado']);
+    for (const f of g.factions) assert.equal(calcReinforcements(g, f).bonus, 0, `seed ${seed}`);
+  }
+  assertInvariants(g4);
+});
+
+test('turn order cycles through factions and counts rounds', () => {
+  let g = createGame('lula', seeded(4), ['flavio', 'cury']);
+  const seen = [];
+  for (let i = 0; i < 6; i++) {
+    seen.push([g.current, g.round]);
+    g = endTurn(g);
+  }
+  assert.deepEqual(seen, [
+    ['lula', 1], ['flavio', 1], ['cury', 1],
+    ['lula', 2], ['flavio', 2], ['cury', 2],
+  ]);
+});
+
+test('eliminated factions are skipped; the match goes on', () => {
+  let g = board({ flavio: ['rs'], troops: { sc: 10, rs: 1 } });
+  g = { ...g, factions: ['lula', 'flavio', 'cury'], owner: { ...g.owner, am: 'cury' } };
+  g = blitz(g, 'sc', 'rs', dice(6, 1));
+  assert.deepEqual(g.eliminated, ['flavio']);
+  assert.notEqual(g.phase, 'over');
+  assert.equal(g.log[0].type, 'eliminated');
+  g = endTurn(occupy(g, 1));
+  assert.equal(g.current, 'cury', 'flavio is skipped');
+  g = endTurn(g);
+  assert.equal(g.current, 'lula');
+  assert.equal(g.round, 2);
+});
+
+test('victory only when a single faction survives', () => {
+  let g = board({ flavio: ['rs'], troops: { sc: 10, rs: 1, pr: 10, ap: 1 } });
+  g = { ...g, factions: ['lula', 'flavio', 'cury'], owner: { ...g.owner, ap: 'cury' } };
+  g = occupy(blitz(g, 'sc', 'rs', dice(6, 1)), 1);
+  assert.equal(g.phase, 'attack');
+  g = blitz({ ...g, troops: { ...g.troops, pa: 10 } }, 'pa', 'ap', dice(6, 1));
+  assert.equal(g.phase, 'over');
+  assert.equal(g.winner, 'lula');
+  assert.equal(g.log[0].type, 'victory');
+});
+
+test('human losing the last state ends the match at once', () => {
+  // Cury attacks the human's only state while Flávio is still alive.
+  const owner = Object.fromEntries(STATE_IDS.map((id) => [id, 'cury']));
+  owner.rs = 'lula';
+  owner.am = 'flavio';
+  let g = board();
+  g = { ...g, owner, factions: ['lula', 'flavio', 'cury'], current: 'cury', troops: { ...g.troops, sc: 10, rs: 1 } };
+  g = blitz(g, 'sc', 'rs', dice(6, 1));
+  assert.equal(g.phase, 'over');
+  assert.equal(g.winner, 'cury');
+  assert.equal(g.log[0].type, 'knockout');
+  assert.equal(g.log[0].loser, 'lula');
+});
+
+test('defender colour comes from the real owner', () => {
+  let g = board({ flavio: ['pr'], troops: { sp: 5, pr: 5 } });
+  g = { ...g, factions: ['lula', 'flavio', 'cury'], owner: { ...g.owner, mg: 'cury' } };
+  assert.equal(attack(g, 'sp', 'mg', dice(3)).lastRoll.defender, 'cury');
+  assert.equal(attack(g, 'sp', 'pr', dice(3)).lastRoll.defender, 'flavio');
 });

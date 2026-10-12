@@ -97,11 +97,11 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate }
 
   const isHumanTurn = game.current === game.human && game.phase !== 'over';
   const human = game.human;
-  const ai = game.ai;
+  const ai = game.factions.find((f) => f !== human);
 
   // The AI plays one visible step at a time.
   useEffect(() => {
-    if (game.current !== game.ai || game.phase === 'over') return undefined;
+    if (game.current === game.human || game.phase === 'over') return undefined;
     const timer = setTimeout(() => setGame((g) => aiStep(g)), AI_DELAY[game.phase] ?? 600);
     return () => clearTimeout(timer);
   }, [game]);
@@ -287,7 +287,7 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate }
           <span className="logo small">
             WAR<span className="logo-zil">ZIL</span>
           </span>
-          <span>Rodada {Math.ceil(game.turn / 2)}</span>
+          <span>Rodada {game.round}</span>
         </div>
         <PlayerChip game={game} faction={ai} />
       </header>
@@ -332,7 +332,7 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate }
               </div>
               <div className="roll-line">
                 <span>🛡️ {stateName(roll.to)}</span>
-                <Dice values={roll.defenderDice} side={roll.attacker === 'lula' ? 'flavio' : 'lula'} result={pairResults(roll).def} />
+                <Dice values={roll.defenderDice} side={roll.defender} result={pairResults(roll).def} />
               </div>
               <p className="roll-result">
                 {roll.conquered
@@ -392,7 +392,7 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate }
             <p className="end-quote">“{describeEvent(game.log.find((e) => e.type === 'victory')).text}”</p>
             <p className="end-sub">{DEFEAT_LINES[game.winner === 'lula' ? 'flavio' : 'lula']}</p>
             <p className="end-stats">
-              {name(game.winner)} levou os 27 estados em {Math.ceil(game.turn / 2)} rodadas.
+              {name(game.winner)} levou os 27 estados em {game.round} rodadas.
             </p>
             <div className="buttons">
               <button className="btn primary" onClick={onRematch} autoFocus>

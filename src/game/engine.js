@@ -2,7 +2,8 @@
 // so the UI, the AI and the tests all drive the game the same way.
 import { ADJACENCY, REGIONS, STATES, STATE_IDS, opponentOf } from './data.js';
 
-export const STARTING_TROOPS = 40;
+// Armies per faction at the start, by number of factions in the match.
+export const STARTING_TROOPS = { 2: 40, 3: 30, 4: 24 };
 const MAX_LOG = 40;
 
 export const isAdjacent = (a, b) => ADJACENCY[a].includes(b);
@@ -55,31 +56,37 @@ function beginTurn(state, faction) {
   };
 }
 
-export function createGame(humanFaction, rng = Math.random) {
-  const aiFaction = opponentOf(humanFaction);
-  // The human moves first, so the AI gets the extra (14th) state.
+// rivals: the CPU factions, in turn order after the human (default: the classic duel).
+export function createGame(humanFaction, rng = Math.random, rivals = [opponentOf(humanFaction)]) {
+  const factions = [humanFaction, ...rivals];
+  // Deal round-robin starting from the last player, so whoever moves later gets
+  // the leftover states (2 factions: 13/14, 4 factions: 6/7/7/7).
   // Re-deal until nobody starts with a whole region (and its free bonus).
+  const dealOrder = [...factions].reverse();
   let order;
   const owner = {};
   do {
     order = shuffle(STATE_IDS, rng);
     order.forEach((id, i) => {
-      owner[id] = i % 2 === 0 ? aiFaction : humanFaction;
+      owner[id] = dealOrder[i % dealOrder.length];
     });
-  } while (controlledRegions({ owner }, humanFaction).length || controlledRegions({ owner }, aiFaction).length);
+  } while (factions.some((f) => controlledRegions({ owner }, f).length));
 
   const troops = {};
-  for (const faction of [humanFaction, aiFaction]) {
+  const startingTroops = STARTING_TROOPS[factions.length];
+  for (const faction of dealOrder) {
     const mine = order.filter((id) => owner[id] === faction);
     mine.forEach((id) => (troops[id] = 2));
-    for (let extra = STARTING_TROOPS - mine.length * 2; extra > 0; extra--) {
+    for (let extra = startingTroops - mine.length * 2; extra > 0; extra--) {
       troops[mine[Math.floor(rng() * mine.length)]] += 1;
     }
   }
 
   const state = {
     human: humanFaction,
-    ai: aiFaction,
+    factions,
+    eliminated: [],
+    round: 1,
     owner,
     troops,
     current: humanFaction,
@@ -159,7 +166,7 @@ export function attack(state, from, to, rng = Math.random) {
     [from]: state.troops[from] - attackerLoss,
     [to]: state.troops[to] - defenderLoss,
   };
-  const lastRoll = { from, to, attacker: state.current, attackerDice, defenderDice, attackerLoss, defenderLoss, conquered: false };
+  const lastRoll = { from, to, attacker: state.current, defender: state.owner[to], attackerDice, defenderDice, attackerLoss, defenderLoss, conquered: false };
   let next = { ...state, troops, lastRoll };
 
   if (troops[to] > 0) {
@@ -181,11 +188,24 @@ export function attack(state, from, to, rng = Math.random) {
   next = addLog(next, { type: 'conquer', faction: state.current, loser, state: to }, rng);
 
   if (territoriesOf(next, loser).length === 0) {
-    return addLog(
-      { ...next, phase: 'over', winner: state.current, selected: null, target: null },
-      { type: 'victory', faction: state.current },
-      rng,
-    );
+    next = { ...next, eliminated: [...next.eliminated, loser] };
+    const survivors = next.factions.filter((f) => !next.eliminated.includes(f));
+    if (survivors.length === 1) {
+      return addLog(
+        { ...next, phase: 'over', winner: state.current, selected: null, target: null },
+        { type: 'victory', faction: state.current },
+        rng,
+      );
+    }
+    // Solo mode: losing your last state ends the match right away.
+    if (loser === state.human) {
+      return addLog(
+        { ...next, phase: 'over', winner: state.current, selected: null, target: null },
+        { type: 'knockout', faction: state.current, loser },
+        rng,
+      );
+    }
+    next = addLog(next, { type: 'eliminated', faction: state.current, loser }, rng);
   }
   const max = min + next.troops[from] - 1;
   if (max > min) {
@@ -255,10 +275,17 @@ export function fortify(state, from, to, amount) {
   };
 }
 
+// Pass the turn to the next faction still in the race; a new round starts on wrap-around.
 export function endTurn(state, rng = Math.random) {
   if (state.phase === 'over') return state;
-  const next = opponentOf(state.current);
-  return addLog(beginTurn(state, next), { type: 'turn', faction: next }, rng);
+  const { factions, eliminated } = state;
+  const start = factions.indexOf(state.current);
+  let i = start;
+  do i = (i + 1) % factions.length;
+  while (eliminated.includes(factions[i]));
+  const next = factions[i];
+  const round = i <= start ? state.round + 1 : state.round;
+  return addLog(beginTurn({ ...state, round }, next), { type: 'turn', faction: next }, rng);
 }
 
 // ---------- UI helpers ----------
