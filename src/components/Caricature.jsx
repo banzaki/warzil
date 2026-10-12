@@ -1,3 +1,5 @@
+import { FACTIONS } from '../game/data.js';
+
 // Original, hand-drawn cartoon portraits (inline SVG, no photos or third-party art).
 // mood: 'neutral' | 'happy' | 'sad'
 
@@ -88,16 +90,103 @@ function Flavio({ mood }) {
   );
 }
 
+function Cury({ mood }) {
+  return (
+    <g>
+      {/* purple blazer over a turtleneck */}
+      <path d="M12 120 Q18 92 60 90 Q102 92 108 120 Z" fill="#4a148c" />
+      <path d="M44 90 Q60 99 76 90 L75 104 Q60 110 45 104 Z" fill="#8e24aa" />
+      {/* head */}
+      <ellipse cx="60" cy="56" rx="31" ry="35" fill="#ecc19c" />
+      <ellipse cx="28" cy="60" rx="5" ry="8" fill="#dfab85" />
+      <ellipse cx="92" cy="60" rx="5" ry="8" fill="#dfab85" />
+      {/* silver hair, combed back */}
+      <path d="M29 50 Q24 18 60 16 Q96 18 91 50 Q86 30 60 27 Q34 30 29 50 Z" fill="#eeeeee" stroke="#bdbdbd" strokeWidth="1" />
+      <path d="M40 22 Q60 30 82 24" stroke="#bdbdbd" strokeWidth="1.5" fill="none" />
+      <Brows mood={mood} y={40} color="#9e9e9e" thick={4} />
+      <Eyes y={50} mood={mood} />
+      {/* thoughtful round glasses */}
+      <g fill="rgba(255,255,255,0.18)" stroke="#4a148c" strokeWidth="2.5">
+        <rect x="35" y="42" width="22" height="17" rx="7" />
+        <rect x="63" y="42" width="22" height="17" rx="7" />
+      </g>
+      <line x1="57" y1="49" x2="63" y2="49" stroke="#4a148c" strokeWidth="2.5" />
+      {/* nose */}
+      <path d="M60 54 Q55 67 59 70 Q64 71 65 67" fill="#d9a07a" />
+      <Mouth mood={mood} y={79} />
+    </g>
+  );
+}
+
+function Renan({ mood }) {
+  return (
+    <g>
+      {/* orange hoodie with drawstrings */}
+      <path d="M10 120 Q16 90 60 88 Q104 90 110 120 Z" fill="#ef6c00" />
+      <path d="M38 92 Q60 104 82 92" stroke="#e65100" strokeWidth="5" fill="none" />
+      <line x1="52" y1="99" x2="51" y2="114" stroke="#fff3e0" strokeWidth="2" strokeLinecap="round" />
+      <line x1="68" y1="99" x2="69" y2="114" stroke="#fff3e0" strokeWidth="2" strokeLinecap="round" />
+      {/* head */}
+      <ellipse cx="60" cy="55" rx="31" ry="35" fill="#e9b892" />
+      <ellipse cx="29" cy="58" rx="5" ry="8" fill="#dca37c" />
+      <ellipse cx="91" cy="58" rx="5" ry="8" fill="#dca37c" />
+      {/* short dark hair with a quiff */}
+      <path d="M29 46 Q26 16 58 14 Q92 14 92 46 Q88 28 74 27 Q62 22 50 28 Q36 30 29 46 Z" fill="#2b1d16" />
+      <path d="M50 18 Q64 8 78 20 Q66 16 54 22 Z" fill="#2b1d16" />
+      {/* dark trimmed beard */}
+      <path d="M29 58 Q30 96 60 98 Q90 96 91 58 Q86 72 76 74 Q60 69 44 74 Q34 72 29 58 Z" fill="#3e2a20" />
+      <Brows mood={mood} y={39} color="#2b1d16" thick={4} />
+      <Eyes y={48} mood={mood} />
+      {/* nose */}
+      <path d="M60 50 Q54 64 58 67 Q64 68 66 64" fill="#d39a72" />
+      <Mouth mood={mood} y={81} color="#fbe9e7" />
+      {/* earbud mic: always streaming */}
+      <path d="M91 62 Q96 78 74 84" stroke="#fafafa" strokeWidth="2" fill="none" />
+      <circle cx="74" cy="84" r="2.6" fill="#e53935" />
+    </g>
+  );
+}
+
+function Caiado({ mood }) {
+  return (
+    <g>
+      {/* green shirt and a stethoscope */}
+      <path d="M12 120 Q18 92 60 90 Q102 92 108 120 Z" fill="#2e7d32" />
+      <path d="M46 91 L60 104 L74 91" fill="#c8e6c9" />
+      <path d="M40 94 Q42 114 58 116 M80 94 Q78 114 62 116" stroke="#616161" strokeWidth="2.5" fill="none" />
+      <circle cx="60" cy="116" r="4" fill="#9e9e9e" />
+      {/* head */}
+      <ellipse cx="60" cy="58" rx="31" ry="34" fill="#e7b48e" />
+      <ellipse cx="28" cy="62" rx="5" ry="8" fill="#d9a07a" />
+      <ellipse cx="92" cy="62" rx="5" ry="8" fill="#d9a07a" />
+      {/* grey sideburns under the hat */}
+      <path d="M29 44 Q27 58 31 66 L35 46 Z" fill="#bdbdbd" />
+      <path d="M91 44 Q93 58 89 66 L85 46 Z" fill="#bdbdbd" />
+      {/* straw cowboy hat */}
+      <ellipse cx="60" cy="38" rx="50" ry="10" fill="#d7a75b" stroke="#a1742e" strokeWidth="1.5" />
+      <path d="M36 38 Q36 10 60 10 Q84 10 84 38 Z" fill="#e2b56a" stroke="#a1742e" strokeWidth="1.5" />
+      <path d="M36 32 Q60 38 84 32 L84 37 Q60 43 36 37 Z" fill="#6d4c41" />
+      <Brows mood={mood} y={46} color="#9e9e9e" thick={4} />
+      <Eyes y={54} mood={mood} />
+      {/* nose */}
+      <path d="M60 56 Q54 69 58 72 Q64 73 66 69" fill="#d39a72" />
+      <Mouth mood={mood} y={81} />
+    </g>
+  );
+}
+
+const FACES = { lula: Lula, flavio: Flavio, cury: Cury, renan: Renan, caiado: Caiado };
+
 export default function Caricature({ who, mood = 'neutral', size = 120, className = '' }) {
-  const bg = who === 'lula' ? 'var(--red-soft)' : 'var(--blue-soft)';
+  const Face = FACES[who];
   return (
     <svg
-      className={`caricature ${className}`}
+      className={`caricature ${who} ${className}`}
       viewBox="0 0 120 120"
       width={size}
       height={size}
       role="img"
-      aria-label={`Caricatura satírica de ${who === 'lula' ? 'Lula' : 'Flávio'}`}
+      aria-label={`Caricatura satírica de ${FACTIONS[who].name}`}
     >
       <defs>
         <clipPath id={`clip-${who}`}>
@@ -105,8 +194,8 @@ export default function Caricature({ who, mood = 'neutral', size = 120, classNam
         </clipPath>
       </defs>
       <g clipPath={`url(#clip-${who})`}>
-        <circle cx="60" cy="60" r="60" fill={bg} />
-        {who === 'lula' ? <Lula mood={mood} /> : <Flavio mood={mood} />}
+        <circle cx="60" cy="60" r="60" fill="var(--c-soft)" />
+        <Face mood={mood} />
       </g>
     </svg>
   );

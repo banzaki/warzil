@@ -54,17 +54,44 @@ button:focus-visible,
 .lula {
   --c: var(--red);
   --c-dark: var(--red-dark);
+  --c-map: var(--red-map);
   --c-soft: var(--red-soft);
 }
 
 .flavio {
   --c: var(--blue);
   --c-dark: var(--blue-dark);
+  --c-map: var(--blue-map);
   --c-soft: var(--blue-soft);
 }
 
+/* Optional rivals: hues kept apart from red/blue and from the yellow highlight. */
+.cury {
+  --c: #8e24aa;
+  --c-dark: #4a148c;
+  --c-map: #ab47bc;
+  --c-soft: #e1bee7;
+}
+
+.renan {
+  --c: #f57c00;
+  --c-dark: #bf360c;
+  --c-map: #ff9800;
+  --c-soft: #ffe0b2;
+}
+
+.caiado {
+  --c: #2e7d32;
+  --c-dark: #1b5e20;
+  --c-map: #43a047;
+  --c-soft: #c8e6c9;
+}
+
 b.lula,
-b.flavio {
+b.flavio,
+b.cury,
+b.renan,
+b.caiado {
   color: var(--c-dark);
 }
 
@@ -314,12 +341,8 @@ b.flavio {
   transform-origin: center;
 }
 
-.state.lula {
-  fill: var(--red-map);
-}
-
-.state.flavio {
-  fill: var(--blue-map);
+.state {
+  fill: var(--c-map);
 }
 
 .state.clickable {

@@ -2,10 +2,19 @@
 // land borders and where to draw each troop badge on the SVG map.
 // Map shapes come from @svg-maps/brazil (CC BY 4.0, Victor Cazanave).
 
+// Protagonists first; the rest are optional rivals behind "+ Mais candidatos".
+// Colours live in styles.css under each id's class.
 export const FACTIONS = {
   lula: { id: 'lula', name: 'Lula', color: 'red' },
   flavio: { id: 'flavio', name: 'Flávio', color: 'blue' },
+  cury: { id: 'cury', name: 'Cury', color: 'purple' },
+  renan: { id: 'renan', name: 'Renan', color: 'orange' },
+  caiado: { id: 'caiado', name: 'Caiado', color: 'green' },
 };
+
+export const PROTAGONISTS = ['lula', 'flavio'];
+export const EXTRA_CANDIDATES = ['cury', 'renan', 'caiado'];
+export const MAX_FACTIONS = 4;
 
 export const opponentOf = (faction) => (faction === 'lula' ? 'flavio' : 'lula');
 
