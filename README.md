@@ -22,7 +22,7 @@ Other scripts:
    highest dice are compared and ties go to the defender.
 3. **Regroup** – optionally move troops once between two neighbouring states, then end the turn.
 
-Take all 27 territories to win.
+Be the last faction standing to win. Default match: Lula vs. Flávio; "+ Mais candidatos" adds up to two CPU rivals (Cury, Renan, Caiado) for 3–4 factions.
 
 ## Project layout
 

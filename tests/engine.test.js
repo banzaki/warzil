@@ -342,7 +342,7 @@ test('deal for 3 and 4 factions: territories and armies', () => {
     assert.equal(total(g3, f), 30);
   }
   const g4 = createGame('lula', seeded(3), ['flavio', 'renan', 'caiado']);
-  assert.deepEqual(g4.factions.map((f) => territoriesOf(g4, f).length), [6, 7, 7, 7]);
+  assert.deepEqual(g4.factions.map((f) => territoriesOf(g4, f).length), [7, 7, 7, 6]);
   for (const f of g4.factions) assert.equal(total(g4, f), 24);
   for (let seed = 1; seed <= 200; seed++) {
     const g = createGame('lula', seeded(seed), ['flavio', 'renan', 'caiado']);

@@ -28,6 +28,8 @@ import { DEFEAT_LINES, DISCLAIMER, PHASE_HELP, PHASE_NAMES, VICTORY_TITLES, desc
 
 const EMPTY = new Set();
 const AI_DELAY = { reinforce: 600, attack: 350, occupy: 300, fortify: 300 };
+// With more CPU rivals the wait between human turns grows, so each AI step gets faster.
+const AI_SPEED = { 2: 1, 3: 0.75, 4: 0.6 };
 
 // result[i]: 'win' | 'lose' | 'idle' (a die without a pair)
 function Dice({ values, side, result }) {
@@ -66,15 +68,30 @@ function Stepper({ value, min, max, onChange }) {
   );
 }
 
-function PlayerChip({ game, faction }) {
+// compact: smaller chip used for CPU rivals in 3-4 faction matches.
+function PlayerChip({ game, faction, compact = false }) {
   const lands = territoriesOf(game, faction);
   const troops = lands.reduce((sum, id) => sum + game.troops[id], 0);
   const latest = game.log[0];
-  let mood = 'neutral';
-  if (latest?.type === 'conquer') mood = latest.faction === faction ? 'happy' : 'sad';
+  const out = game.eliminated.includes(faction);
+  let mood = out ? 'sad' : 'neutral';
+  if (latest?.type === 'conquer' && latest.faction === faction) mood = 'happy';
+  if (latest?.type === 'conquer' && latest.loser === faction) mood = 'sad';
   const active = game.current === faction && game.phase !== 'over';
+  const classes = `player-chip ${faction} ${active ? 'active' : ''} ${compact ? 'compact' : ''} ${out ? 'out' : ''}`;
+  if (compact) {
+    return (
+      <div className={classes} title={`${FACTIONS[faction].name}: ${lands.length} estados, ${troops} exércitos`}>
+        <Caricature who={faction} mood={mood} size={36} />
+        <div className="player-info">
+          <strong>{FACTIONS[faction].name}</strong>
+          <span>{out ? 'fora' : `${lands.length} est. · ${troops}`}</span>
+        </div>
+      </div>
+    );
+  }
   return (
-    <div className={`player-chip ${faction} ${active ? 'active' : ''}`}>
+    <div className={classes}>
       <Caricature who={faction} mood={mood} size={52} />
       <div className="player-info">
         <strong>
@@ -97,12 +114,13 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate }
 
   const isHumanTurn = game.current === game.human && game.phase !== 'over';
   const human = game.human;
-  const ai = game.factions.find((f) => f !== human);
+  const rivals = game.factions.filter((f) => f !== human);
 
   // The AI plays one visible step at a time.
   useEffect(() => {
     if (game.current === game.human || game.phase === 'over') return undefined;
-    const timer = setTimeout(() => setGame((g) => aiStep(g)), AI_DELAY[game.phase] ?? 600);
+    const delay = (AI_DELAY[game.phase] ?? 600) * AI_SPEED[game.factions.length];
+    const timer = setTimeout(() => setGame((g) => aiStep(g)), delay);
     return () => clearTimeout(timer);
   }, [game]);
 
@@ -168,7 +186,7 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate }
     panel = (
       <div className="panel-body thinking">
         <span className="spinner" aria-hidden="true" />
-        {name(ai)} está {game.phase === 'attack' ? 'atacando' : game.phase === 'reinforce' ? 'convocando a militância' : 'armando a próxima'}…
+        {name(game.current)} está {game.phase === 'attack' ? 'atacando' : game.phase === 'reinforce' ? 'convocando a militância' : 'armando a próxima'}…
       </div>
     );
   } else if (game.phase === 'reinforce') {
@@ -197,7 +215,7 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate }
             <p className="matchup">
               <b className={human}>{stateName(from)} ({game.troops[from]})</b>
               <span className="vs">x</span>
-              <b className={ai}>{stateName(game.target)} ({game.troops[game.target]})</b>
+              <b className={game.owner[game.target]}>{stateName(game.target)} ({game.troops[game.target]})</b>
             </p>
             <p className="dice-info">
               🎲 {myDice} contra {defenderDiceCount(game.troops[game.target])} · toque no inimigo ou:
@@ -274,14 +292,18 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate }
   }
 
   const roll = game.lastRoll;
-  const regionOwners = {
-    [human]: controlledRegions(game, human),
-    [ai]: controlledRegions(game, ai),
-  };
+  const regionOwners = Object.fromEntries(game.factions.map((f) => [f, controlledRegions(game, f)]));
+
+  // End of match: either someone holds the whole map ('victory') or the human
+  // lost their last state while rivals remain ('knockout').
+  const finalEvent = game.log.find((e) => e.type === 'victory' || e.type === 'knockout');
+  const humanWon = game.winner === human;
+  const finalLoser = humanWon ? game.eliminated.at(-1) : human;
+  const loserFaces = humanWon ? rivals : [human];
 
   return (
     <div className={`game theme-${human}`}>
-      <header className="hud">
+      <header className={`hud ${rivals.length > 1 ? 'multi' : ''}`}>
         <PlayerChip game={game} faction={human} />
         <div className="round">
           <span className="logo small">
@@ -289,7 +311,15 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate }
           </span>
           <span>Rodada {game.round}</span>
         </div>
-        <PlayerChip game={game} faction={ai} />
+        {rivals.length === 1 ? (
+          <PlayerChip game={game} faction={rivals[0]} />
+        ) : (
+          <div className="rivals">
+            {rivals.map((f) => (
+              <PlayerChip key={f} game={game} faction={f} compact />
+            ))}
+          </div>
+        )}
       </header>
 
       <div className="board">
@@ -347,7 +377,7 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate }
             <div className="panel-title">Bônus por região</div>
             <ul>
               {Object.entries(REGIONS).map(([key, r]) => {
-                const holder = [human, ai].find((f) => regionOwners[f].includes(key));
+                const holder = game.factions.find((f) => regionOwners[f].includes(key));
                 return (
                   <li key={key} className={holder ?? ''}>
                     <span>{r.name}</span>
@@ -386,13 +416,17 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate }
           <div className={`end-card ${game.winner}`}>
             <div className="end-faces">
               <Caricature who={game.winner} mood="happy" size={130} className="winner-face" />
-              <Caricature who={game.winner === 'lula' ? 'flavio' : 'lula'} mood="sad" size={84} className="loser-face" />
+              {loserFaces.map((f) => (
+                <Caricature key={f} who={f} mood="sad" size={loserFaces.length > 1 ? 56 : 84} className="loser-face" />
+              ))}
             </div>
-            <h2 id="end-title">{game.winner === human ? VICTORY_TITLES.win : VICTORY_TITLES.lose}</h2>
-            <p className="end-quote">“{describeEvent(game.log.find((e) => e.type === 'victory')).text}”</p>
-            <p className="end-sub">{DEFEAT_LINES[game.winner === 'lula' ? 'flavio' : 'lula']}</p>
+            <h2 id="end-title">{humanWon ? VICTORY_TITLES.win : VICTORY_TITLES.lose}</h2>
+            <p className="end-quote">“{describeEvent(finalEvent).text}”</p>
+            <p className="end-sub">{DEFEAT_LINES[finalLoser]}</p>
             <p className="end-stats">
-              {name(game.winner)} levou os 27 estados em {game.round} rodadas.
+              {finalEvent.type === 'victory'
+                ? `${name(game.winner)} levou os 27 estados em ${game.round} rodadas.`
+                : `${name(game.winner)} tirou ${name(human)} do mapa na rodada ${game.round}.`}
             </p>
             <div className="buttons">
               <button className="btn primary" onClick={onRematch} autoFocus>

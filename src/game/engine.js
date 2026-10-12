@@ -59,10 +59,11 @@ function beginTurn(state, faction) {
 // rivals: the CPU factions, in turn order after the human (default: the classic duel).
 export function createGame(humanFaction, rng = Math.random, rivals = [opponentOf(humanFaction)]) {
   const factions = [humanFaction, ...rivals];
-  // Deal round-robin starting from the last player, so whoever moves later gets
-  // the leftover states (2 factions: 13/14, 4 factions: 6/7/7/7).
+  // Deal round-robin. Duel: the AI (moving second) gets the 14th state, as in v0.2.
+  // 4 factions: the last seat gets the short hand (7/7/7/6); simulations showed the
+  // first seat holding 6 states was knocked out first a third of the time.
   // Re-deal until nobody starts with a whole region (and its free bonus).
-  const dealOrder = [...factions].reverse();
+  const dealOrder = factions.length === 4 ? [...factions] : [...factions].reverse();
   let order;
   const owner = {};
   do {

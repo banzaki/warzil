@@ -276,7 +276,7 @@ b.caiado {
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-.hud .player-chip:last-child {
+.hud > .player-chip:last-child {
   flex-direction: row-reverse;
   padding: 6px 6px 6px 12px;
   text-align: right;
@@ -924,7 +924,7 @@ b.caiado {
     gap: 6px;
   }
 
-  .hud .player-chip:last-child {
+  .hud > .player-chip:last-child {
     padding: 4px 4px 4px 8px;
   }
 
@@ -1025,4 +1025,154 @@ b.caiado {
 .badge.spent .pin {
   stroke: var(--yellow);
   stroke-dasharray: 3 2;
+}
+
+/* ---------- v0.3: multi-faction HUD and extra candidates ---------- */
+
+.rivals {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.player-chip.compact {
+  gap: 6px;
+  padding: 3px 10px 3px 3px;
+}
+
+.player-chip.compact .player-info strong {
+  font-size: 0.85rem;
+}
+
+.player-chip.compact .player-info span {
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.player-chip.out {
+  opacity: 0.55;
+  filter: grayscale(0.8);
+}
+
+.match-size {
+  margin: -6px 0 14px;
+  color: var(--yellow);
+  font-weight: 800;
+}
+
+.more {
+  margin: 18px auto 0;
+  max-width: 560px;
+  text-align: left;
+}
+
+.more summary {
+  cursor: pointer;
+  list-style: none;
+  width: fit-content;
+  margin: 0 auto;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 2px dashed rgba(255, 255, 255, 0.45);
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 800;
+  font-size: 0.92rem;
+}
+
+.more summary::-webkit-details-marker {
+  display: none;
+}
+
+.more[open] summary {
+  border-style: solid;
+}
+
+.more-hint {
+  margin: 10px 0 8px;
+  text-align: center;
+  font-size: 0.85rem;
+  opacity: 0.8;
+}
+
+.extras {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.extra {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px 6px 6px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 2px solid transparent;
+}
+
+.extra.on {
+  background: #fff;
+  border-color: var(--c);
+  color: var(--ink);
+}
+
+.extra .caricature {
+  flex-shrink: 0;
+}
+
+.extra-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.extra-text small {
+  opacity: 0.75;
+}
+
+.extra-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.extra .chip:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+@media (max-width: 560px) {
+  .hud.multi {
+    grid-template-columns: 1fr;
+  }
+
+  .hud.multi .rivals {
+    justify-content: stretch;
+    flex-wrap: nowrap;
+  }
+
+  .hud.multi .player-chip.compact {
+    flex: 1;
+    min-width: 0;
+    padding: 3px 6px 3px 3px;
+  }
+
+  .hud.multi .player-chip.compact .caricature {
+    width: 30px;
+    height: 30px;
+  }
+
+  .extra {
+    flex-wrap: wrap;
+  }
+
+  .extra-actions {
+    width: 100%;
+  }
 }
