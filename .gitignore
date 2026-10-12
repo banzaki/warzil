@@ -1,0 +1,24 @@
+# Dependencies & build output
+node_modules/
+dist/
+dist-ssr/
+
+# Environment & credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Caches & temp
+.vite/
+.cache/
+*.tmp
+*.log
+npm-debug.log*
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

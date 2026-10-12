@@ -1,0 +1,331 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import brazil from '@svg-maps/brazil';
+import { ADJACENCY, STATES, STATE_IDS } from '../src/game/data.js';
+import {
+  attack,
+  attackerDiceCount,
+  blitz,
+  calcReinforcements,
+  canAttack,
+  canFortify,
+  createGame,
+  defenderDiceCount,
+  endAttack,
+  endTurn,
+  fortify,
+  movableTroops,
+  occupy,
+  placeTroops,
+  territoriesOf,
+} from '../src/game/engine.js';
+import { aiStep } from '../src/game/ai.js';
+
+// Deterministic RNG so failures are reproducible.
+function seeded(seed) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// RNG that yields the given die faces in order (1..6), for scripted rolls.
+const dice = (...faces) => {
+  let i = 0;
+  return () => (faces[i++ % faces.length] - 1) / 6 + 0.01;
+};
+
+function assertInvariants(state) {
+  for (const id of STATE_IDS) {
+    assert.ok(state.troops[id] >= 1, `${id} has ${state.troops[id]} troops`);
+    assert.ok(['lula', 'flavio'].includes(state.owner[id]));
+  }
+}
+
+// A hand-built board: Lula owns everything except the listed Flávio states.
+function board({ flavio = [], troops = {}, phase = 'attack' } = {}) {
+  const g = createGame('lula', seeded(1));
+  const owner = Object.fromEntries(STATE_IDS.map((id) => [id, flavio.includes(id) ? 'flavio' : 'lula']));
+  const t = Object.fromEntries(STATE_IDS.map((id) => [id, 1]));
+  return { ...g, owner, troops: { ...t, ...troops }, phase, current: 'lula', reinforcements: 0, movedOut: {}, received: {} };
+}
+
+// ---------- Board integrity ----------
+
+test('board has 27 territories matching the SVG map', () => {
+  assert.equal(STATE_IDS.length, 27);
+  const mapIds = brazil.locations.map((l) => l.id).sort();
+  assert.deepEqual([...STATE_IDS].sort(), mapIds);
+});
+
+test('adjacency is symmetric and the graph is connected', () => {
+  for (const [a, list] of Object.entries(ADJACENCY)) {
+    for (const b of list) assert.ok(ADJACENCY[b].includes(a), `${a}-${b} not symmetric`);
+  }
+  const seen = new Set(['sp']);
+  const queue = ['sp'];
+  while (queue.length) for (const n of ADJACENCY[queue.shift()]) if (!seen.has(n)) seen.add(n), queue.push(n);
+  assert.equal(seen.size, 27);
+  assert.ok(STATES.df && ADJACENCY.df.includes('go'));
+});
+
+test('new game splits the map 13/14 with 40 troops each', () => {
+  const g = createGame('lula', seeded(1));
+  assert.equal(territoriesOf(g, 'lula').length, 13);
+  assert.equal(territoriesOf(g, 'flavio').length, 14);
+  for (const f of ['lula', 'flavio']) {
+    const total = territoriesOf(g, f).reduce((s, id) => s + g.troops[id], 0);
+    assert.equal(total, 40);
+  }
+  assert.equal(g.current, 'lula');
+  assert.equal(g.phase, 'reinforce');
+  assert.equal(g.reinforcements, calcReinforcements(g, 'lula').total);
+  assertInvariants(g);
+});
+
+test('nobody starts with a complete region', () => {
+  for (let seed = 1; seed <= 300; seed++) {
+    const g = createGame('lula', seeded(seed));
+    assert.equal(calcReinforcements(g, 'lula').bonus, 0, `seed ${seed}`);
+    assert.equal(calcReinforcements(g, 'flavio').bonus, 0, `seed ${seed}`);
+  }
+});
+
+// ---------- Dice ----------
+
+test('dice counts for 1, 2, 3, 4 and 15 armies', () => {
+  assert.deepEqual([1, 2, 3, 4, 15].map(attackerDiceCount), [0, 1, 2, 3, 3]);
+  assert.deepEqual([1, 2, 3, 4, 15].map(defenderDiceCount), [1, 2, 3, 3, 3]);
+
+  // Same thing through a real attack (sp -> pr), all sixes vs ones.
+  for (const [armies, expected] of [[2, 1], [3, 2], [4, 3], [15, 3]]) {
+    const g = attack(board({ flavio: ['pr'], troops: { sp: armies, pr: 15 } }), 'sp', 'pr', dice(6));
+    assert.equal(g.lastRoll.attackerDice.length, expected, `${armies} armies`);
+    assert.equal(g.lastRoll.defenderDice.length, 3);
+  }
+  // 1 army cannot attack at all.
+  const g1 = board({ flavio: ['pr'], troops: { sp: 1, pr: 1 } });
+  assert.equal(canAttack(g1, 'sp', 'pr'), false);
+  assert.equal(attack(g1, 'sp', 'pr', dice(6)), g1);
+});
+
+test('dice are compared high to low in pairs, ties go to the defender', () => {
+  const g = board({ flavio: ['pr'], troops: { sp: 10, pr: 10 } });
+  // Attacker 6,4,2 vs defender 5,4,3 (rolled out of order on purpose).
+  const r = attack(g, 'sp', 'pr', dice(2, 6, 4, 3, 5, 4));
+  assert.deepEqual(r.lastRoll.attackerDice, [6, 4, 2]);
+  assert.deepEqual(r.lastRoll.defenderDice, [5, 4, 3]);
+  // 6>5 wins, 4=4 tie -> defender, 2<3 loses.
+  assert.equal(r.lastRoll.defenderLoss, 1);
+  assert.equal(r.lastRoll.attackerLoss, 2);
+  assert.equal(r.troops.sp, 8);
+  assert.equal(r.troops.pr, 9);
+
+  // All ties: attacker loses every pair.
+  const t = attack(g, 'sp', 'pr', dice(4));
+  assert.equal(t.troops.sp, 7);
+  assert.equal(t.troops.pr, 10);
+
+  // Fewer attacker dice: only that many pairs are compared.
+  const one = attack(board({ flavio: ['pr'], troops: { sp: 2, pr: 3 } }), 'sp', 'pr', dice(6, 1, 1, 1));
+  assert.equal(one.lastRoll.defenderLoss + one.lastRoll.attackerLoss, 1);
+});
+
+// ---------- Battle phase ----------
+
+test('many attacks in one turn, same selection kept between rolls', () => {
+  let g = board({ flavio: ['pr', 'mg'], troops: { sp: 30, pr: 20, mg: 20 } });
+  for (let i = 0; i < 8; i++) {
+    g = attack(g, 'sp', 'pr', dice(1)); // attacker always loses: 3 per roll
+    if (i < 8 && g.troops.sp >= 2) {
+      assert.equal(g.selected, 'sp');
+      assert.equal(g.target, 'pr');
+    }
+  }
+  assert.equal(g.troops.sp, 6);
+  // Can still switch to another valid target in the same phase.
+  g = attack(g, 'sp', 'mg', dice(6, 6, 6, 1, 1, 1));
+  assert.equal(g.troops.mg, 17);
+  assert.equal(g.phase, 'attack');
+});
+
+test('conquest: minimum = dice of the final roll, choose up to all but one', () => {
+  const g = board({ flavio: ['pr', 'sc'], troops: { sp: 10, pr: 1, sc: 2 } });
+  const c = attack(g, 'sp', 'pr', dice(6, 6, 6, 1));
+  assert.equal(c.owner.pr, 'lula');
+  assert.equal(c.lastRoll.conquered, true);
+  assert.equal(c.phase, 'occupy');
+  assert.deepEqual(c.pendingOccupy, { from: 'sp', to: 'pr', min: 3, max: 9 });
+  assert.equal(c.troops.pr, 3);
+  assert.equal(c.troops.sp, 7);
+
+  const minimum = occupy(c, 3);
+  assert.equal(minimum.troops.pr, 3);
+  assert.equal(minimum.troops.sp, 7);
+
+  const maximum = occupy(c, 9);
+  assert.equal(maximum.troops.pr, 9);
+  assert.equal(maximum.troops.sp, 1);
+
+  // Out-of-range requests are clamped to the legal range.
+  assert.equal(occupy(c, 1).troops.pr, 3);
+  assert.equal(occupy(c, 99).troops.sp, 1);
+
+  // Conquered state can keep attacking right away.
+  assert.equal(maximum.phase, 'attack');
+  assert.equal(maximum.selected, 'pr');
+  assert.ok(canAttack(maximum, 'pr', 'sc'));
+});
+
+test('conquest with exactly enough armies skips the choice, origin keeps 1', () => {
+  // 2 armies -> 1 die -> must move 1, nothing left to choose.
+  const c = attack(board({ flavio: ['pr', 'rs'], troops: { sp: 2, pr: 1 } }), 'sp', 'pr', dice(6, 1));
+  assert.equal(c.owner.pr, 'lula');
+  assert.equal(c.phase, 'attack');
+  assert.equal(c.troops.sp, 1);
+  assert.equal(c.troops.pr, 1);
+});
+
+test('consecutive conquests in one turn', () => {
+  let g = board({ flavio: ['pr', 'sc', 'rs'], troops: { sp: 20, pr: 1, sc: 1, rs: 1, ms: 1 } });
+  g = blitz(g, 'sp', 'pr', dice(6, 1));
+  g = occupy(g, 99);
+  g = blitz(g, 'pr', 'sc', dice(6, 1));
+  g = occupy(g, 99);
+  g = blitz(g, 'sc', 'rs', dice(6, 1));
+  assert.equal(g.phase, 'over');
+  assert.equal(g.winner, 'lula');
+  assert.equal(endTurn(g), g);
+});
+
+// ---------- Movement ----------
+
+test('several moves in one turn, one outgoing move per state', () => {
+  let g = board({ flavio: ['rs'], troops: { sp: 10, mg: 4, go: 6 }, phase: 'fortify' });
+  g = fortify(g, 'sp', 'mg', 5);
+  assert.equal(g.troops.sp, 5);
+  assert.equal(g.troops.mg, 9);
+  assert.equal(g.phase, 'fortify', 'moving does not end the turn');
+
+  // SP already moved out: no second move, even to another neighbour.
+  assert.equal(canFortify(g, 'sp', 'rj'), false);
+  assert.equal(fortify(g, 'sp', 'rj', 1), g);
+
+  // MG received 5: only its own armies (4 - 1 = 3) may leave.
+  assert.equal(movableTroops(g, 'mg'), 3);
+  const chained = fortify(g, 'mg', 'go', 99);
+  assert.equal(chained.troops.mg, 6);
+  assert.equal(chained.troops.go, 9);
+
+  // A different state can still move independently.
+  const other = fortify(chained, 'go', 'ms', 99);
+  assert.equal(other.troops.go, 4, 'GO keeps the 3 it just received + 1');
+  assert.equal(other.troops.ms, 6);
+});
+
+test('received armies cannot be chained onward', () => {
+  let g = board({ flavio: ['rs'], troops: { sp: 10, mg: 1 }, phase: 'fortify' });
+  g = fortify(g, 'sp', 'mg', 9);
+  assert.equal(g.troops.mg, 10);
+  assert.equal(movableTroops(g, 'mg'), 0);
+  assert.equal(canFortify(g, 'mg', 'go'), false);
+});
+
+test('movement rejects enemy, non-adjacent and emptying moves', () => {
+  const g = board({ flavio: ['pr'], troops: { sp: 5, ba: 5 }, phase: 'fortify' });
+  assert.equal(canFortify(g, 'sp', 'pr'), false, 'enemy');
+  assert.equal(canFortify(g, 'sp', 'ba'), false, 'not adjacent');
+  assert.equal(fortify(g, 'sp', 'mg', 50).troops.sp, 1, 'origin keeps 1');
+  assert.equal(canFortify(board({ troops: { sp: 1 }, phase: 'fortify' }), 'sp', 'mg'), false);
+  assert.equal(canFortify({ ...g, phase: 'attack' }, 'sp', 'mg'), false, 'only in movement phase');
+});
+
+test('movement limits reset next turn', () => {
+  let g = board({ flavio: ['rs'], troops: { sp: 10, mg: 1, rs: 1 }, phase: 'fortify' });
+  g = fortify(g, 'sp', 'mg', 9);
+  g = endTurn(g); // Flávio
+  g = endTurn(endAttack({ ...g, phase: 'attack' })); // back to Lula
+  assert.deepEqual(g.movedOut, {});
+  assert.deepEqual(g.received, {});
+});
+
+// ---------- Full turns & AI ----------
+
+test('reinforce -> attack -> occupy -> move -> AI turn', () => {
+  const rng = seeded(7);
+  let g = createGame('flavio', rng);
+  const mine = territoriesOf(g, 'flavio');
+  const from = mine.find((id) => ADJACENCY[id].some((n) => g.owner[n] === 'lula'));
+  const to = ADJACENCY[from].find((n) => g.owner[n] === 'lula');
+  g = placeTroops(g, from, 999);
+  assert.equal(g.phase, 'attack');
+  assert.equal(g.reinforcements, 0);
+
+  const own = mine.find((id) => id !== from);
+  assert.equal(attack(g, from, own, rng), g);
+
+  g = { ...g, troops: { ...g.troops, [from]: 30, [to]: 1 } };
+  g = blitz(g, from, to, rng);
+  assert.equal(g.owner[to], 'flavio');
+  assert.equal(g.phase, 'occupy');
+  g = occupy(g, 5);
+  assert.equal(g.phase, 'attack');
+  assertInvariants(g);
+
+  g = endAttack(g);
+  assert.equal(g.phase, 'fortify');
+  g = fortify(g, from, to, 3);
+  g = endTurn(g, rng);
+  assert.equal(g.current, 'lula');
+  assert.equal(g.phase, 'reinforce');
+
+  let steps = 0;
+  while (g.current === 'lula' && g.phase !== 'over' && steps++ < 1000) g = aiStep(g, rng);
+  assert.ok(steps < 1000, 'AI turn did not finish');
+  assertInvariants(g);
+});
+
+test('AI follows the same movement rules', () => {
+  // Interior SP and MG both want to push to the front; AI must not chain.
+  const rng = seeded(5);
+  let g = board({ flavio: ['rs', 'sc', 'pr'], troops: { sp: 10, ms: 5, rs: 1, sc: 1, pr: 1 }, phase: 'fortify' });
+  g = { ...g, current: 'lula' };
+  const before = { ...g.troops };
+  let steps = 0;
+  const seen = [];
+  while (g.current === 'lula' && steps++ < 100) {
+    const prev = g;
+    g = aiStep(g, rng);
+    if (g.current === 'lula') {
+      const from = STATE_IDS.find((id) => g.movedOut[id] && !prev.movedOut[id]);
+      assert.ok(from, 'each AI step is one legal move');
+      assert.ok(!seen.includes(from), 'state moved out twice');
+      seen.push(from);
+    }
+  }
+  assert.ok(steps < 100);
+  const total = (t) => STATE_IDS.reduce((s, id) => s + t[id], 0);
+  assert.equal(total(g.troops), total(before), 'no armies created or lost');
+});
+
+test('AI vs AI games always reach a winner', () => {
+  const wins = { lula: 0, flavio: 0 };
+  for (let seed = 1; seed <= 200; seed++) {
+    const rng = seeded(seed);
+    let g = createGame(seed % 2 ? 'lula' : 'flavio', rng);
+    let steps = 0;
+    while (g.phase !== 'over' && steps++ < 30000) {
+      const prevPhase = g.phase;
+      g = aiStep(g, rng);
+      if (prevPhase !== 'occupy' && steps % 25 === 0) assertInvariants(g);
+    }
+    assert.equal(g.phase, 'over', `seed ${seed} never finished (turn ${g.turn})`);
+    assert.equal(territoriesOf(g, g.winner).length, 27);
+    wins[g.winner]++;
+  }
+  assert.equal(wins.lula + wins.flavio, 200);
+});
