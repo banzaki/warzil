@@ -15,20 +15,35 @@ function regionProgress(state, region, faction) {
   return ids.filter((id) => state.owner[id] === faction).length / ids.length;
 }
 
-function targetValue(state, to, faction) {
+// The rival holding the fewest states. With 3-4 factions the AI prefers to
+// finish off the weakest one, which keeps multi-faction matches short.
+function weakestOf(state, me) {
+  let best = null;
+  let bestCount = Infinity;
+  for (const f of state.factions) {
+    if (f === me || state.eliminated.includes(f)) continue;
+    const count = STATE_IDS.filter((id) => state.owner[id] === f).length;
+    if (count < bestCount) [best, bestCount] = [f, count];
+  }
+  return best;
+}
+
+function targetValue(state, to, faction, weakest) {
   const region = STATES[to].region;
-  return regionProgress(state, region, faction) * REGIONS[region].bonus;
+  const finishBonus = state.factions.length > 2 && state.owner[to] === weakest ? 1.5 : 0;
+  return regionProgress(state, region, faction) * REGIONS[region].bonus + finishBonus;
 }
 
 function bestAttack(state) {
   const me = state.current;
+  const weakest = weakestOf(state, me);
   let best = null;
   for (const from of STATE_IDS) {
     if (state.owner[from] !== me || state.troops[from] < 3) continue;
     for (const to of enemyNeighbors(state, from)) {
       const margin = state.troops[from] - state.troops[to];
       if (margin < 2) continue;
-      const score = margin + targetValue(state, to, me) * 2;
+      const score = margin + targetValue(state, to, me, weakest) * 2;
       if (!best || score > best.score) best = { from, to, score };
     }
   }
@@ -37,6 +52,7 @@ function bestAttack(state) {
 
 function pickReinforceTarget(state) {
   const me = state.current;
+  const weakest = weakestOf(state, me);
   let best = null;
   for (const id of STATE_IDS) {
     if (state.owner[id] !== me) continue;
@@ -45,7 +61,7 @@ function pickReinforceTarget(state) {
     // Prefer staging next to weak, valuable enemy states.
     let score = -Infinity;
     for (const e of enemies) {
-      score = Math.max(score, 12 - state.troops[e] + targetValue(state, e, me) * 3);
+      score = Math.max(score, 12 - state.troops[e] + targetValue(state, e, me, weakest) * 3);
     }
     score += state.troops[id] * 0.3;
     if (!best || score > best.score) best = { id, score };

@@ -409,3 +409,22 @@ test('defender colour comes from the real owner', () => {
   assert.equal(attack(g, 'sp', 'mg', dice(3)).lastRoll.defender, 'cury');
   assert.equal(attack(g, 'sp', 'pr', dice(3)).lastRoll.defender, 'flavio');
 });
+
+test('AI-only matches with 3 and 4 factions always finish', () => {
+  for (const rivals of [['flavio', 'cury'], ['flavio', 'renan', 'caiado']]) {
+    for (let seed = 1; seed <= 150; seed++) {
+      const rng = seeded(seed);
+      let g = createGame('lula', rng, rivals);
+      let steps = 0;
+      while (g.phase !== 'over' && steps++ < 30000) {
+        const prevPhase = g.phase;
+        g = aiStep(g, rng);
+        if (prevPhase !== 'occupy' && steps % 25 === 0) assertInvariants(g);
+      }
+      assert.equal(g.phase, 'over', `${rivals.length + 1} factions, seed ${seed} never finished`);
+      assert.ok(['victory', 'knockout'].includes(g.log[0].type));
+      if (g.log[0].type === 'victory') assert.equal(territoriesOf(g, g.winner).length, 27);
+      else assert.equal(territoriesOf(g, 'lula').length, 0);
+    }
+  }
+});
