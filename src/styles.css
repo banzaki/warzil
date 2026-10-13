@@ -1270,7 +1270,7 @@ b.caiado {
   cursor: default;
 }
 
-.sim-start {
+.btn.sim-start {
   display: block;
   margin: 12px auto 0;
   min-width: 240px;
@@ -1279,7 +1279,7 @@ b.caiado {
   box-shadow: 0 4px 0 #c79100;
 }
 
-.sim-start:disabled {
+.btn.sim-start:disabled {
   opacity: 0.5;
   cursor: default;
 }

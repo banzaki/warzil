@@ -86,7 +86,7 @@ export default function BrazilMap({ game, clickable, highlighted, spent, onSelec
           const { label, callout } = STATES[id];
           const [x, y] = callout ?? label;
           return (
-            <g key={id} className={`badge ${owner[id]} ${spent.has(id) ? 'spent' : ''}`} onClick={() => onSelect(id)}>
+            <g key={id} data-badge={id} className={`badge ${owner[id]} ${spent.has(id) ? 'spent' : ''}`} onClick={() => onSelect(id)}>
               {callout && <line x1={label[0]} y1={label[1]} x2={x} y2={y} className="leader" />}
               {callout && <circle cx={label[0]} cy={label[1]} r="2" className="leader-dot" />}
               <circle cx={x} cy={y} r="11" className="pin" />
