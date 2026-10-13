@@ -159,11 +159,11 @@ export default function StartScreen({ invited, onInvitedChange, deal, onDealChan
       <section className="how">
         <h3>Como jogar</h3>
         <ol>
-          <li><b>Comício:</b> coloque seus reforços nos seus estados.</li>
+          <li><b>Comício:</b> todos colocam seus reforços antes de qualquer ataque. Errou? Dá para desfazer.</li>
           <li><b>Batalha:</b> ataque vizinhos quantas vezes quiser, com até 3 dados. Empate é da defesa.</li>
           <li><b>Movimentação:</b> cada estado envia exércitos uma vez por turno. Quem chega não sai de novo.</li>
         </ol>
-        <p>Domine uma região inteira para ganhar tropas bônus. Seja o último candidato no mapa para vencer.</p>
+        <p>A cada rodada, um candidato diferente abre a batalha. Domine uma região inteira para ganhar bônus. Seja o último candidato no mapa para vencer.</p>
       </section>
 
       <footer className="disclaimer">

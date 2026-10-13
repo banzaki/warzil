@@ -22,6 +22,8 @@ Other scripts:
    highest dice are compared and ties go to the defender.
 3. **Regroup** – optionally move troops once between two neighbouring states, then end the turn.
 
+Each round: every faction rallies (places reinforcements, with undo) before anyone attacks; the faction opening the battle rotates every round. Optional "Brasil Polarizado" start for Lula vs. Flávio, a date-seeded "Desafio do dia", a shareable PNG victory card (set `VITE_PUBLIC_URL` to print the public address) and a ⚙️ settings menu.
+
 "Simular guerra" on the start screen runs an AI-vs-AI match (2–4 candidates) with pause and 1x/2x/4x speed.
 
 Be the last faction standing to win. Default match: Lula vs. Flávio; "+ Mais candidatos" adds up to two CPU rivals (Cury, Renan, Caiado) for 3–4 factions.
@@ -33,6 +35,8 @@ Be the last faction standing to win. Default match: Lula vs. Flávio; "+ Mais ca
 - `src/game/ai.js` – the CPU opponent, one visible action per step
 - `src/game/texts.js` – UI copy and dialogue engine; candidate lines live in `src/game/lines/` (see its README)
 - `src/game/simulation.js` – AI-vs-AI spectator mode
+- `src/game/daily.js`, `share.js`, `settings.js`, `highlights.js` – daily challenge, share card text, preferences, spectator highlights
+- `scripts/balance.mjs` – balance report (`node scripts/balance.mjs 1000 [polarized]`)
 - `src/components/` – React UI (start screen, map, game screen, caricatures)
 
 ## Credits
