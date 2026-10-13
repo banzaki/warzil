@@ -22,6 +22,8 @@ Other scripts:
    highest dice are compared and ties go to the defender.
 3. **Regroup** – optionally move troops once between two neighbouring states, then end the turn.
 
+"Simular guerra" on the start screen runs an AI-vs-AI match (2–4 candidates) with pause and 1x/2x/4x speed.
+
 Be the last faction standing to win. Default match: Lula vs. Flávio; "+ Mais candidatos" adds up to two CPU rivals (Cury, Renan, Caiado) for 3–4 factions.
 
 ## Project layout
@@ -29,7 +31,8 @@ Be the last faction standing to win. Default match: Lula vs. Flávio; "+ Mais ca
 - `src/game/data.js` – states, regions, land borders, label positions
 - `src/game/engine.js` – pure game rules (state in → new state out)
 - `src/game/ai.js` – the CPU opponent, one visible action per step
-- `src/game/texts.js` – all satirical copy
+- `src/game/texts.js` – UI copy and dialogue engine; candidate lines live in `src/game/lines/` (see its README)
+- `src/game/simulation.js` – AI-vs-AI spectator mode
 - `src/components/` – React UI (start screen, map, game screen, caricatures)
 
 ## Credits
