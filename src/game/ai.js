@@ -15,13 +15,15 @@ function regionProgress(state, region, faction) {
   return ids.filter((id) => state.owner[id] === faction).length / ids.length;
 }
 
-// The rival holding the fewest states. With 3-4 factions the AI prefers to
-// finish off the weakest one, which keeps multi-faction matches short.
-function weakestOf(state, me) {
+// Ties go to the rival who plays next after `me`, so no seat is favoured:
+// scanning the fixed turn list made every AI pick on the earliest seats.
+export function weakestOf(state, me) {
   let best = null;
   let bestCount = Infinity;
-  for (const f of state.factions) {
-    if (f === me || state.eliminated.includes(f)) continue;
+  const i = state.factions.indexOf(me);
+  const relative = [...state.factions.slice(i + 1), ...state.factions.slice(0, i)];
+  for (const f of relative) {
+    if (state.eliminated.includes(f)) continue;
     const count = STATE_IDS.filter((id) => state.owner[id] === f).length;
     if (count < bestCount) [best, bestCount] = [f, count];
   }

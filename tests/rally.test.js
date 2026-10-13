@@ -184,3 +184,19 @@ test('attacks still work normally in the battle stage', () => {
   const to = STATE_IDS.find((t) => canAttack(g, from, t));
   assert.notEqual(attack(g, from, to), g);
 });
+
+test('AI tie-break between equally weak rivals does not depend on seat', async () => {
+  const { weakestOf } = await import('../src/game/ai.js');
+  // Lula holds 9 states, Flávio/Cury/Renan 6 each: every AI faces a tie.
+  const owner = Object.fromEntries(STATE_IDS.map((id, i) => [id, i < 9 ? 'lula' : ['flavio', 'cury', 'renan'][i % 3]]));
+  const g = { ...createGame('lula', seeded(1), ['flavio', 'cury', 'renan']), owner };
+  assert.deepEqual(['lula', 'flavio', 'cury', 'renan'].map((f) => territoriesOf(g, f).length), [9, 6, 6, 6]);
+  // Each one picks the tied rival who plays right after it (not always the earliest seat).
+  assert.equal(weakestOf(g, 'lula'), 'flavio');
+  assert.equal(weakestOf(g, 'flavio'), 'cury');
+  assert.equal(weakestOf(g, 'cury'), 'renan');
+  assert.equal(weakestOf(g, 'renan'), 'flavio');
+  // A strictly weaker rival still wins over the tie rule.
+  const weaker = { ...g, owner: { ...owner, [STATE_IDS.find((id) => owner[id] === 'renan')]: 'lula' } };
+  assert.equal(weakestOf(weaker, 'lula'), 'renan');
+});
