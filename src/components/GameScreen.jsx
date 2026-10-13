@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import BrazilMap from './BrazilMap.jsx';
 import Caricature from './Caricature.jsx';
+import QuantityPicker from './QuantityPicker.jsx';
 import { FACTIONS, REGIONS, STATES, STATE_IDS } from '../game/data.js';
 import {
   attack,
@@ -49,23 +50,6 @@ function pairResults(roll) {
   const att = roll.attackerDice.map((v, i) => (i >= pairs ? 'idle' : v > roll.defenderDice[i] ? 'win' : 'lose'));
   const def = roll.defenderDice.map((v, i) => (i >= pairs ? 'idle' : att[i] === 'win' ? 'lose' : 'win'));
   return { att, def };
-}
-
-function Stepper({ value, min, max, onChange }) {
-  return (
-    <div className="stepper">
-      <button onClick={() => onChange(Math.max(min, value - 1))} disabled={value <= min} aria-label="Menos">
-        −
-      </button>
-      <span className="stepper-value">{value}</span>
-      <button onClick={() => onChange(Math.min(max, value + 1))} disabled={value >= max} aria-label="Mais">
-        +
-      </button>
-      <button className="small" onClick={() => onChange(max)} disabled={value >= max}>
-        Máx
-      </button>
-    </div>
-  );
 }
 
 // compact: smaller chip used for CPU rivals in 3-4 faction matches.
@@ -246,14 +230,14 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate }
     panel = (
       <div className="panel-body">
         <p>
-          🎉 Conquistou <b>{stateName(to)}</b>! Quantos exércitos entram?
+          🎉 Conquistou <b>{stateName(to)}</b>!
         </p>
-        <Stepper value={occupyTotal} min={min} max={max} onChange={setOccupyTotal} />
+        <QuantityPicker label="Quantos exércitos entram?" min={min} max={max} value={occupyTotal} onChange={setOccupyTotal} />
         <p className="hint">
           Mínimo {min} (dados do último ataque). {stateName(from)} fica com {game.troops[from] + min - occupyTotal}.
         </p>
         <button className="btn primary" onClick={() => setGame(occupy(game, occupyTotal))}>
-          Confirmar
+          Confirmar {occupyTotal}
         </button>
       </div>
     );
@@ -265,9 +249,15 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate }
         {ready ? (
           <>
             <p>
-              Mover de <b>{stateName(from)}</b> para <b>{stateName(game.target)}</b>:
+              De <b>{stateName(from)}</b> para <b>{stateName(game.target)}</b>
             </p>
-            <Stepper value={moveAmount} min={1} max={movableTroops(game, from)} onChange={setMoveAmount} />
+            <QuantityPicker
+              label="Quantos exércitos deseja enviar?"
+              min={1}
+              max={movableTroops(game, from)}
+              value={moveAmount}
+              onChange={setMoveAmount}
+            />
             <div className="buttons">
               <button className="btn primary" onClick={() => setGame(fortify(game, from, game.target, moveAmount))}>
                 Mover {moveAmount}
@@ -280,7 +270,7 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate }
         ) : (
           <p className="hint">
             {from
-              ? `${stateName(from)} pode enviar até ${movableTroops(game, from)}. Escolha um estado vizinho seu.`
+              ? `${stateName(from)} pode enviar até ${movableTroops(game, from)}${game.received[from] ? ` (os ${game.received[from]} recebidos ficam)` : ''}. Escolha um estado vizinho seu.`
               : PHASE_HELP.fortify}
           </p>
         )}
