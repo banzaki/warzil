@@ -11,9 +11,9 @@ const EVENT_EXTRA = { conquer: 500, bigLoss: 300, lead: 700, region: 1000, regio
 // Safety net only: real matches end in well under 2,000 steps.
 export const MAX_SIM_STEPS = 20000;
 
-export function createSimulation(factions, rng = Math.random, speed = 1) {
-  const game = createGame(factions[0], rng, factions.slice(1), { spectator: true });
-  return { factions, game, paused: false, speed, steps: 0, stalled: false };
+export function createSimulation(factions, rng = Math.random, speed = 1, armies = 1) {
+  const game = createGame(factions[0], rng, factions.slice(1), { spectator: true, armies });
+  return { factions, armies, game, paused: false, speed, steps: 0, stalled: false };
 }
 
 export function stepSimulation(sim, rng = Math.random) {
@@ -25,7 +25,7 @@ export function stepSimulation(sim, rng = Math.random) {
 export const togglePause = (sim) => ({ ...sim, paused: !sim.paused });
 export const setSpeed = (sim, speed) => (SIM_SPEEDS.includes(speed) ? { ...sim, speed } : sim);
 // New deal with the same candidates, keeping the chosen speed.
-export const restartSimulation = (sim, rng = Math.random) => createSimulation(sim.factions, rng, sim.speed);
+export const restartSimulation = (sim, rng = Math.random) => createSimulation(sim.factions, rng, sim.speed, sim.armies);
 
 export function simulationDelay(sim) {
   const latest = sim.game.log[0];

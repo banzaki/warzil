@@ -210,7 +210,14 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate, 
         <button className="btn primary" onClick={() => setGame(finishRally(game))} disabled={game.reinforcements > 0}>
           {game.reinforcements > 0 ? `Faltam ${game.reinforcements}` : 'Concluir comício ✓'}
         </button>
-        <p className="hint small">Todos fazem o comício antes de qualquer ataque.</p>
+        {game.round === 1 && game.openingBonus?.[human] > 0 && (
+          <p className="hint small">Inclui +{game.openingBonus[human]} de compensação de abertura (você começou com menos).</p>
+        )}
+        <p className="hint small">
+          {game.round === 1
+            ? `Rodada 1: todos fazem o comício antes de qualquer ataque. Sorteio: ${name(game.factions[game.opener ?? 0])} abre a partida.`
+            : 'Seu turno: comício, batalha e movimentação.'}
+        </p>
       </div>
     );
   } else if (game.phase === 'attack') {

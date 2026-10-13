@@ -8,6 +8,8 @@ export const SETTING_OPTIONS = {
   animations: ['normal', 'reduced'],
   aiSpeed: ['normal', 'fast', 'veryFast'],
   reinforce: ['one', 'five', 'all', 'picker'],
+  // Starting armies per state, chosen when setting up a match.
+  armies: [1, 2, 3, 'mixed'],
 };
 
 export const DEFAULT_SETTINGS = {
@@ -15,6 +17,7 @@ export const DEFAULT_SETTINGS = {
   animations: 'normal',
   aiSpeed: 'normal',
   reinforce: 'one',
+  armies: 1,
 };
 
 // Multiplies the delay between AI actions in player matches (see pace.js).

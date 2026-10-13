@@ -49,12 +49,14 @@ export function dailyChallenge(key = dailyKey()) {
     [pool[i], pool[j]] = [pool[j], pool[i]];
   }
   const factions = pool.slice(0, size);
-  return { key, factions, human: factions[0] };
+  // The starting-army mode is part of the challenge, so everybody gets the same map.
+  const armies = [1, 2, 3, 'mixed'][Math.floor(rng() * 4)];
+  return { key, factions, human: factions[0], armies };
 }
 
 export function createDailyGame(challenge) {
-  const { key, human, factions } = challenge;
-  return { ...createGame(human, seededRng(hash(`warzil-deal-${key}`)), factions.slice(1)), daily: key };
+  const { key, human, factions, armies } = challenge;
+  return { ...createGame(human, seededRng(hash(`warzil-deal-${key}`)), factions.slice(1), { armies }), daily: key };
 }
 
 // ---------- Personal results (this browser only) ----------

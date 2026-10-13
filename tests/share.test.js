@@ -22,7 +22,7 @@ function finished(game, winner, round) {
 test('share text: player win, player loss, simulation and daily challenge', () => {
   const duel = createGame('lula', seededRng(3));
   const win = shareText(cardModel(finished(duel, 'lula', 9), { quote: 'Picanha liberada.', url: 'https://warzil.vercel.app' }));
-  assert.match(win, /Venci o WARZIL jogando de Lula em 9 rodadas, com 2 facções/);
+  assert.match(win, /Venci o WARZIL jogando de Lula em 9 rodadas, com 2 candidatos/);
   assert.match(win, /“Picanha liberada.”/);
   assert.match(win, /Jogue: https:\/\/warzil.vercel.app/);
   assert.match(win, /Sátira fictícia/);
@@ -32,7 +32,7 @@ test('share text: player win, player loss, simulation and daily challenge', () =
   assert.doesNotMatch(loss, /Jogue:/, 'no address line without a public URL');
 
   const sim = createGame('cury', seededRng(3), ['renan', 'caiado'], { spectator: true });
-  assert.match(shareText(cardModel(finished(sim, 'renan', 11), { quote: 'x' })), /Renan venceu a simulação do WARZIL em 11 rodadas, com 3 facções/);
+  assert.match(shareText(cardModel(finished(sim, 'renan', 11), { quote: 'x' })), /Renan venceu a simulação do WARZIL em 11 rodadas, com 3 candidatos/);
 
   const daily = createDailyGame(dailyChallenge('2026-10-13'));
   const text = shareText(cardModel(finished(daily, daily.human, 8), { quote: 'x' }));

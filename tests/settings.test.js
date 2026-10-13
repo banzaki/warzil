@@ -32,7 +32,7 @@ test('defaults: sound off, normal pace, one reinforcement per tap', () => {
 
 test('settings persist and restore', () => {
   const storage = memoryStorage();
-  const chosen = { sound: true, animations: 'reduced', aiSpeed: 'veryFast', reinforce: 'picker' };
+  const chosen = { sound: true, animations: 'reduced', aiSpeed: 'veryFast', reinforce: 'picker', armies: 'mixed' };
   saveSettings(chosen, storage);
   assert.deepEqual(loadSettings(storage), chosen);
   assert.deepEqual(resetSettings(storage), DEFAULT_SETTINGS);

@@ -46,7 +46,7 @@ function useHeldEvent(log) {
 
 // "Simular guerra": every candidate is played by the computer; the viewer only watches.
 export default function SimulationScreen({ factions, onMenu, prefs }) {
-  const [sim, setSim] = useState(() => createSimulation(factions));
+  const [sim, setSim] = useState(() => createSimulation(factions, Math.random, 1, prefs.settings.armies));
   const [choose, setChoose] = useState(createLinePicker);
   const { game } = sim;
   useGameSounds(game);

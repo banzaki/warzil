@@ -47,7 +47,7 @@ export function shareText(model) {
       ? `Venci o WARZIL jogando de ${model.winnerName}`
       : `${model.winnerName} venceu o WARZIL (eu joguei de ${model.playerName})`;
   const lines = [
-    `🏆 ${who} em ${model.rounds} rodadas, com ${model.factionCount} facções.`,
+    `🏆 ${who} em ${model.rounds} rodadas, com ${model.factionCount} candidatos.`,
     model.daily ? `📅 Desafio do dia ${model.daily}` : null,
     model.quote ? `“${model.quote}”` : null,
     'Sátira fictícia, sem apoio a candidato ou partido.',

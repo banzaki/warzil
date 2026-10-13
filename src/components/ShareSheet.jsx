@@ -116,7 +116,7 @@ export async function renderCard(model, winnerSvg) {
   ctx.fillRect(60, 1170, W - 120, 70);
   ctx.fillStyle = '#fff';
   ctx.font = 'bold 36px Nunito, system-ui, sans-serif';
-  const stats = [`${model.rounds} rodadas`, `${model.factionCount} facções`, model.daily ? `📅 Desafio ${model.daily}` : null].filter(Boolean).join('  ·  ');
+  const stats = [`${model.rounds} rodadas`, `${model.factionCount} candidatos`, model.daily ? `📅 Desafio ${model.daily}` : null].filter(Boolean).join('  ·  ');
   ctx.fillText(stats, W / 2, 1218);
 
   // Footer

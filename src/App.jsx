@@ -42,7 +42,7 @@ export default function App() {
   };
 
   const start = (human, rivals) => {
-    setGame(createGame(human, Math.random, rivals, { deal }));
+    setGame(createGame(human, Math.random, rivals, { deal, armies: settings.armies }));
     setMatchId((n) => n + 1);
   };
   // Daily challenge: same line-up and deal for everybody on that day (key = date).

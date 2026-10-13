@@ -5,6 +5,14 @@ import { EXTRA_CANDIDATES, MAX_FACTIONS, PROTAGONISTS } from '../game/data.js';
 import { CANDIDATES, DISCLAIMER } from '../game/texts.js';
 import { formatDailyKey } from '../game/daily.js';
 
+const ARMY_LABELS = [
+  [1, '1 por estado'],
+  [2, '2'],
+  [3, '3'],
+  ['mixed', 'Misturado (1–5)'],
+];
+const armyLabel = (mode) => (mode === 'mixed' ? 'misturados (1–5)' : `${mode} por estado`);
+
 const MAX_INVITES = MAX_FACTIONS - PROTAGONISTS.length;
 
 const ALL_CANDIDATES = [...PROTAGONISTS, ...EXTRA_CANDIDATES];
@@ -38,7 +46,7 @@ export default function StartScreen({ invited, onInvitedChange, deal, onDealChan
       <h2 className="choose">Escolha seu candidato</h2>
       {invited.length > 0 && (
         <p className="match-size">
-          Partida com {participants.length} facções: {participants.map((f) => CANDIDATES[f].name).join(', ')}
+          Partida com {participants.length} candidatos: {participants.map((f) => CANDIDATES[f].name).join(', ')}
         </p>
       )}
       <div className="candidates">
@@ -51,6 +59,24 @@ export default function StartScreen({ invited, onInvitedChange, deal, onDealChan
             <span className="candidate-cta">Jogar de {CANDIDATES[id].name}</span>
           </button>
         ))}
+      </div>
+
+      <div className="deal-choice">
+        <span>Exércitos iniciais:</span>
+        <div className="chips" role="radiogroup" aria-label="Exércitos iniciais">
+          {ARMY_LABELS.map(([value, label]) => (
+            <button
+              key={String(value)}
+              role="radio"
+              aria-checked={prefs.settings.armies === value}
+              className={`chip ${prefs.settings.armies === value ? 'on' : ''}`}
+              onClick={() => prefs.onChange({ ...prefs.settings, armies: value })}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        {prefs.settings.armies === 'mixed' && <small>De 1 a 5 por estado, com o mesmo total de exércitos para todos.</small>}
       </div>
 
       {invited.length === 0 && (
@@ -68,8 +94,8 @@ export default function StartScreen({ invited, onInvitedChange, deal, onDealChan
           </div>
           {deal === 'polarized' && (
             <small>
-              Cenário fictício: Lula começa concentrado no Norte/Nordeste e Flávio no Centro-Sul. O lado Norte/Nordeste ganha +5
-              exércitos para compensar o território mais espalhado. Não é retrato do eleitorado.
+              Cenário fictício: Lula começa concentrado no Norte/Nordeste e Flávio no Centro-Sul. O lado Norte/Nordeste recebe +2 ou +3
+              reforços no primeiro comício para compensar o território mais espalhado. Não é retrato do eleitorado.
             </small>
           )}
         </div>
@@ -77,7 +103,7 @@ export default function StartScreen({ invited, onInvitedChange, deal, onDealChan
 
       <details className="more" open={showMore} onToggle={(e) => setShowMore(e.currentTarget.open)}>
         <summary>{showMore ? '− Menos candidatos' : '+ Mais candidatos'}</summary>
-        <p className="more-hint">Convide até {MAX_INVITES} para uma partida de 3 ou 4 facções. Os rivais são da CPU.</p>
+        <p className="more-hint">Convide até {MAX_INVITES} para uma partida com 3 ou 4 candidatos. Os adversários são da CPU.</p>
         <ul className="extras">
           {EXTRA_CANDIDATES.map((id) => {
             const on = invited.includes(id);
@@ -108,7 +134,9 @@ export default function StartScreen({ invited, onInvitedChange, deal, onDealChan
       <section className="daily-card">
         <div className="daily-head">
           <strong>📅 Desafio do dia · {formatDailyKey(daily.challenge.key)}</strong>
-          <small>Mesmo começo para todo mundo hoje. Vença no menor número de rodadas.</small>
+          <small>
+            Mesmo começo para todo mundo hoje (exércitos {armyLabel(daily.challenge.armies)}). Vença no menor número de rodadas.
+          </small>
         </div>
         <div className="daily-lineup">
           {daily.challenge.factions.map((f, i) => (
@@ -159,11 +187,14 @@ export default function StartScreen({ invited, onInvitedChange, deal, onDealChan
       <section className="how">
         <h3>Como jogar</h3>
         <ol>
-          <li><b>Comício:</b> todos colocam seus reforços antes de qualquer ataque. Errou? Dá para desfazer.</li>
+          <li><b>Comício:</b> coloque seus reforços. Errou? Dá para desfazer. Na 1ª rodada, todos fazem o comício antes de qualquer ataque.</li>
           <li><b>Batalha:</b> ataque vizinhos quantas vezes quiser, com até 3 dados. Empate é da defesa.</li>
           <li><b>Movimentação:</b> cada estado envia exércitos uma vez por turno. Quem chega não sai de novo.</li>
         </ol>
-        <p>A cada rodada, um candidato diferente abre a batalha. Domine uma região inteira para ganhar bônus. Seja o último candidato no mapa para vencer.</p>
+        <p>
+          Da 2ª rodada em diante, cada candidato faz o turno completo: comício, batalha e movimentação. Quem abre a partida é sorteado e a vez de abrir
+          passa adiante a cada rodada. Domine uma região inteira para ganhar bônus. Seja o último candidato no mapa para vencer.
+        </p>
       </section>
 
       <footer className="disclaimer">
