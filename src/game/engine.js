@@ -167,10 +167,14 @@ export function attack(state, from, to, rng = Math.random) {
     [from]: state.troops[from] - attackerLoss,
     [to]: state.troops[to] - defenderLoss,
   };
-  const lastRoll = { from, to, attacker: state.current, defender: state.owner[to], attackerDice, defenderDice, attackerLoss, defenderLoss, conquered: false };
-  let next = { ...state, troops, lastRoll };
+  // id: increases with every roll, so the UI can replay its feedback animations.
+  const rollCount = (state.rollCount ?? 0) + 1;
+  const lastRoll = { id: rollCount, from, to, attacker: state.current, defender: state.owner[to], attackerDice, defenderDice, attackerLoss, defenderLoss, conquered: false };
+  let next = { ...state, troops, lastRoll, rollCount };
 
   if (troops[to] > 0) {
+    // A full 3-army wipe-out is worth a reaction line.
+    if (attackerLoss === 3) next = addLog(next, { type: 'bigLoss', faction: state.current, state: from }, rng);
     // Keep the same origin and target selected so the player can just roll again.
     if (canAttack(next, from, to)) return { ...next, selected: from, target: to };
     return { ...next, selected: nextAttacker(next, [from]), target: null };
@@ -187,6 +191,17 @@ export function attack(state, from, to, rng = Math.random) {
     troops: { ...troops, [from]: troops[from] - min, [to]: min },
   };
   next = addLog(next, { type: 'conquer', faction: state.current, loser, state: to }, rng);
+
+  // Whole regions changing hands get their own lines and banner.
+  for (const region of controlledRegions(state, loser)) {
+    if (!controlledRegions(next, loser).includes(region)) {
+      next = addLog(next, { type: 'regionLost', faction: loser, by: state.current, region }, rng);
+    }
+  }
+  const before = controlledRegions(state, state.current);
+  for (const region of controlledRegions(next, state.current)) {
+    if (!before.includes(region)) next = addLog(next, { type: 'region', faction: state.current, region }, rng);
+  }
 
   if (territoriesOf(next, loser).length === 0) {
     next = { ...next, eliminated: [...next.eliminated, loser] };

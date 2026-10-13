@@ -1,211 +1,131 @@
-// All satirical copy lives here (Brazilian Portuguese).
-// Rules for every candidate, so nobody gets favoured:
-// - the same number of lines of each kind;
-// - jokes about public personas only: speaking style, catchphrases, hobbies,
-//   home turf. No accusations, health, private family, religion or campaign slogans;
-// - "{state}" is used as a subject to avoid gendered prepositions ("a Bahia", "o Ceará").
-import { FACTIONS, STATES } from './data.js';
+// UI copy and the dialogue engine. Candidate lines live in ./lines/<id>.js
+// (one file per candidate, see ./lines/README.md for the editorial rules).
+import { FACTIONS, REGIONS, STATES } from './data.js';
+import lula from './lines/lula.js';
+import flavio from './lines/flavio.js';
+import cury from './lines/cury.js';
+import renan from './lines/renan.js';
+import caiado from './lines/caiado.js';
+import news from './lines/news.js';
+
+export const LINES = { lula, flavio, cury, renan, caiado };
+export const NEWS = news;
 
 export const DISCLAIMER =
   'Sátira fictícia. Caricaturas originais, falas inventadas. ' +
   'Não é material de campanha. Nenhum apoio a candidato ou partido.';
 
-export const CANDIDATES = {
-  lula: {
-    name: 'Lula',
-    title: 'O Veterano do Palanque',
-    pitch: 'Transforma qualquer jogada em metáfora de futebol. Discurso curto? Nunca antes na história deste país.',
-  },
-  flavio: {
-    name: 'Flávio',
-    title: 'O Senador Herdeiro',
-    pitch: 'Carrega o sobrenome mais famoso do grupo da família. Tenta parecer o moderado da turma.',
-  },
-  cury: {
-    name: 'Cury',
-    title: 'O Psiquiatra Best-seller',
-    pitch: 'Milhões de livros vendidos. Diagnostica o eleitorado com Síndrome do Pensamento Acelerado.',
-  },
-  renan: {
-    name: 'Renan',
-    title: 'O Rei da Live',
-    pitch: 'Faz política em live de três horas, corte de 30 segundos e treta com a velha política.',
-  },
-  caiado: {
-    name: 'Caiado',
-    title: 'O Doutor do Agro',
-    pitch: 'Médico, pecuarista e governador de Goiás. Fala grosso, come pamonha e não abre mão do chapéu.',
-  },
-};
-
-const QUIPS = {
-  start: {
-    lula: ['Companheiros e companheiras! O jogo começou e eu tô no aquecimento desde 1980.'],
-    flavio: ['Pai, pode avisar o grupo da família: hoje eu jogo como titular.'],
-    cury: ['Respire. Antes de conquistar o Brasil, conquiste a si mesmo. Depois o Brasil.'],
-    renan: ['Boa noite, chat! Live começando. Hoje a velha política vai tomar um corte.'],
-    caiado: ['Bom dia, Brasil! Aqui é na base da ordem: um estado de cada vez, sem enrolação.'],
-  },
-  turn: {
-    lula: [
-      'Minha vez. Vou falar rapidinho... três horas, no máximo.',
-      'Isso aqui é igual futebol, companheiro: quem não chuta não faz gol.',
-      'Nunca antes na história deste país alguém jogou dado tão bem.',
-    ],
-    flavio: [
-      'Minha vez. Antes, um print pro grupo da família.',
-      'Calma, gente. Eu sou o moderado da família. Agora: ataque!',
-      'O Senado aprovou minha estratégia. Por unanimidade de um voto: o meu.',
-    ],
-    cury: [
-      'Pausa. Gestão da emoção primeiro, ataque depois.',
-      'Pensamento acelerado detectado. Vou atacar devagar.',
-      'Seja autor da sua história. Eu sou autor de 50 livros e desta rodada.',
-    ],
-    renan: [
-      'Chat, vota aí na enquete: ataco ou ataco?',
-      'Ativa o sininho que vem treta com a velha política.',
-      'Isso aqui vai render corte. Editor, acorda!',
-    ],
-    caiado: [
-      'Deixa eu ajeitar o chapéu e já resolvo.',
-      'Diagnóstico da rodada: falta estado. Tratamento: ataque.',
-      'Comigo é assim: ordem primeiro, pamonha depois.',
-    ],
-  },
-  conquer: {
-    lula: [
-      '{state} agora tem picanha e cervejinha no fim de semana. Promessa é promessa!',
-      'Golaço! {state} entrou de cabeça, igual centroavante raiz.',
-      '{state} ganhou de presente um discurso de quatro horas.',
-      'Alô, {state}! Já marquei uma visita. E mais umas dez viagens pro exterior.',
-      '{state} ganhou um programa social novo. O nome a gente decide no churrasco.',
-    ],
-    flavio: [
-      '{state} tá com a gente! Mandando print no grupo da família.',
-      'Mais um no mapa: {state}. O pai reagiu com três joinhas.',
-      '{state} entrou pro time. Adesivo de carro grátis pra todo mundo!',
-      'Alô, {state}! Mesmo sobrenome, nova temporada.',
-      '{state} virou no estilo senador: com calma, terno e dado de seis.',
-    ],
-    cury: [
-      '{state} agora pratica gestão da emoção. Três vezes ao dia, depois das refeições.',
-      '{state} entrou pro clube do livro. Leitura obrigatória: os meus.',
-      '{state} curou a Síndrome do Pensamento Acelerado. Agora só pensa no Cury.',
-      'Alô, {state}! O Vendedor de Sonhos chegou. Desconto pra quem levar a coleção.',
-      '{state} virou o capítulo 12 do meu próximo best-seller.',
-    ],
-    renan: [
-      '{state} tá com a gente! O chat foi à loucura.',
-      '{state} virou meme. E o meme virou voto.',
-      'Alô, {state}! Live amanhã às 21h: "Como eu virei {state} com 3 dados".',
-      'Mais um no mapa: {state}. O corte de 30 segundos já tá no ar.',
-      '{state} mudou de lado depois de uma thread de 47 posts contra a velha política.',
-    ],
-    caiado: [
-      '{state} agora tem rodeio aos sábados e pamonha aos domingos.',
-      'Porteira aberta: {state} entrou pra fazenda.',
-      '{state} passou no exame clínico: pressão boa e do nosso lado.',
-      'Alô, {state}! Chegou a ordem. E o sertanejo também.',
-      'Mais um no mapa: {state}. Pode pôr na conta da safra.',
-    ],
-  },
-  lose: {
-    lula: [
-      'Perdi {state}? Futebol é assim, companheiro. Tem jogo de volta.',
-      'Caiu {state}. Vou fazer um discurso sobre isso. Longo.',
-    ],
-    flavio: [
-      'Perdi {state}? Vou ver o que o grupo da família acha.',
-      'Caiu {state}. Apagando o post antes que alguém tire print.',
-    ],
-    cury: [
-      'Perder {state} é um convite ao autoconhecimento.',
-      'Caiu {state}. Vou transformar a dor em best-seller.',
-    ],
-    renan: [
-      'Perdi {state}? Live de emergência em cinco minutos.',
-      'Caiu {state}. Vou gravar um vídeo reagindo à minha própria derrota.',
-    ],
-    caiado: [
-      'Perdi {state}? É só a entressafra.',
-      'Caiu {state}. Receitei repouso e contra-ataque.',
-    ],
-  },
-  victory: {
-    lula: [
-      'Vitória total! Nunca antes na história deste país alguém ganhou de 27 a zero.',
-      'O Brasil tá vermelho do Oiapoque ao Chuí. Agora, sobre aquele discurso...',
-    ],
-    flavio: [
-      'Vitória total! O grupo da família tem 9 mil mensagens não lidas.',
-      'O Brasil tá azul do Oiapoque ao Chuí. Segunda temporada confirmada.',
-    ],
-    cury: [
-      'Vitória total! O Brasil inteiro agora gerencia as emoções. Inclusive eu.',
-      'O Brasil tá roxo do Oiapoque ao Chuí. Lançamento do livro semana que vem.',
-    ],
-    renan: [
-      'Vitória total! Recorde de audiência na live da apuração.',
-      'O Brasil tá laranja do Oiapoque ao Chuí. Dá like e compartilha!',
-    ],
-    caiado: [
-      'Vitória total! Pamonha e sertanejo no Brasil inteiro.',
-      'O Brasil tá verde do Oiapoque ao Chuí. Safra recorde de votos.',
-    ],
-  },
-  // Said by whoever takes the human player's last state (multi-faction matches).
-  knockout: {
-    lula: ['Acabou o jogo pra você, companheiro. Mas a gente se vê no segundo turno.'],
-    flavio: ['Tchau! Vou postar o print dessa vitória no grupo.'],
-    cury: ['Saiu do mapa? Respira. A gente conversa sobre isso na próxima sessão.'],
-    renan: ['Saiu do mapa! Valeu pela audiência, deixa o like antes de ir.'],
-    caiado: ['Saiu do mapa! Pode voltar pra casa que a porteira tá aberta.'],
-  },
-};
-
-// Neutral headlines: they never mention a candidate.
-export const NEWS = [
-  'URGENTE: {state} muda de lado após debate acalorado sobre o preço da coxinha.',
-  'Pesquisa: {state} tem 48% de indecisos e 52% que só querem o fim dos jingles.',
-  '{state} bate recorde de santinho por metro quadrado.',
-  'Carros de som de {state} atingem volume detectável do espaço.',
-];
+export const CANDIDATES = Object.fromEntries(
+  Object.entries(LINES).map(([id, l]) => [id, { name: FACTIONS[id].name, ...l.card }]),
+);
 
 export const VICTORY_TITLES = { win: 'Vitória de lavada!', lose: 'Derrota nas urnas!' };
 
-export const DEFEAT_LINES = {
-  lula: 'Lula já marcou a revanche. Ele garante que conhece bem o caminho de volta.',
-  flavio: 'Flávio culpa o algoritmo e pede revanche no grupo da família.',
-  cury: 'Cury já escreve o livro "Como Perder a Guerra sem Perder a Calma".',
-  renan: 'Renan já está ao vivo analisando a própria derrota. Três horas de live.',
-  caiado: 'Caiado volta pra fazenda e jura que a próxima safra é dele.',
-};
+// ---------- Placeholders ----------
 
-const pick = (list, seed) => list[Math.floor(seed * list.length) % list.length];
-const fill = (text, stateId) => text.replaceAll('{state}', stateId ? STATES[stateId].name : '');
+const capitalize = (text) => text.charAt(0).toUpperCase() + text.slice(1);
+const CONTRACTIONS = { de: { a: 'da', o: 'do', '': 'de' }, em: { a: 'na', o: 'no', '': 'em' } };
 
-// Turns a log event into { speaker, text }.
-export function describeEvent(event) {
+export function fill(text, { state, region, rival } = {}) {
+  let out = text;
+  if (state) {
+    const { name, article } = STATES[state];
+    const withArticle = article ? `${article} ${name}` : name;
+    out = out
+      .replaceAll('{O_state}', capitalize(withArticle))
+      .replaceAll('{o_state}', withArticle)
+      .replaceAll('{de_state}', `${CONTRACTIONS.de[article]} ${name}`)
+      .replaceAll('{em_state}', `${CONTRACTIONS.em[article]} ${name}`)
+      .replaceAll('{state}', name);
+  }
+  if (region) out = out.replaceAll('{region}', REGIONS[region].name);
+  if (rival) out = out.replaceAll('{rival}', FACTIONS[rival].name);
+  return out;
+}
+
+// ---------- Choosing lines ----------
+
+// A second, independent number from the same event seed.
+const reseed = (seed) => (seed * 7919 + 0.137) % 1;
+
+// Keeps the chosen text per event stable across re-renders and, per list of
+// lines, cycles through every line before repeating one.
+export function createLinePicker() {
+  const cache = new Map();
+  const recentByPool = new Map();
+  return function choose(key, pool, seed) {
+    if (cache.has(key)) return cache.get(key);
+    if (!recentByPool.has(pool)) recentByPool.set(pool, []);
+    const recent = recentByPool.get(pool);
+    const start = Math.floor(seed * pool.length) % pool.length;
+    // First unused line from a random start; if all were used recently, the oldest one.
+    let line = null;
+    let oldest = null;
+    for (let k = 0; k < pool.length; k++) {
+      const candidate = pool[(start + k) % pool.length];
+      const age = recent.indexOf(candidate);
+      if (age === -1) {
+        line = candidate;
+        break;
+      }
+      if (oldest === null || age < recent.indexOf(oldest)) oldest = candidate;
+    }
+    line ??= oldest;
+    const seenAt = recent.indexOf(line);
+    if (seenAt !== -1) recent.splice(seenAt, 1);
+    recent.push(line);
+    if (recent.length >= pool.length) recent.shift();
+    cache.set(key, line);
+    return line;
+  };
+}
+
+// Without a picker (tests, one-off calls) lines are picked straight from the seed.
+const stateless = (key, pool, seed) => pool[Math.floor(seed * pool.length) % pool.length];
+
+// Turns a log event into { speaker, text } for the speech bubble.
+export function describeEvent(event, choose = stateless) {
+  const l = LINES[event.faction];
+  const key = `${event.id}-${event.type}`;
   switch (event.type) {
     case 'start':
     case 'turn':
     case 'victory':
     case 'knockout':
-      return { speaker: event.faction, text: pick(QUIPS[event.type][event.faction], event.seed) };
+      return { speaker: event.faction, text: choose(key, l[event.type], event.seed) };
+    case 'conquer': {
+      if (event.seed < 0.2) return { speaker: 'news', text: fill(choose(key, NEWS, event.seed * 5), event) };
+      const special = l.conquerSpecial[event.state];
+      const pool = special && reseed(event.seed) < 0.5 ? special : l.conquer;
+      return { speaker: event.faction, text: fill(choose(key, pool, event.seed), event) };
+    }
+    case 'region':
+      return { speaker: event.faction, text: fill(choose(key, l.regionGained, event.seed), event) };
+    case 'regionLost':
+      return { speaker: event.faction, text: fill(choose(key, l.regionLost, event.seed), event) };
+    case 'bigLoss':
+      return { speaker: event.faction, text: choose(key, l.bigLoss, event.seed) };
     case 'eliminated':
-      return { speaker: 'news', text: `PLANTÃO: ${FACTIONS[event.loser].name} está fora da corrida!` };
-    case 'conquer':
-      if (event.seed < 0.2) return { speaker: 'news', text: fill(pick(NEWS, event.seed * 5), event.state) };
-      return { speaker: event.faction, text: fill(pick(QUIPS.conquer[event.faction], event.seed), event.state) };
+      // Last words of the candidate who just left the race.
+      return { speaker: event.loser, text: choose(key, LINES[event.loser].eliminated, event.seed) };
     default:
       return { speaker: 'news', text: '' };
   }
 }
 
-// What the losing side mutters after losing a state.
-export function loseLine(event) {
-  return fill(pick(QUIPS.lose[event.loser], event.seed), event.state);
+// What the eliminating candidate says (shown in the elimination banner).
+export function eliminatorLine(event, choose = stateless) {
+  return fill(choose(`${event.id}-eliminates`, LINES[event.faction].eliminates, reseed(event.seed)), { rival: event.loser });
+}
+
+// What the losing side mutters after losing a state (campaign diary).
+export function loseLine(event, choose = stateless) {
+  return fill(choose(`${event.id}-lose`, LINES[event.loser].lose, reseed(event.seed)), event);
+}
+
+// End-screen line for the candidate who lost the match.
+export function defeatLine(faction, seed, choose = stateless) {
+  return choose(`defeat-${faction}`, LINES[faction].defeat, seed);
 }
 
 export const PHASE_HELP = {

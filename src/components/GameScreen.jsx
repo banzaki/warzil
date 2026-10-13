@@ -25,7 +25,7 @@ import {
   territoriesOf,
 } from '../game/engine.js';
 import { aiStep } from '../game/ai.js';
-import { DEFEAT_LINES, DISCLAIMER, PHASE_HELP, PHASE_NAMES, VICTORY_TITLES, describeEvent, loseLine } from '../game/texts.js';
+import { DISCLAIMER, PHASE_HELP, PHASE_NAMES, VICTORY_TITLES, createLinePicker, defeatLine, describeEvent, loseLine } from '../game/texts.js';
 
 const EMPTY = new Set();
 const AI_DELAY = { reinforce: 600, attack: 350, occupy: 300, fortify: 300 };
@@ -95,6 +95,8 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate }
   const [placeAmount, setPlaceAmount] = useState(1);
   const [occupyTotal, setOccupyTotal] = useState(0);
   const [moveAmount, setMoveAmount] = useState(1);
+  // One picker per match: remembers recent lines so jokes don't repeat back to back.
+  const [choose] = useState(createLinePicker);
 
   const isHumanTurn = game.current === game.human && game.phase !== 'over';
   const human = game.human;
@@ -158,7 +160,7 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate }
     }
   };
 
-  const speech = game.log[0] ? describeEvent(game.log[0]) : null;
+  const speech = game.log[0] ? describeEvent(game.log[0], choose) : null;
 
   const recentConquests = game.log.filter((e) => e.type === 'conquer').slice(0, 6);
   const name = (f) => FACTIONS[f].name;
@@ -386,7 +388,7 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate }
                   <li key={e.id}>
                     <b className={e.faction}>{name(e.faction)}</b> tomou {stateName(e.state)}.{' '}
                     <i>
-                      {name(e.loser)}: “{loseLine(e)}”
+                      {name(e.loser)}: “{loseLine(e, choose)}”
                     </i>
                   </li>
                 ))}
@@ -411,8 +413,8 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate }
               ))}
             </div>
             <h2 id="end-title">{humanWon ? VICTORY_TITLES.win : VICTORY_TITLES.lose}</h2>
-            <p className="end-quote">“{describeEvent(finalEvent).text}”</p>
-            <p className="end-sub">{DEFEAT_LINES[finalLoser]}</p>
+            <p className="end-quote">“{describeEvent(finalEvent, choose).text}”</p>
+            <p className="end-sub">{defeatLine(finalLoser, finalEvent.seed, choose)}</p>
             <p className="end-stats">
               {finalEvent.type === 'victory'
                 ? `${name(game.winner)} levou os 27 estados em ${game.round} rodadas.`
