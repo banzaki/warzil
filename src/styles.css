@@ -1307,3 +1307,155 @@ b.caiado {
     grid-template-columns: 1fr;
   }
 }
+
+/* ---------- v0.4: combat feedback ---------- */
+
+.feedback {
+  pointer-events: none;
+}
+
+.float-loss {
+  fill: #fff;
+  stroke: #b71c1c;
+  stroke-width: 3px;
+  paint-order: stroke;
+  font-size: 14px;
+  font-weight: 900;
+  text-anchor: middle;
+  animation: float-up 0.9s ease-out forwards;
+}
+
+@keyframes float-up {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-16px);
+  }
+}
+
+.conquer-ring {
+  fill: none;
+  stroke: var(--c);
+  stroke-width: 4;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ring 0.6s ease-out forwards;
+}
+
+@keyframes ring {
+  from {
+    opacity: 0.9;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 0;
+    transform: scale(2.6);
+  }
+}
+
+.region-flash path {
+  fill: none;
+  stroke: var(--yellow);
+  stroke-width: 3;
+  stroke-linejoin: round;
+  animation: region-flash 1.6s ease-out forwards;
+}
+
+@keyframes region-flash {
+  0%,
+  40% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.event-banner {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  max-width: min(92%, 460px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 14px;
+  border-radius: 14px;
+  background: #fff;
+  border: 3px solid var(--c);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+  text-align: center;
+  pointer-events: none;
+  animation: banner 2.8s ease-out forwards;
+}
+
+.event-banner strong {
+  color: var(--c-dark);
+}
+
+.event-banner span {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.event-banner.eliminated {
+  background: #1d1d27;
+}
+
+.event-banner.eliminated strong {
+  color: var(--yellow);
+}
+
+.event-banner.eliminated span {
+  color: #e0e0e0;
+}
+
+@keyframes banner {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -10px) scale(0.9);
+  }
+  10%,
+  80% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -6px) scale(1);
+  }
+}
+
+.roll-result .loss {
+  color: #c62828;
+  font-weight: 900;
+}
+
+.roll-win {
+  color: #2e7d32;
+}
+
+.mute {
+  border: none;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+  width: 34px;
+  height: 34px;
+  font-size: 1rem;
+  vertical-align: middle;
+  margin-left: 4px;
+}
+
+@media (max-width: 860px) {
+  .event-banner {
+    top: 6px;
+    font-size: 0.9rem;
+  }
+}

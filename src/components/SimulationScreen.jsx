@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import BrazilMap from './BrazilMap.jsx';
 import Caricature from './Caricature.jsx';
-import { CampaignLog, PlayerChip, RegionsPanel, RollPanel, SpeechBubble } from './BoardParts.jsx';
+import { CampaignLog, EventBanner, MuteButton, PlayerChip, RegionsPanel, RollPanel, SpeechBubble, useGameSounds } from './BoardParts.jsx';
 import { FACTIONS } from '../game/data.js';
 import { PHASE_NAMES, createLinePicker, describeEvent } from '../game/texts.js';
 import {
@@ -23,6 +23,7 @@ export default function SimulationScreen({ factions, onMenu }) {
   const [sim, setSim] = useState(() => createSimulation(factions));
   const [choose, setChoose] = useState(createLinePicker);
   const { game } = sim;
+  useGameSounds(game);
   const name = (f) => FACTIONS[f].name;
 
   useEffect(() => {
@@ -47,7 +48,9 @@ export default function SimulationScreen({ factions, onMenu }) {
           <span className="logo small">
             WAR<span className="logo-zil">ZIL</span>
           </span>
-          <span>🎬 Simulação · Rodada {game.round}</span>
+          <span>
+            🎬 Simulação · Rodada {game.round} <MuteButton />
+          </span>
         </div>
         <div className="rivals">
           {game.factions.map((f) => (
@@ -59,6 +62,7 @@ export default function SimulationScreen({ factions, onMenu }) {
       <div className="board">
         <section className="map-wrap">
           <BrazilMap game={game} clickable={EMPTY} highlighted={EMPTY} spent={EMPTY} onSelect={() => {}} />
+          <EventBanner game={game} choose={choose} />
           <SpeechBubble game={game} choose={choose} />
         </section>
 

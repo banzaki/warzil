@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import BrazilMap from './BrazilMap.jsx';
 import Caricature from './Caricature.jsx';
-import { CampaignLog, PlayerChip, RegionsPanel, RollPanel, SpeechBubble } from './BoardParts.jsx';
+import { CampaignLog, EventBanner, MuteButton, PlayerChip, RegionsPanel, RollPanel, SpeechBubble, useGameSounds } from './BoardParts.jsx';
 import QuantityPicker from './QuantityPicker.jsx';
 import { FACTIONS, STATES, STATE_IDS } from '../game/data.js';
 import {
@@ -23,7 +23,7 @@ import {
   selectTerritory,
 } from '../game/engine.js';
 import { aiStep } from '../game/ai.js';
-import { DISCLAIMER, PHASE_HELP, PHASE_NAMES, VICTORY_TITLES, createLinePicker, defeatLine, describeEvent } from '../game/texts.js';
+import { DISCLAIMER, PHASE_HELP, PHASE_NAMES, VICTORY_TITLES, createLinePicker, defeatLine, describeEvent, fill } from '../game/texts.js';
 
 const EMPTY = new Set();
 const AI_DELAY = { reinforce: 600, attack: 350, occupy: 300, fortify: 300 };
@@ -37,6 +37,7 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate }
   const [moveAmount, setMoveAmount] = useState(1);
   // One picker per match: remembers recent lines so jokes don't repeat back to back.
   const [choose] = useState(createLinePicker);
+  useGameSounds(game);
 
   const isHumanTurn = game.current === game.human && game.phase !== 'over';
   const human = game.human;
@@ -155,7 +156,7 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate }
         ) : (
           <p className="hint">
             {from
-              ? `${stateName(from)} (${game.troops[from]}) pronto: toque num inimigo brilhando para rolar ${myDice} ${myDice === 1 ? 'dado' : 'dados'}.`
+              ? `Origem: ${stateName(from)} (${game.troops[from]}). Toque num inimigo brilhando para rolar ${myDice} ${myDice === 1 ? 'dado' : 'dados'}.`
               : PHASE_HELP.attack}
           </p>
         )}
@@ -169,7 +170,7 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate }
     panel = (
       <div className="panel-body">
         <p>
-          🎉 Conquistou <b>{stateName(to)}</b>!
+          🎉 Você conquistou <b>{fill('{o_state}', { state: to })}</b>!
         </p>
         <QuantityPicker label="Quantos exércitos entram?" min={min} max={max} value={occupyTotal} onChange={setOccupyTotal} />
         <p className="hint">
@@ -235,7 +236,9 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate }
           <span className="logo small">
             WAR<span className="logo-zil">ZIL</span>
           </span>
-          <span>Rodada {game.round}</span>
+          <span>
+            Rodada {game.round} <MuteButton />
+          </span>
         </div>
         {rivals.length === 1 ? (
           <PlayerChip game={game} faction={rivals[0]} />
@@ -257,6 +260,7 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate }
             spent={game.phase === 'fortify' ? new Set(Object.keys(game.movedOut)) : EMPTY}
             onSelect={onSelect}
           />
+          <EventBanner game={game} choose={choose} />
           <SpeechBubble game={game} choose={choose} />
         </section>
 

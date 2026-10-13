@@ -1,11 +1,15 @@
 // Pieces shared by the player screen and the AI-vs-AI simulation screen.
+import { useEffect, useState } from 'react';
 import Caricature from './Caricature.jsx';
 import { FACTIONS, REGIONS, STATES } from '../game/data.js';
 import { calcReinforcements, controlledRegions, territoriesOf } from '../game/engine.js';
-import { describeEvent, loseLine } from '../game/texts.js';
+import { describeEvent, eliminatorLine, fill, loseLine } from '../game/texts.js';
+import { isMuted, play, setMuted } from '../game/sound.js';
 
 const name = (f) => FACTIONS[f].name;
 const stateName = (id) => STATES[id].name;
+// "a Bahia", "o Ceará", "São Paulo"
+const withArticle = (id) => fill('{o_state}', { state: id });
 
 // result[i]: 'win' | 'lose' | 'idle' (a die without a pair)
 function Dice({ values, side, result }) {
@@ -98,7 +102,7 @@ export function RollPanel({ game }) {
       </div>
       <p className="roll-result">
         {roll.conquered ? (
-          <b className="roll-win">🎉 {stateName(roll.to)} conquistado!</b>
+          <b className="roll-win">🎉 {name(roll.attacker)} conquistou {withArticle(roll.to)}!</b>
         ) : (
           <>
             <span className={roll.attackerLoss ? 'loss' : ''}>Ataque −{roll.attackerLoss}</span>
@@ -141,7 +145,7 @@ export function CampaignLog({ game, choose }) {
       <ul>
         {conquests.map((e) => (
           <li key={e.id}>
-            <b className={e.faction}>{name(e.faction)}</b> tomou {stateName(e.state)}.{' '}
+            <b className={e.faction}>{name(e.faction)}</b> tomou {withArticle(e.state)}.{' '}
             <i>
               {name(e.loser)}: “{loseLine(e, choose)}”
             </i>
@@ -149,5 +153,60 @@ export function CampaignLog({ game, choose }) {
         ))}
       </ul>
     </div>
+  );
+}
+
+// Brief banner over the map when someone is knocked out or a region changes hands.
+export function EventBanner({ game, choose }) {
+  const event = game.log.slice(0, 4).find((e) => e.type === 'eliminated' || e.type === 'region');
+  if (!event) return null;
+  if (event.type === 'eliminated') {
+    return (
+      <div key={event.id} className={`event-banner eliminated ${event.loser}`} role="status">
+        <strong>🏴 {name(event.loser)} está fora da corrida!</strong>
+        <span>
+          {name(event.faction)}: “{eliminatorLine(event, choose)}”
+        </span>
+      </div>
+    );
+  }
+  return (
+    <div key={event.id} className={`event-banner region ${event.faction}`} role="status">
+      <strong>
+        🗺️ {name(event.faction)} domina o {REGIONS[event.region].name}! +{REGIONS[event.region].bonus}/turno
+      </strong>
+    </div>
+  );
+}
+
+// Sound effects driven by what just happened in the game.
+export function useGameSounds(game) {
+  const rollId = game.lastRoll?.id;
+  const latest = game.log[0];
+  useEffect(() => {
+    if (rollId) play('dice');
+  }, [rollId]);
+  useEffect(() => {
+    if (!latest) return;
+    const map = { conquer: 'conquer', region: 'region', eliminated: 'eliminate', victory: 'victory', knockout: 'defeat' };
+    if (map[latest.type]) play(map[latest.type]);
+  }, [latest?.id]);
+}
+
+export function MuteButton() {
+  const [muted, setMutedState] = useState(isMuted);
+  return (
+    <button
+      className="mute"
+      aria-pressed={muted}
+      aria-label={muted ? 'Ativar som' : 'Silenciar'}
+      title={muted ? 'Ativar som' : 'Silenciar'}
+      onClick={() => {
+        setMuted(!muted);
+        setMutedState(!muted);
+      }}
+    >
+      {muted ? '🔇' : '🔊'}
+    </button>
   );
 }

@@ -1,8 +1,39 @@
 import brazil from '@svg-maps/brazil';
-import { STATES } from '../game/data.js';
+import { STATES, STATE_IDS } from '../game/data.js';
 
 const PATHS = Object.fromEntries(brazil.locations.map((l) => [l.id, l.path]));
 const IDS = Object.keys(PATHS);
+
+const badgeAt = (id) => STATES[id].callout ?? STATES[id].label;
+
+// Short-lived combat feedback, keyed by roll/event id so each one plays once.
+function Feedback({ game }) {
+  const roll = game.lastRoll;
+  const flash = game.log.slice(0, 4).find((e) => e.type === 'region');
+  return (
+    <g className="feedback" aria-hidden="true">
+      {flash && (
+        <g key={`region-${flash.id}`} className={`region-flash ${flash.faction}`}>
+          {STATE_IDS.filter((id) => STATES[id].region === flash.region).map((id) => (
+            <path key={id} d={PATHS[id]} />
+          ))}
+        </g>
+      )}
+      {roll?.conquered && <circle key={`ring-${roll.id}`} className={`conquer-ring ${roll.attacker}`} cx={badgeAt(roll.to)[0]} cy={badgeAt(roll.to)[1]} r="12" />}
+      {roll &&
+        [
+          [roll.from, roll.attackerLoss],
+          [roll.to, roll.defenderLoss],
+        ]
+          .filter(([, loss]) => loss > 0)
+          .map(([id, loss]) => (
+            <text key={`loss-${roll.id}-${id}`} className="float-loss" x={badgeAt(id)[0]} y={badgeAt(id)[1] - 14}>
+              −{loss}
+            </text>
+          ))}
+    </g>
+  );
+}
 
 // spent: states that already made their outgoing move this turn.
 export default function BrazilMap({ game, clickable, highlighted, spent, onSelect }) {
@@ -71,6 +102,8 @@ export default function BrazilMap({ game, clickable, highlighted, spent, onSelec
           );
         })}
       </g>
+
+      <Feedback game={game} />
     </svg>
   );
 }
