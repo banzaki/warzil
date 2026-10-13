@@ -10,7 +10,7 @@ const ALL_CANDIDATES = [...PROTAGONISTS, ...EXTRA_CANDIDATES];
 
 // invited: extra candidates joining Lula and Flávio (0-2). onPick(human, rivals).
 // onSimulate(factions): start an AI-vs-AI simulation with 2-4 candidates.
-export default function StartScreen({ invited, onInvitedChange, onPick, onSimulate, prefs }) {
+export default function StartScreen({ invited, onInvitedChange, deal, onDealChange, onPick, onSimulate, prefs }) {
   const [showMore, setShowMore] = useState(invited.length > 0);
   const [showSim, setShowSim] = useState(false);
   const [simPicks, setSimPicks] = useState(PROTAGONISTS);
@@ -51,6 +51,28 @@ export default function StartScreen({ invited, onInvitedChange, onPick, onSimula
           </button>
         ))}
       </div>
+
+      {invited.length === 0 && (
+        <div className="deal-choice">
+          <span>Distribuição inicial:</span>
+          <div className="chips" role="radiogroup" aria-label="Distribuição inicial">
+            {[
+              ['random', 'Aleatória'],
+              ['polarized', 'Brasil Polarizado'],
+            ].map(([value, label]) => (
+              <button key={value} role="radio" aria-checked={deal === value} className={`chip ${deal === value ? 'on' : ''}`} onClick={() => onDealChange(value)}>
+                {label}
+              </button>
+            ))}
+          </div>
+          {deal === 'polarized' && (
+            <small>
+              Cenário fictício: Lula começa concentrado no Norte/Nordeste e Flávio no Centro-Sul. O lado Norte/Nordeste ganha +5
+              exércitos para compensar o território mais espalhado. Não é retrato do eleitorado.
+            </small>
+          )}
+        </div>
+      )}
 
       <details className="more" open={showMore} onToggle={(e) => setShowMore(e.currentTarget.open)}>
         <summary>{showMore ? '− Menos candidatos' : '+ Mais candidatos'}</summary>

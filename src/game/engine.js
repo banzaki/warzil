@@ -101,35 +101,88 @@ function beginBattle(state, faction, rng) {
   return addLog(next, { type: 'turn', faction }, rng);
 }
 
+// ---------- Deals ----------
+
+// "Brasil Polarizado": a fictional duel scenario (not a picture of real voters).
+// Lula leans to the North/Northeast, Flávio to the Center-South.
+export const POLES = {
+  lula: ['north', 'northeast'],
+  flavio: ['centerWest', 'southeast', 'south'],
+};
+const POLE_SHARE = 0.75;
+// The compact Center-South is much easier to hold: without help the
+// North/Northeast side won 31% of 1500 AI-only duels. +5 starting armies for it
+// brought that to 48.7-50.1% over two runs of 2000 (scripts/balance.mjs ... polarized).
+export const POLE_ARMY_BONUS = { lula: 5, flavio: 0 };
+
+export const canPolarize = (factions) =>
+  factions.length === 2 && Object.keys(POLES).every((f) => factions.includes(f));
+
+const hasAttack = (owner, faction) =>
+  STATE_IDS.some((id) => owner[id] === faction && ADJACENCY[id].some((n) => owner[n] !== faction));
+
+// Every state goes to its pole's owner with POLE_SHARE chance, then counts are
+// evened out to the same sizes as a random deal by moving off-pole states.
+function polarizedOwner(factions, sizes, rng) {
+  const owner = {};
+  for (const id of STATE_IDS) {
+    const home = factions.find((f) => POLES[f].includes(STATES[id].region));
+    owner[id] = rng() < POLE_SHARE ? home : factions.find((f) => f !== home);
+  }
+  for (const f of factions) {
+    const other = factions.find((x) => x !== f);
+    let mine = shuffle(STATE_IDS.filter((id) => owner[id] === f), rng);
+    // Give away states outside f's pole first, so the theme survives the balancing.
+    mine.sort((a, b) => Number(POLES[f].includes(STATES[a].region)) - Number(POLES[f].includes(STATES[b].region)));
+    while (mine.length > sizes[f]) owner[mine.shift()] = other;
+  }
+  return owner;
+}
+
 // rivals: the CPU factions, in turn order after the human (default: the classic duel).
 // spectator: every faction is CPU-controlled (AI-vs-AI simulation); there is no human.
-export function createGame(humanFaction, rng = Math.random, rivals = [opponentOf(humanFaction)], { spectator = false } = {}) {
+// deal: 'random' (default) or 'polarized' (Lula vs. Flávio duels only; otherwise random).
+export function createGame(
+  humanFaction,
+  rng = Math.random,
+  rivals = [opponentOf(humanFaction)],
+  { spectator = false, deal = 'random' } = {},
+) {
   const factions = [humanFaction, ...rivals];
   // Deal round-robin. Duel: the AI (moving second) gets the 14th state, as in v0.2.
   // 4 factions: the last seat gets the short hand (7/7/7/6); simulations showed the
   // first seat holding 6 states was knocked out first a third of the time.
   // Re-deal until nobody starts with a whole region (and its free bonus).
   const dealOrder = factions.length === 4 ? [...factions] : [...factions].reverse();
+  const sizes = Object.fromEntries(factions.map((f) => [f, 0]));
+  STATE_IDS.forEach((_, i) => sizes[dealOrder[i % dealOrder.length]]++);
+  const polarized = deal === 'polarized' && canPolarize(factions);
   let order;
-  const owner = {};
+  let owner = {};
   do {
     order = shuffle(STATE_IDS, rng);
-    order.forEach((id, i) => {
-      owner[id] = dealOrder[i % dealOrder.length];
-    });
-  } while (factions.some((f) => controlledRegions({ owner }, f).length));
+    if (polarized) {
+      owner = polarizedOwner(factions, sizes, rng);
+    } else {
+      order.forEach((id, i) => {
+        owner[id] = dealOrder[i % dealOrder.length];
+      });
+    }
+  } while (factions.some((f) => controlledRegions({ owner }, f).length || !hasAttack(owner, f)));
 
   const troops = {};
   const startingTroops = STARTING_TROOPS[factions.length];
   for (const faction of dealOrder) {
     const mine = order.filter((id) => owner[id] === faction);
     mine.forEach((id) => (troops[id] = 2));
-    for (let extra = startingTroops - mine.length * 2; extra > 0; extra--) {
+    const bonus = polarized ? POLE_ARMY_BONUS[faction] : 0;
+    for (let extra = startingTroops + bonus - mine.length * 2; extra > 0; extra--) {
       troops[mine[Math.floor(rng() * mine.length)]] += 1;
     }
   }
 
   const state = {
+    deal: polarized ? 'polarized' : 'random',
     human: spectator ? null : humanFaction,
     factions,
     eliminated: [],

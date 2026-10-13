@@ -15,6 +15,8 @@ export default function App() {
   // Bumping the key gives a rematch a completely fresh screen.
   const [matchId, setMatchId] = useState(0);
   const [settings, setSettings] = useState(loadSettings);
+  // Start-of-match deal for Lula vs. Flávio duels: 'random' (default) or 'polarized'.
+  const [deal, setDeal] = useState('random');
 
   useEffect(() => {
     setMuted(!settings.sound);
@@ -29,7 +31,7 @@ export default function App() {
   };
 
   const start = (human, rivals) => {
-    setGame(createGame(human, Math.random, rivals));
+    setGame(createGame(human, Math.random, rivals, { deal }));
     setMatchId((n) => n + 1);
   };
   const toMenu = () => {
@@ -44,6 +46,8 @@ export default function App() {
       <StartScreen
         invited={invited}
         onInvitedChange={setInvited}
+        deal={deal}
+        onDealChange={setDeal}
         onPick={start}
         prefs={prefs}
         onSimulate={(factions) => {
