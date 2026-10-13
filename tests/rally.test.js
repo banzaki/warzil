@@ -227,7 +227,7 @@ test('AI decisions do not depend on which candidate is which', () => {
   }
 });
 
-test('rally marks show where each faction reinforced, until its next rally', () => {
+test('rally marks show where each faction reinforced, until its turn ends', () => {
   let g = createGame('lula', seeded(11), ['flavio'], { opener: 0 });
   const [a, b] = territoriesOf(g, 'lula');
   g = placeTroops(placeTroops(placeTroops(g, a, 2), b, 1), a, 1);
@@ -241,8 +241,11 @@ test('rally marks show where each faction reinforced, until its next rally', () 
   const lulaMarks = Object.values(g.rallyMarks).filter((m) => m.faction === 'lula');
   assert.equal(lulaMarks.reduce((s, m) => s + m.n, 0), calcReinforcements(createGame('lula', seeded(11), ['flavio'], { opener: 0 }), 'lula').total + g.openingBonus.lula);
   g = rallyAll(g); // Flávio done -> battle
-  assert.ok(Object.values(g.rallyMarks).some((m) => m.faction === 'flavio'), "Flávio's marks visible during the battle");
-  // Next round: Lula's new rally clears only Lula's old marks.
-  while (!(g.round === 2 && g.current === 'lula' && g.phase === 'reinforce')) g = g.phase === 'reinforce' ? rallyAll(g) : endTurn(g);
+  assert.ok(Object.values(g.rallyMarks).some((m) => m.faction === 'flavio'), "Flávio's marks visible during Lula's battle");
+  // Marks go away when their owner's turn ends.
+  g = endTurn(g); // Lula's battle ends
   assert.ok(!Object.values(g.rallyMarks).some((m) => m.faction === 'lula'));
+  assert.ok(Object.values(g.rallyMarks).some((m) => m.faction === 'flavio'), "Flávio's stay during his own battle");
+  g = endTurn(g); // Flávio's battle ends -> round 2
+  assert.deepEqual(g.rallyMarks, {});
 });

@@ -72,7 +72,7 @@ const nextInOrder = (state, faction) => {
 const firstAlive = (state) => roundOrder(state).find((f) => isAlive(state, f));
 
 // Marks of where each faction reinforced in its latest rally ({ id: { faction, n } }),
-// shown on the map as "+N" until that faction rallies again.
+// shown on the map as "+N" until that faction's turn ends.
 const withoutMarksOf = (marks = {}, faction) =>
   Object.fromEntries(Object.entries(marks).filter(([, m]) => m.faction !== faction));
 
@@ -512,6 +512,7 @@ export function fortify(state, from, to, amount) {
 // last one, a new round starts with everybody's rally.
 export function endTurn(state, rng = Math.random) {
   if (state.phase === 'over' || state.phase === 'reinforce') return state;
+  state = { ...state, rallyMarks: withoutMarksOf(state.rallyMarks, state.current) };
   const next = nextInOrder(state, state.current);
   // Round 1: everybody already rallied, so the next faction goes to battle.
   // Later rounds: the next faction starts its full turn with a rally.

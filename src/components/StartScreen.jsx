@@ -11,7 +11,7 @@ const ARMY_LABELS = [
   [3, '3'],
   ['mixed', 'Misturado (1–5)'],
 ];
-const armyLabel = (mode) => (mode === 'mixed' ? 'misturados (1–5)' : `${mode} por estado`);
+const armyLabel = (mode) => (mode === 'mixed' ? 'misturados, de 1 a 5' : `${mode} por estado`);
 
 const MAX_INVITES = MAX_FACTIONS - PROTAGONISTS.length;
 

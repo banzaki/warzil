@@ -22,7 +22,7 @@ Other scripts:
    highest dice are compared and ties go to the defender.
 3. **Regroup** – optionally move troops once between two neighbouring states, then end the turn.
 
-Each round: every faction rallies (places reinforcements, with undo) before anyone attacks; the faction opening the battle rotates every round. Optional "Brasil Polarizado" start for Lula vs. Flávio, a date-seeded "Desafio do dia", a shareable PNG victory card (set `VITE_PUBLIC_URL` to print the public address) and a ⚙️ settings menu.
+Starting armies: 1 per state (default), 2, 3 or mixed (1-5, equal budget); whoever starts with less gets the difference in the opening rally. Round 1: everybody rallies (with undo) before anyone attacks; from round 2 each participant plays a full turn (rally, battle, movement). The seat opening the match is drawn and the opener rotates every round. Optional "Brasil Polarizado" start for Lula vs. Flávio, a date-seeded "Desafio do dia", a shareable PNG victory card (set `VITE_PUBLIC_URL` to print the public address) and a ⚙️ settings menu.
 
 "Simular guerra" on the start screen runs an AI-vs-AI match (2–4 candidates) with pause and 1x/2x/4x speed.
 
