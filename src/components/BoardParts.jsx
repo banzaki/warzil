@@ -1,10 +1,10 @@
 // Pieces shared by the player screen and the AI-vs-AI simulation screen.
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import Caricature from './Caricature.jsx';
 import { FACTIONS, REGIONS, STATES } from '../game/data.js';
 import { calcReinforcements, controlledRegions, territoriesOf } from '../game/engine.js';
 import { describeEvent, eliminatorLine, fill, loseLine } from '../game/texts.js';
-import { isMuted, play, setMuted } from '../game/sound.js';
+import { play } from '../game/sound.js';
 
 const name = (f) => FACTIONS[f].name;
 const stateName = (id) => STATES[id].name;
@@ -191,22 +191,4 @@ export function useGameSounds(game) {
     const map = { conquer: 'conquer', region: 'region', eliminated: 'eliminate', victory: 'victory', knockout: 'defeat' };
     if (map[latest.type]) play(map[latest.type]);
   }, [latest?.id]);
-}
-
-export function MuteButton() {
-  const [muted, setMutedState] = useState(isMuted);
-  return (
-    <button
-      className="mute"
-      aria-pressed={muted}
-      aria-label={muted ? 'Ativar som' : 'Silenciar'}
-      title={muted ? 'Ativar som' : 'Silenciar'}
-      onClick={() => {
-        setMuted(!muted);
-        setMutedState(!muted);
-      }}
-    >
-      {muted ? '🔇' : '🔊'}
-    </button>
-  );
 }

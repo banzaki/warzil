@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import BrazilMap from './BrazilMap.jsx';
 import Caricature from './Caricature.jsx';
-import { CampaignLog, EventBanner, MuteButton, PlayerChip, RegionsPanel, RollPanel, SpeechBubble, useGameSounds } from './BoardParts.jsx';
+import { CampaignLog, EventBanner, PlayerChip, RegionsPanel, RollPanel, SpeechBubble, useGameSounds } from './BoardParts.jsx';
+import SettingsButton from './SettingsPanel.jsx';
 import { FACTIONS } from '../game/data.js';
 import { roundOrder } from '../game/engine.js';
 import { PHASE_NAMES, createLinePicker, describeEvent } from '../game/texts.js';
@@ -20,7 +21,7 @@ const EMPTY = new Set();
 const SIM_NOTE = 'Competição fictícia entre personagens do jogo. Não é previsão eleitoral.';
 
 // "Simular guerra": every candidate is played by the computer; the viewer only watches.
-export default function SimulationScreen({ factions, onMenu }) {
+export default function SimulationScreen({ factions, onMenu, prefs }) {
   const [sim, setSim] = useState(() => createSimulation(factions));
   const [choose, setChoose] = useState(createLinePicker);
   const { game } = sim;
@@ -50,7 +51,7 @@ export default function SimulationScreen({ factions, onMenu }) {
             WAR<span className="logo-zil">ZIL</span>
           </span>
           <span>
-            🎬 Simulação · Rodada {game.round} <MuteButton />
+            🎬 Simulação · Rodada {game.round} <SettingsButton {...prefs} />
           </span>
           <span className="opener">abre: {name(roundOrder(game).find((f) => !game.eliminated.includes(f)))}</span>
         </div>

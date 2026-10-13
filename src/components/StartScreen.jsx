@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Caricature from './Caricature.jsx';
+import SettingsButton from './SettingsPanel.jsx';
 import { EXTRA_CANDIDATES, MAX_FACTIONS, PROTAGONISTS } from '../game/data.js';
 import { CANDIDATES, DISCLAIMER } from '../game/texts.js';
 
@@ -9,7 +10,7 @@ const ALL_CANDIDATES = [...PROTAGONISTS, ...EXTRA_CANDIDATES];
 
 // invited: extra candidates joining Lula and Flávio (0-2). onPick(human, rivals).
 // onSimulate(factions): start an AI-vs-AI simulation with 2-4 candidates.
-export default function StartScreen({ invited, onInvitedChange, onPick, onSimulate }) {
+export default function StartScreen({ invited, onInvitedChange, onPick, onSimulate, prefs }) {
   const [showMore, setShowMore] = useState(invited.length > 0);
   const [showSim, setShowSim] = useState(false);
   const [simPicks, setSimPicks] = useState(PROTAGONISTS);
@@ -22,6 +23,9 @@ export default function StartScreen({ invited, onInvitedChange, onPick, onSimula
 
   return (
     <main className="start">
+      <div className="start-gear">
+        <SettingsButton {...prefs} />
+      </div>
       <header className="start-header">
         <h1 className="logo">
           WAR<span className="logo-zil">ZIL</span>

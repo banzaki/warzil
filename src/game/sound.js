@@ -1,28 +1,13 @@
 // Tiny synthesized sound effects (Web Audio, no audio files).
 // The AudioContext is created lazily on the first sound, which always follows a
-// user tap (choosing a candidate), so browser autoplay rules are respected.
-const STORAGE_KEY = 'warzil-muted';
+// user tap, so browser autoplay rules are respected. On/off lives in settings.js
+// (off by default); App calls setMuted() whenever the setting changes.
 let ctx = null;
-let muted = readMuted();
+let muted = true;
 let lastDice = 0;
-
-function readMuted() {
-  try {
-    return localStorage.getItem(STORAGE_KEY) === '1';
-  } catch {
-    return false;
-  }
-}
-
-export const isMuted = () => muted;
 
 export function setMuted(value) {
   muted = value;
-  try {
-    localStorage.setItem(STORAGE_KEY, value ? '1' : '0');
-  } catch {
-    // Private mode or blocked storage: the setting just won't persist.
-  }
 }
 
 function audio() {

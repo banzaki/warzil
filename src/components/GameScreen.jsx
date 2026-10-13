@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import BrazilMap from './BrazilMap.jsx';
 import Caricature from './Caricature.jsx';
-import { CampaignLog, EventBanner, MuteButton, PlayerChip, RegionsPanel, RollPanel, SpeechBubble, useGameSounds } from './BoardParts.jsx';
+import { CampaignLog, EventBanner, PlayerChip, RegionsPanel, RollPanel, SpeechBubble, useGameSounds } from './BoardParts.jsx';
+import SettingsButton from './SettingsPanel.jsx';
 import QuantityPicker from './QuantityPicker.jsx';
 import { FACTIONS, STATES, STATE_IDS } from '../game/data.js';
 import {
@@ -27,6 +28,7 @@ import {
   selectTerritory,
 } from '../game/engine.js';
 import { aiStep } from '../game/ai.js';
+import { AI_SPEED_FACTOR, REINFORCE_AMOUNT } from '../game/settings.js';
 import { DISCLAIMER, PHASE_HELP, PHASE_NAMES, VICTORY_TITLES, createLinePicker, defeatLine, describeEvent, fill } from '../game/texts.js';
 
 const EMPTY = new Set();
@@ -34,9 +36,12 @@ const AI_DELAY = { reinforce: 600, attack: 350, occupy: 300, fortify: 300 };
 // With more CPU rivals the wait between human turns grows, so each AI step gets faster.
 const AI_SPEED = { 2: 1, 3: 0.75, 4: 0.6 };
 
-export default function GameScreen({ initialGame, onRematch, onChangeCandidate }) {
+export default function GameScreen({ initialGame, onRematch, onChangeCandidate, prefs }) {
   const [game, setGame] = useState(initialGame);
-  const [placeAmount, setPlaceAmount] = useState(1);
+  const { settings } = prefs;
+  const [placeAmount, setPlaceAmount] = useState(REINFORCE_AMOUNT[settings.reinforce]);
+  const [placeTarget, setPlaceTarget] = useState(null);
+  const [placeCount, setPlaceCount] = useState(1);
   const [occupyTotal, setOccupyTotal] = useState(0);
   const [moveAmount, setMoveAmount] = useState(1);
   // One picker per match: remembers recent lines so jokes don't repeat back to back.
@@ -50,10 +55,20 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate }
   // The AI plays one visible step at a time.
   useEffect(() => {
     if (game.current === game.human || game.phase === 'over') return undefined;
-    const delay = (AI_DELAY[game.phase] ?? 600) * AI_SPEED[game.factions.length];
+    const delay = (AI_DELAY[game.phase] ?? 600) * AI_SPEED[game.factions.length] * AI_SPEED_FACTOR[settings.aiSpeed];
     const timer = setTimeout(() => setGame((g) => aiStep(g)), delay);
     return () => clearTimeout(timer);
-  }, [game]);
+  }, [game, settings.aiSpeed]);
+
+  // Each new rally starts from the configured mode, so a "Tudo" picked last
+  // round never silently dumps every reinforcement on the next tap.
+  const myRally = game.phase === 'reinforce' && game.current === human;
+  useEffect(() => {
+    if (myRally) {
+      setPlaceAmount(REINFORCE_AMOUNT[settings.reinforce]);
+      setPlaceTarget(null);
+    }
+  }, [myRally, game.round, settings.reinforce]);
 
   // Sensible defaults whenever a choice opens up.
   useEffect(() => {
@@ -87,7 +102,13 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate }
     const mine = game.owner[id] === human;
     switch (game.phase) {
       case 'reinforce':
-        if (mine) setGame(placeTroops(game, id, placeAmount === 'all' ? game.reinforcements : placeAmount));
+        if (!mine) break;
+        if (placeAmount === 'picker') {
+          setPlaceTarget(id);
+          setPlaceCount(Math.min(placeCount, game.reinforcements) || 1);
+        } else {
+          setGame(placeTroops(game, id, placeAmount === 'all' ? game.reinforcements : placeAmount));
+        }
         break;
       case 'attack':
         // Tapping a glowing enemy rolls the dice right away; the selection stays for the next roll.
@@ -124,12 +145,45 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate }
           <span>{game.reinforcements}</span> {game.reinforcements === 1 ? 'reforço para colocar' : 'reforços para colocar'}
         </p>
         <div className="chips" role="radiogroup" aria-label="Tropas por toque">
-          {[1, 5, 'all'].map((n) => (
-            <button key={n} className={`chip ${placeAmount === n ? 'on' : ''}`} onClick={() => setPlaceAmount(n)}>
-              {n === 'all' ? 'Tudo' : `+${n}`} por toque
+          {[1, 5, 'all', 'picker'].map((n) => (
+            <button
+              key={n}
+              role="radio"
+              aria-checked={placeAmount === n}
+              className={`chip ${placeAmount === n ? 'on' : ''}`}
+              onClick={() => {
+                setPlaceAmount(n);
+                setPlaceTarget(null);
+              }}
+            >
+              {n === 'all' ? 'Tudo por toque' : n === 'picker' ? 'Escolher' : `+${n} por toque`}
             </button>
           ))}
         </div>
+        {placeAmount === 'all' && game.reinforcements > 0 && <p className="hint warn-text">Atenção: o próximo toque coloca todos os {game.reinforcements} reforços.</p>}
+        {placeAmount === 'picker' &&
+          (placeTarget && game.reinforcements > 0 ? (
+            <>
+              <QuantityPicker
+                label={`Quantos em ${stateName(placeTarget)}?`}
+                min={1}
+                max={game.reinforcements}
+                value={Math.min(placeCount, game.reinforcements)}
+                onChange={setPlaceCount}
+              />
+              <button
+                className="btn primary"
+                onClick={() => {
+                  setGame(placeTroops(game, placeTarget, Math.min(placeCount, game.reinforcements)));
+                  setPlaceTarget(null);
+                }}
+              >
+                Colocar {Math.min(placeCount, game.reinforcements)} em {stateName(placeTarget)}
+              </button>
+            </>
+          ) : (
+            game.reinforcements > 0 && <p className="hint">Toque num estado seu para escolher a quantidade.</p>
+          ))}
         <div className="buttons rally-undo">
           <button className="btn ghost" onClick={() => setGame(undoPlacement(game))} disabled={!game.rallyPlacements.length}>
             ↶ Desfazer
@@ -253,7 +307,7 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate }
             WAR<span className="logo-zil">ZIL</span>
           </span>
           <span>
-            Rodada {game.round} <MuteButton />
+            Rodada {game.round} <SettingsButton {...prefs} />
           </span>
           <span className="opener">abre: {name(roundOrder(game).find((f) => !game.eliminated.includes(f)))}</span>
         </div>

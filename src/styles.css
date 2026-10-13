@@ -982,6 +982,15 @@ b.caiado {
   }
 }
 
+/* Settings: "Animações reduzidas" behaves like the OS-level reduced motion. */
+html.reduce-motion *,
+html.reduce-motion *::before,
+html.reduce-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -1442,17 +1451,6 @@ b.caiado {
   color: #2e7d32;
 }
 
-.mute {
-  border: none;
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 999px;
-  width: 34px;
-  height: 34px;
-  font-size: 1rem;
-  vertical-align: middle;
-  margin-left: 4px;
-}
-
 @media (max-width: 860px) {
   .event-banner {
     top: 6px;
@@ -1482,4 +1480,105 @@ b.caiado {
   font-size: 0.72rem;
   font-weight: 700;
   opacity: 0.8;
+}
+
+/* ---------- v0.5: settings ---------- */
+
+.gear {
+  border: none;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+  width: 36px;
+  height: 36px;
+  font-size: 1.05rem;
+  vertical-align: middle;
+  margin-left: 4px;
+}
+
+.start {
+  position: relative;
+}
+
+.start-gear {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+}
+
+.settings-overlay {
+  z-index: 20;
+}
+
+.settings-card {
+  color: var(--ink);
+  width: min(440px, 100%);
+  max-height: 90dvh;
+  overflow: auto;
+  background: #fff;
+  border-radius: 20px;
+  padding: 18px;
+  text-align: left;
+  --c: var(--blue);
+  --c-dark: var(--blue-dark);
+}
+
+.settings-card h2 {
+  margin: 0 0 10px;
+  font-family: 'Bungee', 'Impact', sans-serif;
+  font-size: 1.3rem;
+}
+
+.settings-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 0;
+  border-bottom: 1px solid #eceef4;
+}
+
+.settings-label {
+  font-weight: 800;
+}
+
+.settings-row .chip {
+  min-height: 40px;
+}
+
+.settings-hint,
+.settings-note {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.settings-card .buttons {
+  margin-top: 12px;
+}
+
+.settings-card .btn {
+  flex: 1;
+}
+
+.warn-text {
+  color: #b71c1c;
+  font-weight: 800;
+}
+
+/* Reduced motion keeps short-lived banners readable instead of making them vanish. */
+html.reduce-motion .event-banner {
+  animation: banner-static 2.8s steps(1, end) forwards !important;
+}
+
+html.reduce-motion .float-loss,
+html.reduce-motion .conquer-ring {
+  display: none;
+}
+
+html.reduce-motion .region-flash path {
+  animation: banner-static 1.6s steps(1, end) forwards !important;
+}
+
+@keyframes banner-static {
+  to {
+    opacity: 0;
+  }
 }
