@@ -1231,3 +1231,79 @@ b.caiado {
   font-family: 'Bungee', 'Impact', sans-serif;
   font-size: 1.3rem;
 }
+
+/* ---------- v0.4: simulation mode ---------- */
+
+.sim-setup {
+  margin-top: 10px;
+}
+
+.sim-picks {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.sim-pick {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 76px;
+  padding: 8px 6px;
+  border-radius: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-weight: 800;
+}
+
+.sim-pick.on {
+  background: #fff;
+  border-color: var(--c);
+  color: var(--c-dark);
+}
+
+.sim-pick:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.sim-start {
+  display: block;
+  margin: 12px auto 0;
+  min-width: 240px;
+  background: var(--yellow);
+  color: var(--ink);
+  box-shadow: 0 4px 0 #c79100;
+}
+
+.sim-start:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.sim-hud {
+  grid-template-columns: auto 1fr;
+}
+
+.sim-leader {
+  margin: 8px 0;
+  font-weight: 700;
+}
+
+.sim-controls .buttons {
+  margin: 8px 0;
+}
+
+.sim-controls .chip {
+  min-width: 56px;
+  min-height: 40px;
+}
+
+@media (max-width: 560px) {
+  .sim-hud {
+    grid-template-columns: 1fr;
+  }
+}

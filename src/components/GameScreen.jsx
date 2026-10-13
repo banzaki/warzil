@@ -1,16 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import BrazilMap from './BrazilMap.jsx';
 import Caricature from './Caricature.jsx';
+import { CampaignLog, PlayerChip, RegionsPanel, RollPanel, SpeechBubble } from './BoardParts.jsx';
 import QuantityPicker from './QuantityPicker.jsx';
-import { FACTIONS, REGIONS, STATES, STATE_IDS } from '../game/data.js';
+import { FACTIONS, STATES, STATE_IDS } from '../game/data.js';
 import {
   attack,
   attackTargets,
   blitz,
-  calcReinforcements,
   canAttack,
   canFortify,
-  controlledRegions,
   endAttack,
   attackerDiceCount,
   defenderDiceCount,
@@ -22,73 +21,14 @@ import {
   placeTroops,
   selectTarget,
   selectTerritory,
-  territoriesOf,
 } from '../game/engine.js';
 import { aiStep } from '../game/ai.js';
-import { DISCLAIMER, PHASE_HELP, PHASE_NAMES, VICTORY_TITLES, createLinePicker, defeatLine, describeEvent, loseLine } from '../game/texts.js';
+import { DISCLAIMER, PHASE_HELP, PHASE_NAMES, VICTORY_TITLES, createLinePicker, defeatLine, describeEvent } from '../game/texts.js';
 
 const EMPTY = new Set();
 const AI_DELAY = { reinforce: 600, attack: 350, occupy: 300, fortify: 300 };
 // With more CPU rivals the wait between human turns grows, so each AI step gets faster.
 const AI_SPEED = { 2: 1, 3: 0.75, 4: 0.6 };
-
-// result[i]: 'win' | 'lose' | 'idle' (a die without a pair)
-function Dice({ values, side, result }) {
-  return (
-    <span className="dice-row">
-      {values.map((v, i) => (
-        <span key={i} className={`die ${side} ${result[i]}`}>
-          {v}
-        </span>
-      ))}
-    </span>
-  );
-}
-
-function pairResults(roll) {
-  const pairs = Math.min(roll.attackerDice.length, roll.defenderDice.length);
-  const att = roll.attackerDice.map((v, i) => (i >= pairs ? 'idle' : v > roll.defenderDice[i] ? 'win' : 'lose'));
-  const def = roll.defenderDice.map((v, i) => (i >= pairs ? 'idle' : att[i] === 'win' ? 'lose' : 'win'));
-  return { att, def };
-}
-
-// compact: smaller chip used for CPU rivals in 3-4 faction matches.
-function PlayerChip({ game, faction, compact = false }) {
-  const lands = territoriesOf(game, faction);
-  const troops = lands.reduce((sum, id) => sum + game.troops[id], 0);
-  const latest = game.log[0];
-  const out = game.eliminated.includes(faction);
-  let mood = out ? 'sad' : 'neutral';
-  if (latest?.type === 'conquer' && latest.faction === faction) mood = 'happy';
-  if (latest?.type === 'conquer' && latest.loser === faction) mood = 'sad';
-  const active = game.current === faction && game.phase !== 'over';
-  const classes = `player-chip ${faction} ${active ? 'active' : ''} ${compact ? 'compact' : ''} ${out ? 'out' : ''}`;
-  if (compact) {
-    return (
-      <div className={classes} title={`${FACTIONS[faction].name}: ${lands.length} estados, ${troops} exércitos`}>
-        <Caricature who={faction} mood={mood} size={36} />
-        <div className="player-info">
-          <strong>{FACTIONS[faction].name}</strong>
-          <span>{out ? 'fora' : `${lands.length} est. · ${troops}`}</span>
-        </div>
-      </div>
-    );
-  }
-  return (
-    <div className={classes}>
-      <Caricature who={faction} mood={mood} size={52} />
-      <div className="player-info">
-        <strong>
-          {FACTIONS[faction].name}
-          {faction === game.human ? ' (você)' : ' (CPU)'}
-        </strong>
-        <span>
-          {lands.length} estados · {troops} exércitos · +{calcReinforcements(game, faction).total}/turno
-        </span>
-      </div>
-    </div>
-  );
-}
 
 export default function GameScreen({ initialGame, onRematch, onChangeCandidate }) {
   const [game, setGame] = useState(initialGame);
@@ -160,9 +100,6 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate }
     }
   };
 
-  const speech = game.log[0] ? describeEvent(game.log[0], choose) : null;
-
-  const recentConquests = game.log.filter((e) => e.type === 'conquer').slice(0, 6);
   const name = (f) => FACTIONS[f].name;
   const stateName = (id) => STATES[id].name;
 
@@ -283,9 +220,6 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate }
     );
   }
 
-  const roll = game.lastRoll;
-  const regionOwners = Object.fromEntries(game.factions.map((f) => [f, controlledRegions(game, f)]));
-
   // End of match: either someone holds the whole map ('victory') or the human
   // lost their last state while rivals remain ('knockout').
   const finalEvent = game.log.find((e) => e.type === 'victory' || e.type === 'knockout');
@@ -323,16 +257,7 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate }
             spent={game.phase === 'fortify' ? new Set(Object.keys(game.movedOut)) : EMPTY}
             onSelect={onSelect}
           />
-          {speech && (
-            <div key={game.log[0]?.id} className={`speech ${speech.speaker}`}>
-              {speech.speaker === 'news' ? (
-                <span className="news-tag">PLANTÃO</span>
-              ) : (
-                <Caricature who={speech.speaker} mood="happy" size={40} />
-              )}
-              <p>{speech.text}</p>
-            </div>
-          )}
+          <SpeechBubble game={game} choose={choose} />
         </section>
 
         <aside className="sidebar">
@@ -346,55 +271,9 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate }
             {panel}
           </div>
 
-          {roll && (
-            <div className="panel roll" key={`${roll.from}-${roll.to}-${game.troops[roll.from]}-${game.troops[roll.to]}`}>
-              <div className="roll-line">
-                <span>⚔️ {stateName(roll.from)}</span>
-                <Dice values={roll.attackerDice} side={roll.attacker} result={pairResults(roll).att} />
-              </div>
-              <div className="roll-line">
-                <span>🛡️ {stateName(roll.to)}</span>
-                <Dice values={roll.defenderDice} side={roll.defender} result={pairResults(roll).def} />
-              </div>
-              <p className="roll-result">
-                {roll.conquered
-                  ? `🎉 ${stateName(roll.to)} conquistado!`
-                  : `Ataque −${roll.attackerLoss} · Defesa −${roll.defenderLoss}`}
-                {' · empate é da defesa'}
-              </p>
-            </div>
-          )}
-
-          <div className="panel regions">
-            <div className="panel-title">Bônus por região</div>
-            <ul>
-              {Object.entries(REGIONS).map(([key, r]) => {
-                const holder = game.factions.find((f) => regionOwners[f].includes(key));
-                return (
-                  <li key={key} className={holder ?? ''}>
-                    <span>{r.name}</span>
-                    <span>{holder ? `${name(holder)} +${r.bonus}` : `+${r.bonus}`}</span>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-
-          {recentConquests.length > 0 && (
-            <div className="panel log">
-              <div className="panel-title">Diário de campanha</div>
-              <ul>
-                {recentConquests.map((e) => (
-                  <li key={e.id}>
-                    <b className={e.faction}>{name(e.faction)}</b> tomou {stateName(e.state)}.{' '}
-                    <i>
-                      {name(e.loser)}: “{loseLine(e, choose)}”
-                    </i>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+          <RollPanel game={game} />
+          <RegionsPanel game={game} />
+          <CampaignLog game={game} choose={choose} />
 
           <button className="btn ghost quit" onClick={onChangeCandidate}>
             ⟲ Voltar ao menu

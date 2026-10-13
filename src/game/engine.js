@@ -57,7 +57,8 @@ function beginTurn(state, faction) {
 }
 
 // rivals: the CPU factions, in turn order after the human (default: the classic duel).
-export function createGame(humanFaction, rng = Math.random, rivals = [opponentOf(humanFaction)]) {
+// spectator: every faction is CPU-controlled (AI-vs-AI simulation); there is no human.
+export function createGame(humanFaction, rng = Math.random, rivals = [opponentOf(humanFaction)], { spectator = false } = {}) {
   const factions = [humanFaction, ...rivals];
   // Deal round-robin. Duel: the AI (moving second) gets the 14th state, as in v0.2.
   // 4 factions: the last seat gets the short hand (7/7/7/6); simulations showed the
@@ -84,7 +85,7 @@ export function createGame(humanFaction, rng = Math.random, rivals = [opponentOf
   }
 
   const state = {
-    human: humanFaction,
+    human: spectator ? null : humanFaction,
     factions,
     eliminated: [],
     round: 1,

@@ -5,9 +5,16 @@ import { CANDIDATES, DISCLAIMER } from '../game/texts.js';
 
 const MAX_INVITES = MAX_FACTIONS - PROTAGONISTS.length;
 
+const ALL_CANDIDATES = [...PROTAGONISTS, ...EXTRA_CANDIDATES];
+
 // invited: extra candidates joining Lula and Flávio (0-2). onPick(human, rivals).
-export default function StartScreen({ invited, onInvitedChange, onPick }) {
+// onSimulate(factions): start an AI-vs-AI simulation with 2-4 candidates.
+export default function StartScreen({ invited, onInvitedChange, onPick, onSimulate }) {
   const [showMore, setShowMore] = useState(invited.length > 0);
+  const [showSim, setShowSim] = useState(false);
+  const [simPicks, setSimPicks] = useState(PROTAGONISTS);
+  const toggleSim = (id) =>
+    setSimPicks((picks) => (picks.includes(id) ? picks.filter((f) => f !== id) : [...picks, id]));
   const participants = [...PROTAGONISTS, ...invited];
   const pick = (id) => onPick(id, participants.filter((f) => f !== id));
   const toggle = (id) =>
@@ -69,6 +76,35 @@ export default function StartScreen({ invited, onInvitedChange, onPick }) {
             );
           })}
         </ul>
+      </details>
+
+      <details className="more sim-setup" open={showSim} onToggle={(e) => setShowSim(e.currentTarget.open)}>
+        <summary>{showSim ? '− Fechar simulação' : '🎬 Simular guerra (IA x IA)'}</summary>
+        <p className="more-hint">Escolha de 2 a {MAX_FACTIONS} candidatos e assista o computador jogar.</p>
+        <div className="sim-picks">
+          {ALL_CANDIDATES.map((id) => {
+            const on = simPicks.includes(id);
+            return (
+              <button
+                key={id}
+                className={`sim-pick ${id} ${on ? 'on' : ''}`}
+                aria-pressed={on}
+                disabled={!on && simPicks.length >= MAX_FACTIONS}
+                onClick={() => toggleSim(id)}
+              >
+                <Caricature who={id} mood={on ? 'happy' : 'neutral'} size={44} />
+                <span>{CANDIDATES[id].name}</span>
+              </button>
+            );
+          })}
+        </div>
+        <button
+          className="btn primary sim-start"
+          disabled={simPicks.length < 2}
+          onClick={() => onSimulate(ALL_CANDIDATES.filter((id) => simPicks.includes(id)))}
+        >
+          ▶ Iniciar simulação ({simPicks.length})
+        </button>
       </details>
 
       <section className="how">
