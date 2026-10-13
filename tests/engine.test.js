@@ -215,24 +215,96 @@ test('several moves in one turn, one outgoing move per state', () => {
   assert.equal(canFortify(g, 'sp', 'rj'), false);
   assert.equal(fortify(g, 'sp', 'rj', 1), g);
 
-  // MG received 5: only its own armies (4 - 1 = 3) may leave.
-  assert.equal(movableTroops(g, 'mg'), 3);
+  // MG received 5: all 4 of its own armies may leave (v0.4 rule); the 5 received stay.
+  assert.equal(movableTroops(g, 'mg'), 4);
   const chained = fortify(g, 'mg', 'go', 99);
-  assert.equal(chained.troops.mg, 6);
-  assert.equal(chained.troops.go, 9);
+  assert.equal(chained.troops.mg, 5);
+  assert.equal(chained.troops.go, 10);
 
-  // A different state can still move independently.
+  // A different state can still move independently: GO's own 6 may leave, the 4 received stay.
   const other = fortify(chained, 'go', 'ms', 99);
-  assert.equal(other.troops.go, 4, 'GO keeps the 3 it just received + 1');
-  assert.equal(other.troops.ms, 6);
+  assert.equal(other.troops.go, 4, 'GO keeps the 4 it just received');
+  assert.equal(other.troops.ms, 7);
 });
 
 test('received armies cannot be chained onward', () => {
   let g = board({ flavio: ['rs'], troops: { sp: 10, mg: 1 }, phase: 'fortify' });
   g = fortify(g, 'sp', 'mg', 9);
   assert.equal(g.troops.mg, 10);
-  assert.equal(movableTroops(g, 'mg'), 0);
-  assert.equal(canFortify(g, 'mg', 'go'), false);
+  // Only MG's own single army may leave; asking for more still sends just 1.
+  assert.equal(movableTroops(g, 'mg'), 1);
+  g = fortify(g, 'mg', 'go', 99);
+  assert.equal(g.troops.mg, 9, 'all 9 received armies stay');
+  assert.equal(g.troops.go, 2);
+  assert.equal(canFortify(g, 'mg', 'df'), false, 'MG already made its move');
+});
+
+// ---------- Movement: own vs. received armies (v0.4 fix) ----------
+
+test('reported bug: a state that received armies can still move its own', () => {
+  // MG starts with 3 of its own and receives 5 from SP.
+  let g = board({ flavio: ['rs'], troops: { sp: 6, mg: 3 }, phase: 'fortify' });
+  g = fortify(g, 'sp', 'mg', 5);
+  assert.equal(movableTroops(g, 'mg'), 3, 'all 3 own armies, one received stays behind');
+  g = fortify(g, 'mg', 'go', 3);
+  assert.equal(g.troops.mg, 5);
+  assert.equal(g.troops.go, 4);
+
+  // Single own army + received: the own one may still leave.
+  let h = board({ flavio: ['rs'], troops: { sp: 6, mg: 1 }, phase: 'fortify' });
+  h = fortify(h, 'sp', 'mg', 5);
+  assert.equal(movableTroops(h, 'mg'), 1);
+});
+
+test('own armies stay limited after receiving several transfers', () => {
+  let g = board({ flavio: ['rs'], troops: { sp: 4, rj: 4, mg: 2 }, phase: 'fortify' });
+  g = fortify(g, 'sp', 'mg', 3);
+  g = fortify(g, 'rj', 'mg', 3);
+  assert.equal(g.troops.mg, 8);
+  assert.equal(g.received.mg, 6);
+  assert.equal(movableTroops(g, 'mg'), 2, 'only the 2 that were already there');
+  // A state with no own armies left to spare: receive-only origin cannot move.
+  let h = board({ flavio: ['rs'], troops: { sp: 3, mg: 1 }, phase: 'fortify' });
+  h = fortify(h, 'mg', 'go', 1); // MG cannot leave with 1 army
+  assert.equal(h.troops.mg, 1);
+});
+
+test('origin and destination restrictions', () => {
+  let g = board({ flavio: ['pr'], troops: { sp: 6, mg: 6 }, phase: 'fortify' });
+  g = fortify(g, 'sp', 'mg', 2);
+  // SP already sent: it may still receive, but never send again this turn.
+  g = fortify(g, 'mg', 'sp', 2);
+  assert.equal(g.troops.sp, 6);
+  assert.equal(movableTroops(g, 'sp'), 0);
+  assert.equal(canFortify(g, 'sp', 'rj'), false);
+  // Never to an enemy or non-neighbour, never from an enemy state.
+  assert.equal(canFortify(g, 'rj', 'pr'), false);
+  assert.equal(canFortify(g, 'rj', 'ba'), false);
+  assert.equal(canFortify(g, 'pr', 'sc'), false);
+});
+
+test('random movement sequences never create, lose or chain armies', () => {
+  for (let seed = 1; seed <= 300; seed++) {
+    const rng = seeded(seed);
+    const troops = Object.fromEntries(STATE_IDS.map((id) => [id, 1 + Math.floor(rng() * 6)]));
+    let g = board({ flavio: ['rs', 'ap'], troops, phase: 'fortify' });
+    const start = { ...g.troops };
+    const sum = (t) => STATE_IDS.reduce((s, id) => s + t[id], 0);
+    const outflow = {};
+    for (let i = 0; i < 40; i++) {
+      const from = STATE_IDS[Math.floor(rng() * 27)];
+      const to = ADJACENCY[from][Math.floor(rng() * ADJACENCY[from].length)];
+      const before = g;
+      g = fortify(g, from, to, 1 + Math.floor(rng() * 8));
+      if (g !== before) outflow[from] = (outflow[from] ?? 0) + (before.troops[from] - g.troops[from]);
+    }
+    assert.equal(sum(g.troops), sum(start), `seed ${seed}: total changed`);
+    for (const id of STATE_IDS) {
+      assert.ok(g.troops[id] >= 1, `seed ${seed}: ${id} emptied`);
+      // A state never sends more than the armies it had before anything arrived.
+      if (outflow[id]) assert.ok(outflow[id] <= start[id], `seed ${seed}: ${id} sent ${outflow[id]} of its own ${start[id]}`);
+    }
+  }
 });
 
 test('movement rejects enemy, non-adjacent and emptying moves', () => {

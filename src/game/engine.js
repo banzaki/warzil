@@ -248,9 +248,12 @@ export function endAttack(state) {
 // Many moves per turn, but each state sends armies out only once, and armies
 // received this turn stay put (no chaining an army across the map).
 
+// Only the state's own (pre-existing) armies may leave, and 1 army must stay.
+// Received armies can be the one that stays: 1 own + 5 received -> the own 1 may go.
 export function movableTroops(state, id) {
   if (state.owner[id] !== state.current || state.movedOut[id]) return 0;
-  return Math.max(0, state.troops[id] - 1 - (state.received[id] ?? 0));
+  const own = state.troops[id] - (state.received[id] ?? 0);
+  return Math.max(0, Math.min(own, state.troops[id] - 1));
 }
 
 export function canFortify(state, from, to) {
