@@ -19,6 +19,16 @@ function Feedback({ game }) {
           ))}
         </g>
       )}
+      {Object.entries(game.rallyMarks ?? {})
+        .filter(([id, m]) => game.owner[id] === m.faction)
+        .map(([id, m]) => (
+          <g key={`mark-${id}-${m.faction}-${m.n}`} className="rally-mark">
+            <rect x={badgeAt(id)[0] + 7} y={badgeAt(id)[1] - 20} width={m.n >= 10 ? 24 : 19} height="13" rx="6.5" />
+            <text x={badgeAt(id)[0] + (m.n >= 10 ? 19 : 16.5)} y={badgeAt(id)[1] - 13.5} dy="0.35em">
+              +{m.n}
+            </text>
+          </g>
+        ))}
       {roll?.conquered && <circle key={`ring-${roll.id}`} className={`conquer-ring ${roll.attacker}`} cx={badgeAt(roll.to)[0]} cy={badgeAt(roll.to)[1]} r="12" />}
       {roll &&
         [

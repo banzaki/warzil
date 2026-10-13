@@ -1778,3 +1778,31 @@ html.reduce-motion .region-flash path {
   border-bottom: none;
   padding: 8px 0 2px;
 }
+
+/* ---------- v0.6: rally marks ("+N") ---------- */
+
+.rally-mark rect {
+  fill: #2e7d32;
+  stroke: #fff;
+  stroke-width: 1.2;
+}
+
+.rally-mark text {
+  fill: #fff;
+  font-size: 9px;
+  font-weight: 900;
+  text-anchor: middle;
+}
+
+.rally-mark {
+  animation: mark-in 0.4s ease-out;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@keyframes mark-in {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+}

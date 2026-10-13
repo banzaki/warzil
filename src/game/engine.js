@@ -71,11 +71,17 @@ const nextInOrder = (state, faction) => {
 
 const firstAlive = (state) => roundOrder(state).find((f) => isAlive(state, f));
 
+// Marks of where each faction reinforced in its latest rally ({ id: { faction, n } }),
+// shown on the map as "+N" until that faction rallies again.
+const withoutMarksOf = (marks = {}, faction) =>
+  Object.fromEntries(Object.entries(marks).filter(([, m]) => m.faction !== faction));
+
 function beginRally(state, faction) {
   // The opening rally also pays the opening compensation (see openingBonus).
   const bonus = state.round === 1 ? (state.openingBonus?.[faction] ?? 0) : 0;
   return {
     ...state,
+    rallyMarks: withoutMarksOf(state.rallyMarks, faction),
     current: faction,
     phase: 'reinforce',
     reinforcements: calcReinforcements(state, faction).total + bonus,
@@ -102,6 +108,8 @@ function beginBattle(state, faction, rng) {
     lastRoll: null,
     movedOut: {},
     received: {},
+    turnConquests: 0,
+    lastStandLogged: [],
     turn: state.turn + 1,
   };
   return addLog(next, { type: 'turn', faction }, rng);
@@ -256,11 +264,13 @@ export function placeTroops(state, id, amount = 1) {
   if (state.phase !== 'reinforce' || state.owner[id] !== state.current) return state;
   const n = Math.min(amount, state.reinforcements);
   if (n <= 0) return state;
+  const mark = state.rallyMarks?.[id];
   return {
     ...state,
     troops: { ...state.troops, [id]: state.troops[id] + n },
     reinforcements: state.reinforcements - n,
     rallyPlacements: [...state.rallyPlacements, { id, n }],
+    rallyMarks: { ...state.rallyMarks, [id]: { faction: state.current, n: (mark?.faction === state.current ? mark.n : 0) + n } },
     selected: null,
     target: null,
   };
@@ -270,8 +280,12 @@ export function placeTroops(state, id, amount = 1) {
 export function undoPlacement(state) {
   if (state.phase !== 'reinforce' || state.rallyPlacements.length === 0) return state;
   const { id, n } = state.rallyPlacements.at(-1);
+  const marks = { ...state.rallyMarks };
+  if (marks[id].n > n) marks[id] = { ...marks[id], n: marks[id].n - n };
+  else delete marks[id];
   return {
     ...state,
+    rallyMarks: marks,
     troops: { ...state.troops, [id]: state.troops[id] - n },
     reinforcements: state.reinforcements + n,
     rallyPlacements: state.rallyPlacements.slice(0, -1),
@@ -354,6 +368,12 @@ export function attack(state, from, to, rng = Math.random) {
   if (troops[to] > 0) {
     // A full 3-army wipe-out is worth a reaction line.
     if (attackerLoss === 3) next = addLog(next, { type: 'bigLoss', faction: state.current, state: from }, rng);
+    // A rival holding its very last state survives the roll: once per battle turn.
+    const defender = state.owner[to];
+    const logged = next.lastStandLogged ?? [];
+    if (defenderLoss === 0 && territoriesOf(state, defender).length === 1 && !logged.includes(defender)) {
+      next = addLog({ ...next, lastStandLogged: [...logged, defender] }, { type: 'lastStand', faction: defender, by: state.current, state: to }, rng);
+    }
     // Keep the same origin and target selected so the player can just roll again.
     if (canAttack(next, from, to)) return { ...next, selected: from, target: to };
     return { ...next, selected: nextAttacker(next, [from]), target: null };
@@ -370,6 +390,14 @@ export function attack(state, from, to, rng = Math.random) {
     troops: { ...troops, [from]: troops[from] - min, [to]: min },
   };
   next = addLog(next, { type: 'conquer', faction: state.current, loser, state: to }, rng);
+
+  // Comeback from the brink (3 states or fewer before this conquest), and streaks.
+  if (territoriesOf(state, state.current).length <= 3 && state.round >= 2) {
+    next = addLog(next, { type: 'underdog', faction: state.current, state: to }, rng);
+  }
+  const streak = (state.turnConquests ?? 0) + 1;
+  next = { ...next, turnConquests: streak };
+  if (streak === 3 || streak === 6) next = addLog(next, { type: 'streak', faction: state.current, count: streak }, rng);
 
   // Whole regions changing hands get their own lines and banner.
   for (const region of controlledRegions(state, loser)) {
