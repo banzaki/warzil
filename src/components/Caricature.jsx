@@ -150,27 +150,26 @@ function Renan({ mood }) {
 function Caiado({ mood }) {
   return (
     <g>
-      {/* green shirt and a stethoscope */}
-      <path d="M12 120 Q18 92 60 90 Q102 92 108 120 Z" fill="#2e7d32" />
-      <path d="M46 91 L60 104 L74 91" fill="#c8e6c9" />
-      <path d="M40 94 Q42 114 58 116 M80 94 Q78 114 62 116" stroke="#616161" strokeWidth="2.5" fill="none" />
-      <circle cx="60" cy="116" r="4" fill="#9e9e9e" />
-      {/* head */}
-      <ellipse cx="60" cy="58" rx="31" ry="34" fill="#e7b48e" />
-      <ellipse cx="28" cy="62" rx="5" ry="8" fill="#d9a07a" />
-      <ellipse cx="92" cy="62" rx="5" ry="8" fill="#d9a07a" />
-      {/* grey sideburns under the hat */}
-      <path d="M29 44 Q27 58 31 66 L35 46 Z" fill="#bdbdbd" />
-      <path d="M91 44 Q93 58 89 66 L85 46 Z" fill="#bdbdbd" />
-      {/* straw cowboy hat */}
-      <ellipse cx="60" cy="38" rx="50" ry="10" fill="#d7a75b" stroke="#a1742e" strokeWidth="1.5" />
-      <path d="M36 38 Q36 10 60 10 Q84 10 84 38 Z" fill="#e2b56a" stroke="#a1742e" strokeWidth="1.5" />
-      <path d="M36 32 Q60 38 84 32 L84 37 Q60 43 36 37 Z" fill="#6d4c41" />
-      <Brows mood={mood} y={46} color="#9e9e9e" thick={4} />
-      <Eyes y={54} mood={mood} />
-      {/* nose */}
-      <path d="M60 56 Q54 69 58 72 Q64 73 66 69" fill="#d39a72" />
-      <Mouth mood={mood} y={81} />
+      {/* governor's dark suit, white shirt, green tie */}
+      <path d="M12 120 Q18 92 60 90 Q102 92 108 120 Z" fill="#263238" />
+      <path d="M46 91 L60 110 L74 91 Z" fill="#fff" />
+      <path d="M57 96 L63 96 L65 114 L60 120 L55 114 Z" fill="#2e7d32" />
+      {/* lean, longer, sun-tanned face */}
+      <ellipse cx="60" cy="58" rx="28" ry="36" fill="#dfa47a" />
+      <ellipse cx="31" cy="60" rx="5" ry="8" fill="#cf9469" />
+      <ellipse cx="89" cy="60" rx="5" ry="8" fill="#cf9469" />
+      {/* tall silver quiff swept to one side */}
+      <path d="M31 54 Q22 22 48 10 Q76 0 92 22 Q96 38 89 54 Q86 34 76 30 Q62 34 50 30 Q38 36 31 54 Z" fill="#d6d6d6" stroke="#9e9e9e" strokeWidth="1.2" />
+      <path d="M40 24 Q54 6 84 16" stroke="#f5f5f5" strokeWidth="4" fill="none" strokeLinecap="round" />
+      <path d="M46 30 Q62 18 86 28" stroke="#9e9e9e" strokeWidth="1.5" fill="none" />
+      {/* forehead lines */}
+      <path d="M46 36 Q60 33 74 36" stroke="#c98d68" strokeWidth="1" fill="none" opacity="0.6" />
+      <Brows mood={mood} y={42} color="#757575" thick={4} />
+      <Eyes y={51} mood={mood} />
+      {/* long, straight nose */}
+      <path d="M60 52 Q56 68 58 72 Q63 74 66 70" fill="#d69a72" />
+      <path d="M44 74 Q46 82 50 84 M76 74 Q74 82 70 84" stroke="#c98d68" strokeWidth="1" fill="none" opacity="0.6" />
+      <Mouth mood={mood} y={82} />
     </g>
   );
 }
