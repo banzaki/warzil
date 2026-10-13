@@ -45,14 +45,27 @@ export function calcReinforcements(state, faction) {
 //      in turn order, and confirms with finishRally(). Nobody attacks yet.
 //   2. Battle: each surviving faction attacks, occupies and moves, then endTurn().
 // When the last faction ends its battle turn, a new round starts with a new rally.
+//
+// The faction that opens the round rotates: round 1 starts with the first seat,
+// round 2 with the second, and so on. With a fixed order the last seat to battle
+// always reinforced its fresh conquests first and won 65% of duels (see
+// scripts/balance.mjs); rotating spreads that edge over every seat.
 
 const isAlive = (state, faction) => !state.eliminated.includes(faction);
 
-// Next surviving faction after `faction` in turn order; null once the order wraps.
-const nextInOrder = (state, faction) =>
-  state.factions.slice(state.factions.indexOf(faction) + 1).find((f) => isAlive(state, f)) ?? null;
+// Turn order for the current round (eliminated factions included; callers skip them).
+export function roundOrder(state) {
+  const k = (state.round - 1) % state.factions.length;
+  return [...state.factions.slice(k), ...state.factions.slice(0, k)];
+}
 
-const firstAlive = (state) => state.factions.find((f) => isAlive(state, f));
+// Next surviving faction after `faction` this round; null once the round's order is done.
+const nextInOrder = (state, faction) => {
+  const order = roundOrder(state);
+  return order.slice(order.indexOf(faction) + 1).find((f) => isAlive(state, f)) ?? null;
+};
+
+const firstAlive = (state) => roundOrder(state).find((f) => isAlive(state, f));
 
 function beginRally(state, faction) {
   return {
@@ -359,7 +372,8 @@ export function endTurn(state, rng = Math.random) {
   if (state.phase === 'over' || state.phase === 'reinforce') return state;
   const next = nextInOrder(state, state.current);
   if (next) return beginBattle(state, next, rng);
-  return beginRally({ ...state, round: state.round + 1 }, firstAlive(state));
+  const nextRound = { ...state, round: state.round + 1 };
+  return beginRally(nextRound, firstAlive(nextRound));
 }
 
 // ---------- UI helpers ----------

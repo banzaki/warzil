@@ -3,6 +3,7 @@ import BrazilMap from './BrazilMap.jsx';
 import Caricature from './Caricature.jsx';
 import { CampaignLog, EventBanner, MuteButton, PlayerChip, RegionsPanel, RollPanel, SpeechBubble, useGameSounds } from './BoardParts.jsx';
 import { FACTIONS } from '../game/data.js';
+import { roundOrder } from '../game/engine.js';
 import { PHASE_NAMES, createLinePicker, describeEvent } from '../game/texts.js';
 import {
   SIM_SPEEDS,
@@ -51,6 +52,7 @@ export default function SimulationScreen({ factions, onMenu }) {
           <span>
             🎬 Simulação · Rodada {game.round} <MuteButton />
           </span>
+          <span className="opener">abre: {name(roundOrder(game).find((f) => !game.eliminated.includes(f)))}</span>
         </div>
         <div className="rivals">
           {game.factions.map((f) => (

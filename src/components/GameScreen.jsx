@@ -20,6 +20,7 @@ import {
   occupy,
   finishRally,
   placeTroops,
+  roundOrder,
   resetRally,
   undoPlacement,
   selectTarget,
@@ -254,6 +255,7 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate }
           <span>
             Rodada {game.round} <MuteButton />
           </span>
+          <span className="opener">abre: {name(roundOrder(game).find((f) => !game.eliminated.includes(f)))}</span>
         </div>
         {rivals.length === 1 ? (
           <PlayerChip game={game} faction={rivals[0]} />

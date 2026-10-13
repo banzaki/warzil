@@ -364,10 +364,11 @@ test('reinforce -> attack -> occupy -> move -> AI turn', () => {
   assert.equal(g.phase, 'attack', 'the AI already rallied this round');
 
   let steps = 0;
-  while (g.current === 'lula' && g.phase !== 'over' && steps++ < 1000) g = aiStep(g, rng);
+  // Lula's battle turn, until the round-2 rally begins.
+  while (g.phase !== 'reinforce' && g.phase !== 'over' && steps++ < 1000) g = aiStep(g, rng);
   assert.ok(steps < 1000, 'AI turn did not finish');
   if (g.phase !== 'over') {
-    assert.equal(g.current, 'flavio');
+    assert.equal(g.current, 'lula', 'round 2 opens with the second seat');
     assert.equal(g.phase, 'reinforce', 'new round starts with the rally');
     assert.equal(g.round, 2);
   }
@@ -453,8 +454,9 @@ test('turn order cycles through factions and counts rounds', () => {
   assert.deepEqual(seen, [
     ['rally', 'lula', 1], ['rally', 'flavio', 1], ['rally', 'cury', 1],
     ['battle', 'lula', 1], ['battle', 'flavio', 1], ['battle', 'cury', 1],
-    ['rally', 'lula', 2], ['rally', 'flavio', 2], ['rally', 'cury', 2],
-    ['battle', 'lula', 2], ['battle', 'flavio', 2], ['battle', 'cury', 2],
+    // v0.5: the faction opening the round rotates (round 2 starts with the 2nd seat).
+    ['rally', 'flavio', 2], ['rally', 'cury', 2], ['rally', 'lula', 2],
+    ['battle', 'flavio', 2], ['battle', 'cury', 2], ['battle', 'lula', 2],
   ]);
 });
 
@@ -468,7 +470,9 @@ test('eliminated factions are skipped; the match goes on', () => {
   g = endTurn(occupy(g, 1));
   assert.equal(g.current, 'cury', 'flavio is skipped');
   g = endTurn(g);
-  assert.equal(g.current, 'lula');
+  // Round 2 would open with Flávio (rotation); he is out, so Cury opens.
+  assert.equal(g.current, 'cury');
+  assert.equal(g.phase, 'reinforce');
   assert.equal(g.round, 2);
 });
 

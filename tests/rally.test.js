@@ -70,8 +70,16 @@ test('battle turns follow the order, then a new round rallies again', () => {
     g = endTurn(g);
   }
   assert.deepEqual(battles, ['lula', 'flavio', 'cury', 'renan']);
-  assert.equal(g.current, 'lula');
+  assert.equal(g.current, 'flavio', 'round 2 opens with the second seat');
   assert.equal(g.round, 2);
+  const order2 = [];
+  while (g.phase === 'reinforce') g = rallyAll(g);
+  while (g.phase !== 'reinforce') {
+    order2.push(g.current);
+    g = endTurn(g);
+  }
+  assert.deepEqual(order2, ['flavio', 'cury', 'renan', 'lula']);
+  assert.equal(g.current, 'cury', 'round 3 opens with the third seat');
   assert.equal(endTurn(g), g, 'endTurn cannot skip the rally');
 });
 
@@ -92,6 +100,8 @@ test('reinforcements are counted when each faction rallies, region bonuses inclu
   while (g.phase !== 'attack') g = rallyAll(g);
   g = endTurn(endTurn(g)); // both battle turns end -> round 2 rally
   assert.equal(g.phase, 'reinforce');
+  assert.equal(g.current, 'flavio', 'round 2 opens with the second seat');
+  g = rallyAll(g);
   assert.equal(g.current, 'lula');
   const expected = Math.max(3, Math.floor(5 / 2)) + REGIONS.south.bonus;
   assert.equal(g.reinforcements, expected);
@@ -115,7 +125,8 @@ test('eliminated factions skip both the rally and the battle', () => {
     rallied.push(g.current);
     g = rallyAll(g);
   }
-  assert.deepEqual(rallied, ['lula', 'cury'], 'Flávio has no rally either');
+  // Round 2 order is Flávio, Cury, Lula; Flávio is out.
+  assert.deepEqual(rallied, ['cury', 'lula'], 'Flávio has no rally either');
 });
 
 test('undo and reset give back exactly what was placed, never more', () => {
