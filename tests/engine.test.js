@@ -74,17 +74,16 @@ test('adjacency is symmetric and the graph is connected', () => {
   assert.ok(STATES.df && ADJACENCY.df.includes('go'));
 });
 
-test('new game splits the map 13/14 with 40 troops each', () => {
+test('new game splits the map 13/14 with 1 army per state (v0.6 default)', () => {
   const g = createGame('lula', seeded(1));
   assert.equal(territoriesOf(g, 'lula').length, 13);
   assert.equal(territoriesOf(g, 'flavio').length, 14);
-  for (const f of ['lula', 'flavio']) {
-    const total = territoriesOf(g, f).reduce((s, id) => s + g.troops[id], 0);
-    assert.equal(total, 40);
-  }
+  for (const id of STATE_IDS) assert.equal(g.troops[id], 1);
   assert.equal(g.current, 'lula');
   assert.equal(g.phase, 'reinforce');
-  assert.equal(g.reinforcements, calcReinforcements(g, 'lula').total);
+  // Opening compensation: 13 armies + 6 reinforcements vs. 14 + 7 -> Lula gets +2.
+  assert.deepEqual(g.openingBonus, { lula: 2, flavio: 0 });
+  assert.equal(g.reinforcements, calcReinforcements(g, 'lula').total + 2);
   assertInvariants(g);
 });
 
@@ -425,11 +424,14 @@ test('deal for 3 and 4 factions: territories and armies', () => {
   assert.deepEqual(g3.factions, ['flavio', 'lula', 'cury']);
   for (const f of g3.factions) {
     assert.equal(territoriesOf(g3, f).length, 9);
-    assert.equal(total(g3, f), 30);
+    assert.equal(total(g3, f), 9, '1 army per state');
+    assert.equal(g3.openingBonus[f], 0, 'even split: no compensation');
   }
   const g4 = createGame('lula', seeded(3), ['flavio', 'renan', 'caiado']);
   assert.deepEqual(g4.factions.map((f) => territoriesOf(g4, f).length), [7, 7, 7, 6]);
-  for (const f of g4.factions) assert.equal(total(g4, f), 24);
+  for (const f of g4.factions) assert.equal(total(g4, f), territoriesOf(g4, f).length);
+  // The 6-state seat gets +1 so that armies + first reinforcements match (7+3 vs 6+3).
+  assert.deepEqual(g4.factions.map((f) => g4.openingBonus[f]), [0, 0, 0, 1]);
   for (let seed = 1; seed <= 200; seed++) {
     const g = createGame('lula', seeded(seed), ['flavio', 'renan', 'caiado']);
     for (const f of g.factions) assert.equal(calcReinforcements(g, f).bonus, 0, `seed ${seed}`);
@@ -445,18 +447,20 @@ function advance(g) {
 }
 
 test('turn order cycles through factions and counts rounds', () => {
-  let g = createGame('lula', seeded(4), ['flavio', 'cury']);
+  let g = createGame('lula', seeded(4), ['flavio', 'cury'], { opener: 0 });
   const seen = [];
   for (let i = 0; i < 12; i++) {
     seen.push([g.phase === 'reinforce' ? 'rally' : 'battle', g.current, g.round]);
     g = advance(g);
   }
   assert.deepEqual(seen, [
+    // Round 1: collective preparation, then battles.
     ['rally', 'lula', 1], ['rally', 'flavio', 1], ['rally', 'cury', 1],
     ['battle', 'lula', 1], ['battle', 'flavio', 1], ['battle', 'cury', 1],
-    // v0.5: the faction opening the round rotates (round 2 starts with the 2nd seat).
-    ['rally', 'flavio', 2], ['rally', 'cury', 2], ['rally', 'lula', 2],
-    ['battle', 'flavio', 2], ['battle', 'cury', 2], ['battle', 'lula', 2],
+    // Round 2 (v0.6): full turns, opened by the 2nd seat (rotation).
+    ['rally', 'flavio', 2], ['battle', 'flavio', 2],
+    ['rally', 'cury', 2], ['battle', 'cury', 2],
+    ['rally', 'lula', 2], ['battle', 'lula', 2],
   ]);
 });
 
@@ -525,4 +529,19 @@ test('AI-only matches with 3 and 4 factions always finish', () => {
       else assert.equal(territoriesOf(g, 'lula').length, 0);
     }
   }
+});
+
+test('the seat opening the match is drawn, then rotates every round', () => {
+  const openers = new Set();
+  for (let seed = 1; seed <= 60; seed++) {
+    const g = createGame('lula', seeded(seed), ['flavio', 'cury', 'renan']);
+    openers.add(g.opener);
+    assert.equal(g.current, g.factions[g.opener], 'round 1 rally starts with the drawn seat');
+  }
+  assert.deepEqual([...openers].sort(), [0, 1, 2, 3], 'every seat can open');
+  // Fixed opener: round r opens with seat (opener + r - 1).
+  let g = createGame('lula', seeded(1), ['flavio', 'cury'], { opener: 2 });
+  assert.equal(g.current, 'cury');
+  while (g.round === 1) g = advance(g);
+  assert.equal(g.current, 'lula', 'round 2 opens with the next seat after the opener');
 });

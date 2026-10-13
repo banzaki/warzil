@@ -2,8 +2,11 @@
 // so the UI, the AI and the tests all drive the game the same way.
 import { ADJACENCY, REGIONS, STATES, STATE_IDS, opponentOf } from './data.js';
 
-// Armies per faction at the start, by number of factions in the match.
-export const STARTING_TROOPS = { 2: 40, 3: 30, 4: 24 };
+// Starting armies per state: 1 (default), 2, 3, or 'mixed' (1-5 per state with
+// the same total budget for everybody). No random piles on single states.
+export const ARMY_MODES = [1, 2, 3, 'mixed'];
+const MIXED_AVERAGE = 3;
+const MIXED_MAX = 5;
 // Enough for a whole match: the campaign diary can show everything that happened.
 const MAX_LOG = 800;
 
@@ -41,22 +44,22 @@ export function calcReinforcements(state, faction) {
 }
 
 // ---------- Round structure ----------
-// Each round has two stages:
-//   1. Rally (phase 'reinforce'): every surviving faction places its reinforcements,
-//      in turn order, and confirms with finishRally(). Nobody attacks yet.
-//   2. Battle: each surviving faction attacks, occupies and moves, then endTurn().
-// When the last faction ends its battle turn, a new round starts with a new rally.
+// Round 1 is a collective preparation: every faction places its reinforcements
+// in turn order and confirms with finishRally(); nobody attacks until all are done.
+// Then each faction battles and moves, then endTurn().
+// From round 2 on, each faction plays a full turn: rally, battle, movement.
 //
-// The faction that opens the round rotates: round 1 starts with the first seat,
-// round 2 with the second, and so on. With a fixed order the last seat to battle
-// always reinforced its fresh conquests first and won 65% of duels (see
-// scripts/balance.mjs); rotating spreads that edge over every seat.
+// The faction that opens the round rotates every round, starting from a seat
+// drawn at the start of the match. Without rotation the first seat won 76% of
+// duels; with rotation but a fixed opener the seat battling second in round 1
+// (first "double turn" at the round 1 -> 2 boundary) won ~59%. Drawing the
+// opener spreads that edge evenly: 49.1% / 50.9% (scripts/balance.mjs).
 
 const isAlive = (state, faction) => !state.eliminated.includes(faction);
 
 // Turn order for the current round (eliminated factions included; callers skip them).
 export function roundOrder(state) {
-  const k = (state.round - 1) % state.factions.length;
+  const k = (state.round - 1 + (state.opener ?? 0)) % state.factions.length;
   return [...state.factions.slice(k), ...state.factions.slice(0, k)];
 }
 
@@ -69,11 +72,13 @@ const nextInOrder = (state, faction) => {
 const firstAlive = (state) => roundOrder(state).find((f) => isAlive(state, f));
 
 function beginRally(state, faction) {
+  // The opening rally also pays the opening compensation (see openingBonus).
+  const bonus = state.round === 1 ? (state.openingBonus?.[faction] ?? 0) : 0;
   return {
     ...state,
     current: faction,
     phase: 'reinforce',
-    reinforcements: calcReinforcements(state, faction).total,
+    reinforcements: calcReinforcements(state, faction).total + bonus,
     rallyPlacements: [],
     selected: null,
     target: null,
@@ -111,10 +116,6 @@ export const POLES = {
   flavio: ['centerWest', 'southeast', 'south'],
 };
 const POLE_SHARE = 0.75;
-// The compact Center-South is much easier to hold: without help the
-// North/Northeast side won 31% of 1500 AI-only duels. +5 starting armies for it
-// brought that to 48.7-50.1% over two runs of 2000 (scripts/balance.mjs ... polarized).
-export const POLE_ARMY_BONUS = { lula: 5, flavio: 0 };
 
 export const canPolarize = (factions) =>
   factions.length === 2 && Object.keys(POLES).every((f) => factions.includes(f));
@@ -140,14 +141,52 @@ function polarizedOwner(factions, sizes, rng) {
   return owner;
 }
 
+function startingArmies(owner, factions, mode, rng) {
+  const troops = {};
+  const counts = Object.fromEntries(factions.map((f) => [f, STATE_IDS.filter((id) => owner[id] === f).length]));
+  if (mode !== 'mixed') {
+    for (const id of STATE_IDS) troops[id] = mode;
+    return troops;
+  }
+  // Same budget for everybody, sized on the largest holding; a smaller holding
+  // just gets denser stacks. Every state keeps 1-5 armies.
+  const budget = MIXED_AVERAGE * Math.max(...Object.values(counts));
+  for (const f of factions) {
+    const mine = STATE_IDS.filter((id) => owner[id] === f);
+    mine.forEach((id) => (troops[id] = 1));
+    for (let extra = budget - mine.length; extra > 0; extra--) {
+      const open = mine.filter((id) => troops[id] < MIXED_MAX);
+      troops[open[Math.floor(rng() * open.length)]] += 1;
+    }
+  }
+  return troops;
+}
+
+// Opening compensation: 27 states never split evenly, so whoever starts with
+// less (armies on the map + first reinforcements) gets the difference in the
+// opening rally. After it, everybody has the same total. Same rule for all.
+function openingBonus(owner, troops, factions) {
+  const totals = Object.fromEntries(
+    factions.map((f) => {
+      const mine = STATE_IDS.filter((id) => owner[id] === f);
+      const armies = mine.reduce((sum, id) => sum + troops[id], 0);
+      return [f, armies + calcReinforcements({ owner }, f).total];
+    }),
+  );
+  const top = Math.max(...Object.values(totals));
+  return Object.fromEntries(factions.map((f) => [f, top - totals[f]]));
+}
+
 // rivals: the CPU factions, in turn order after the human (default: the classic duel).
 // spectator: every faction is CPU-controlled (AI-vs-AI simulation); there is no human.
 // deal: 'random' (default) or 'polarized' (Lula vs. Flávio duels only; otherwise random).
+// armies: starting armies per state, one of ARMY_MODES (default 1).
+// opener: index of the seat that opens round 1 (default: drawn with rng).
 export function createGame(
   humanFaction,
   rng = Math.random,
   rivals = [opponentOf(humanFaction)],
-  { spectator = false, deal = 'random' } = {},
+  { spectator = false, deal = 'random', armies = 1, opener } = {},
 ) {
   const factions = [humanFaction, ...rivals];
   // Deal round-robin. Duel: the AI (moving second) gets the 14th state, as in v0.2.
@@ -171,19 +210,14 @@ export function createGame(
     }
   } while (factions.some((f) => controlledRegions({ owner }, f).length || !hasAttack(owner, f)));
 
-  const troops = {};
-  const startingTroops = STARTING_TROOPS[factions.length];
-  for (const faction of dealOrder) {
-    const mine = order.filter((id) => owner[id] === faction);
-    mine.forEach((id) => (troops[id] = 2));
-    const bonus = polarized ? POLE_ARMY_BONUS[faction] : 0;
-    for (let extra = startingTroops + bonus - mine.length * 2; extra > 0; extra--) {
-      troops[mine[Math.floor(rng() * mine.length)]] += 1;
-    }
-  }
+  const armyMode = ARMY_MODES.includes(armies) ? armies : 1;
+  const troops = startingArmies(owner, factions, armyMode, rng);
 
   const state = {
+    opener: Number.isInteger(opener) ? opener : Math.floor(rng() * factions.length),
     deal: polarized ? 'polarized' : 'random',
+    armies: armyMode,
+    openingBonus: openingBonus(owner, troops, factions),
     human: spectator ? null : humanFaction,
     factions,
     eliminated: [],
@@ -202,7 +236,7 @@ export function createGame(
     log: [],
     logCounter: 0,
   };
-  return addLog(beginRally(state, factions[0]), { type: 'start', faction: humanFaction }, rng);
+  return addLog(beginRally(state, firstAlive(state)), { type: 'start', faction: humanFaction }, rng);
 }
 
 // ---------- Reinforce ----------
@@ -244,6 +278,8 @@ export function resetRally(state) {
 // after the last one, the battle stage starts with the first surviving faction.
 export function finishRally(state, rng = Math.random) {
   if (state.phase !== 'reinforce' || state.reinforcements > 0) return state;
+  // From round 2 on, the same faction goes straight on to its battle.
+  if (state.round > 1) return beginBattle(state, state.current, rng);
   const next = nextInOrder(state, state.current);
   return next ? beginRally(state, next) : beginBattle(state, firstAlive(state), rng);
 }
@@ -438,7 +474,9 @@ export function fortify(state, from, to, amount) {
 export function endTurn(state, rng = Math.random) {
   if (state.phase === 'over' || state.phase === 'reinforce') return state;
   const next = nextInOrder(state, state.current);
-  if (next) return beginBattle(state, next, rng);
+  // Round 1: everybody already rallied, so the next faction goes to battle.
+  // Later rounds: the next faction starts its full turn with a rally.
+  if (next) return state.round === 1 ? beginBattle(state, next, rng) : beginRally(state, next);
   const nextRound = { ...state, round: state.round + 1 };
   return beginRally(nextRound, firstAlive(nextRound));
 }

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { ADJACENCY, STATES, STATE_IDS } from '../src/game/data.js';
-import { POLES, POLE_ARMY_BONUS, STARTING_TROOPS, calcReinforcements, canPolarize, createGame, territoriesOf } from '../src/game/engine.js';
+import { POLES, calcReinforcements, canPolarize, createGame, territoriesOf } from '../src/game/engine.js';
 
 function seeded(seed) {
   let a = seed >>> 0;
@@ -30,7 +30,7 @@ test('polarized deal: same sizes as random, themed, fair start rules', () => {
     for (const f of ['lula', 'flavio']) {
       assert.equal(calcReinforcements(g, f).bonus, 0, 'nobody starts with a whole region');
       assert.ok(territoriesOf(g, f).some((id) => ADJACENCY[id].some((n) => g.owner[n] !== f)), 'attacks possible');
-      assert.equal(armies(g, f), STARTING_TROOPS[2] + POLE_ARMY_BONUS[f]);
+      assert.equal(armies(g, f), territoriesOf(g, f).length, '1 army per state, no hidden pole bonus');
     }
     lulaShare += inPole(g, 'lula') / 13.5;
     flavioShare += inPole(g, 'flavio') / 13.5;
@@ -48,12 +48,12 @@ test('polarized deal only applies to Lula vs. Flávio duels', () => {
   assert.equal(canPolarize(['lula', 'flavio', 'cury']), false);
   const g = createGame('lula', seeded(1), ['flavio', 'cury'], { deal: 'polarized' });
   assert.equal(g.deal, 'random', '3-4 faction matches keep the random deal');
-  assert.equal(armies(g, 'lula'), STARTING_TROOPS[3]);
+  assert.equal(armies(g, 'lula'), 9);
 });
 
 test('random deal stays the default and unchanged', () => {
   const g = createGame('lula', seeded(2));
   assert.equal(g.deal, 'random');
-  assert.equal(armies(g, 'lula'), 40);
-  assert.equal(armies(g, 'flavio'), 40);
+  assert.equal(armies(g, 'lula'), 13);
+  assert.equal(armies(g, 'flavio'), 14);
 });
