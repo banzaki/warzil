@@ -3,6 +3,7 @@ import Caricature from './Caricature.jsx';
 import SettingsButton from './SettingsPanel.jsx';
 import { EXTRA_CANDIDATES, MAX_FACTIONS, PROTAGONISTS } from '../game/data.js';
 import { CANDIDATES, DISCLAIMER } from '../game/texts.js';
+import { formatDailyKey } from '../game/daily.js';
 
 const MAX_INVITES = MAX_FACTIONS - PROTAGONISTS.length;
 
@@ -10,7 +11,7 @@ const ALL_CANDIDATES = [...PROTAGONISTS, ...EXTRA_CANDIDATES];
 
 // invited: extra candidates joining Lula and Flávio (0-2). onPick(human, rivals).
 // onSimulate(factions): start an AI-vs-AI simulation with 2-4 candidates.
-export default function StartScreen({ invited, onInvitedChange, deal, onDealChange, onPick, onSimulate, prefs }) {
+export default function StartScreen({ invited, onInvitedChange, deal, onDealChange, onPick, onSimulate, prefs, daily }) {
   const [showMore, setShowMore] = useState(invited.length > 0);
   const [showSim, setShowSim] = useState(false);
   const [simPicks, setSimPicks] = useState(PROTAGONISTS);
@@ -103,6 +104,28 @@ export default function StartScreen({ invited, onInvitedChange, deal, onDealChan
           })}
         </ul>
       </details>
+
+      <section className="daily-card">
+        <div className="daily-head">
+          <strong>📅 Desafio do dia · {formatDailyKey(daily.challenge.key)}</strong>
+          <small>Mesmo começo para todo mundo hoje. Vença no menor número de rodadas.</small>
+        </div>
+        <div className="daily-lineup">
+          {daily.challenge.factions.map((f, i) => (
+            <span key={f} className={`daily-face ${f}`}>
+              <Caricature who={f} mood={i === 0 ? 'happy' : 'neutral'} size={i === 0 ? 48 : 36} />
+              <small>{i === 0 ? `Você: ${CANDIDATES[f].name}` : CANDIDATES[f].name}</small>
+            </span>
+          ))}
+        </div>
+        <p className="daily-stats">
+          Tentativas hoje: {daily.record.attempts} · Vitórias: {daily.record.wins} · Melhor:{' '}
+          {daily.record.bestRounds ? `${daily.record.bestRounds} rodadas` : '—'}
+        </p>
+        <button className="btn primary daily-play" onClick={daily.onPlay}>
+          {daily.record.attempts ? 'Tentar de novo' : 'Jogar o desafio'}
+        </button>
+      </section>
 
       <details className="more sim-setup" open={showSim} onToggle={(e) => setShowSim(e.currentTarget.open)}>
         <summary>{showSim ? '− Fechar simulação' : '🎬 Simular guerra (IA x IA)'}</summary>

@@ -1614,3 +1614,69 @@ html.reduce-motion .region-flash path {
   opacity: 0.8;
   text-align: center;
 }
+
+/* ---------- v0.5: daily challenge ---------- */
+
+.daily-card {
+  margin: 18px auto 0;
+  max-width: 560px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(255, 202, 40, 0.18), rgba(255, 255, 255, 0.06));
+  border: 2px solid rgba(255, 202, 40, 0.6);
+  text-align: center;
+}
+
+.daily-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.daily-head strong {
+  color: var(--yellow);
+  font-size: 1.05rem;
+}
+
+.daily-head small,
+.daily-stats {
+  opacity: 0.85;
+  font-size: 0.85rem;
+}
+
+.daily-lineup {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 10px 0 4px;
+}
+
+.daily-face {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-weight: 800;
+}
+
+.daily-stats {
+  margin: 6px 0 10px;
+}
+
+.btn.daily-play {
+  min-width: 220px;
+  background: var(--yellow);
+  color: var(--ink);
+  box-shadow: 0 4px 0 #c79100;
+}
+
+.end-daily {
+  margin: 0 0 8px;
+  padding: 8px;
+  border-radius: 12px;
+  background: #fff8e1;
+  font-weight: 700;
+  font-size: 0.88rem;
+}

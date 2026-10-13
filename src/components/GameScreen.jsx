@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import BrazilMap from './BrazilMap.jsx';
 import Caricature from './Caricature.jsx';
 import { CampaignLog, EventBanner, PlayerChip, RegionsPanel, RollPanel, SpeechBubble, useGameSounds } from './BoardParts.jsx';
@@ -29,6 +29,7 @@ import {
 } from '../game/engine.js';
 import { aiStep } from '../game/ai.js';
 import { AI_SPEED_FACTOR, REINFORCE_AMOUNT } from '../game/settings.js';
+import { formatDailyKey } from '../game/daily.js';
 import { DISCLAIMER, PHASE_HELP, PHASE_NAMES, VICTORY_TITLES, createLinePicker, defeatLine, describeEvent, fill } from '../game/texts.js';
 
 const EMPTY = new Set();
@@ -36,7 +37,7 @@ const AI_DELAY = { reinforce: 600, attack: 350, occupy: 300, fortify: 300 };
 // With more CPU rivals the wait between human turns grows, so each AI step gets faster.
 const AI_SPEED = { 2: 1, 3: 0.75, 4: 0.6 };
 
-export default function GameScreen({ initialGame, onRematch, onChangeCandidate, prefs }) {
+export default function GameScreen({ initialGame, onRematch, onChangeCandidate, prefs, onMatchEnd, dailyRecord }) {
   const [game, setGame] = useState(initialGame);
   const { settings } = prefs;
   const [placeAmount, setPlaceAmount] = useState(REINFORCE_AMOUNT[settings.reinforce]);
@@ -47,6 +48,15 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate, 
   // One picker per match: remembers recent lines so jokes don't repeat back to back.
   const [choose] = useState(createLinePicker);
   useGameSounds(game);
+
+  // Report the result once (daily challenge records).
+  const reported = useRef(false);
+  useEffect(() => {
+    if (game.phase === 'over' && !reported.current) {
+      reported.current = true;
+      onMatchEnd?.(game);
+    }
+  }, [game, onMatchEnd]);
 
   const isHumanTurn = game.current === game.human && game.phase !== 'over';
   const human = game.human;
@@ -374,9 +384,16 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate, 
                 ? `${name(game.winner)} levou os 27 estados em ${game.round} rodadas.`
                 : `${name(game.winner)} tirou ${name(human)} do mapa na rodada ${game.round}.`}
             </p>
+            {game.daily && dailyRecord && (
+              <p className="end-daily">
+                📅 Desafio do dia {formatDailyKey(game.daily)}
+                <br />
+                Tentativas: {dailyRecord.attempts} · Vitórias: {dailyRecord.wins} · Melhor: {dailyRecord.bestRounds ? `${dailyRecord.bestRounds} rodadas` : '—'}
+              </p>
+            )}
             <div className="buttons">
               <button className="btn primary" onClick={onRematch} autoFocus>
-                🔁 Revanche
+                🔁 {game.daily ? 'Tentar de novo' : 'Revanche'}
               </button>
               <button className="btn ghost" onClick={onChangeCandidate}>
                 Trocar candidato

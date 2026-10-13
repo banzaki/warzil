@@ -5,6 +5,16 @@ import SimulationScreen from './components/SimulationScreen.jsx';
 import { createGame } from './game/engine.js';
 import { loadSettings, resetSettings, saveSettings } from './game/settings.js';
 import { setMuted } from './game/sound.js';
+import {
+  createDailyGame,
+  dailyChallenge,
+  dailyKey,
+  dayRecord,
+  loadDailyRecords,
+  recordAttempt,
+  recordResult,
+  saveDailyRecords,
+} from './game/daily.js';
 
 export default function App() {
   const [game, setGame] = useState(null);
@@ -17,6 +27,7 @@ export default function App() {
   const [settings, setSettings] = useState(loadSettings);
   // Start-of-match deal for Lula vs. Flávio duels: 'random' (default) or 'polarized'.
   const [deal, setDeal] = useState('random');
+  const [dailyRecords, setDailyRecords] = useState(loadDailyRecords);
 
   useEffect(() => {
     setMuted(!settings.sound);
@@ -34,6 +45,17 @@ export default function App() {
     setGame(createGame(human, Math.random, rivals, { deal }));
     setMatchId((n) => n + 1);
   };
+  // Daily challenge: same line-up and deal for everybody on that day (key = date).
+  const startDaily = (key = dailyKey()) => {
+    setDailyRecords((r) => saveDailyRecords(recordAttempt(r, key)));
+    setGame(createDailyGame(dailyChallenge(key)));
+    setMatchId((n) => n + 1);
+  };
+  const onMatchEnd = (finished) => {
+    if (!finished.daily) return;
+    const result = { won: finished.winner === finished.human, rounds: finished.round };
+    setDailyRecords((r) => saveDailyRecords(recordResult(r, finished.daily, result)));
+  };
   const toMenu = () => {
     setGame(null);
     setSimFactions(null);
@@ -50,6 +72,7 @@ export default function App() {
         onDealChange={setDeal}
         onPick={start}
         prefs={prefs}
+        daily={{ challenge: dailyChallenge(), record: dayRecord(dailyRecords, dailyKey()), onPlay: () => startDaily() }}
         onSimulate={(factions) => {
           setSimFactions(factions);
           setMatchId((n) => n + 1);
@@ -62,7 +85,9 @@ export default function App() {
     <GameScreen
       key={matchId}
       initialGame={game}
-      onRematch={() => start(game.human, game.factions.slice(1))}
+      onRematch={() => (game.daily ? startDaily(game.daily) : start(game.human, game.factions.slice(1)))}
+      onMatchEnd={onMatchEnd}
+      dailyRecord={game.daily ? dayRecord(dailyRecords, game.daily) : null}
       onChangeCandidate={toMenu}
       prefs={prefs}
     />
