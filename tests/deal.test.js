@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { ADJACENCY, STATES, STATE_IDS } from '../src/game/data.js';
-import { POLES, calcReinforcements, canPolarize, createGame, territoriesOf } from '../src/game/engine.js';
+import { POLES, POLE_OPENING_BONUS, calcReinforcements, canPolarize, createGame, territoriesOf } from '../src/game/engine.js';
 
 function seeded(seed) {
   let a = seed >>> 0;
@@ -56,4 +56,17 @@ test('random deal stays the default and unchanged', () => {
   assert.equal(g.deal, 'random');
   assert.equal(armies(g, 'lula'), 13);
   assert.equal(armies(g, 'flavio'), 14);
+});
+
+test('polarized duels: the North/Northeast side gets its opening bonus, by army mode', () => {
+  for (const mode of [1, 2, 3, 'mixed']) {
+    const pol = createGame('lula', seeded(4), ['flavio'], { deal: 'polarized', armies: mode });
+    const rnd = createGame('lula', seeded(4), ['flavio'], { armies: mode });
+    const base = (g, f) => territoriesOf(g, f).reduce((s, id) => s + g.troops[id], 0) + calcReinforcements(g, f).total;
+    // Equal totals after the opening, then +POLE_OPENING_BONUS for Lula's side.
+    const lulaTotal = base(pol, 'lula') + pol.openingBonus.lula;
+    const flavioTotal = base(pol, 'flavio') + pol.openingBonus.flavio;
+    assert.equal(lulaTotal - flavioTotal, POLE_OPENING_BONUS[mode], `mode ${mode}`);
+    assert.equal(new Set(rnd.factions.map((f) => base(rnd, f) + rnd.openingBonus[f])).size, 1, 'random deal: no pole bonus');
+  }
 });

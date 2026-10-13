@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { FACTIONS, REGIONS, STATE_IDS } from '../src/game/data.js';
 import { LINES, NEWS, createLinePicker, defeatLine, describeEvent, eliminatorLine, fill, loseLine } from '../src/game/texts.js';
 import { attack, blitz, createGame } from '../src/game/engine.js';
+import { seededRng } from '../src/game/daily.js';
 
 const IDS = Object.keys(FACTIONS);
 const LIST_KEYS = ['start', 'turn', 'conquer', 'lose', 'bigLoss', 'regionGained', 'regionLost', 'eliminates', 'eliminated', 'victory', 'knockout', 'defeat'];
@@ -84,7 +85,7 @@ test('every event type produces a line for every candidate', () => {
 
 // A hand-built board for engine event checks.
 function board(owner, troops, current = 'lula') {
-  const g = createGame('lula', () => 0.5, ['flavio', 'cury']);
+  const g = createGame('lula', seededRng(5), ['flavio', 'cury']);
   return { ...g, owner, troops: { ...Object.fromEntries(STATE_IDS.map((id) => [id, 1])), ...troops }, phase: 'attack', current, reinforcements: 0 };
 }
 const scripted = (...faces) => {

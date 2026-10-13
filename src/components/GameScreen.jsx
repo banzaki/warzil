@@ -30,14 +30,12 @@ import {
   selectTerritory,
 } from '../game/engine.js';
 import { aiStep } from '../game/ai.js';
-import { AI_SPEED_FACTOR, REINFORCE_AMOUNT } from '../game/settings.js';
+import { REINFORCE_AMOUNT } from '../game/settings.js';
+import { aiDelay } from '../game/pace.js';
 import { formatDailyKey } from '../game/daily.js';
 import { DISCLAIMER, PHASE_HELP, PHASE_NAMES, VICTORY_TITLES, createLinePicker, defeatLine, describeEvent, fill } from '../game/texts.js';
 
 const EMPTY = new Set();
-const AI_DELAY = { reinforce: 600, attack: 350, occupy: 300, fortify: 300 };
-// With more CPU rivals the wait between human turns grows, so each AI step gets faster.
-const AI_SPEED = { 2: 1, 3: 0.75, 4: 0.6 };
 
 export default function GameScreen({ initialGame, onRematch, onChangeCandidate, prefs, onMatchEnd, dailyRecord }) {
   const [game, setGame] = useState(initialGame);
@@ -64,11 +62,16 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate, 
   const human = game.human;
   const rivals = game.factions.filter((f) => f !== human);
 
-  // The AI plays one visible step at a time.
+  // The AI plays one visible step at a time; the wait grows with what just
+  // happened (a conquest or an elimination gets a beat to be noticed).
+  const seenLogId = useRef(game.log[0]?.id ?? 0);
   useEffect(() => {
     if (game.current === game.human || game.phase === 'over') return undefined;
-    const delay = (AI_DELAY[game.phase] ?? 600) * AI_SPEED[game.factions.length] * AI_SPEED_FACTOR[settings.aiSpeed];
-    const timer = setTimeout(() => setGame((g) => aiStep(g)), delay);
+    const delay = aiDelay(game, seenLogId.current, settings.aiSpeed);
+    const timer = setTimeout(() => {
+      seenLogId.current = game.log[0]?.id ?? 0;
+      setGame((g) => aiStep(g));
+    }, delay);
     return () => clearTimeout(timer);
   }, [game, settings.aiSpeed]);
 

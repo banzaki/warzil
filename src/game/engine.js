@@ -116,6 +116,12 @@ export const POLES = {
   flavio: ['centerWest', 'southeast', 'south'],
 };
 const POLE_SHARE = 0.75;
+// The compact Center-South is easier to hold: with equal armies the
+// North/Northeast side won only 37-39% of AI duels. It gets extra reinforcements
+// in the opening rally, by army mode (2000 AI duels each, North/Northeast wins):
+//   1 army: +2 -> 48.0%   2: +2 -> 48.8%   3: +3 -> 51.5%   mixed: +3 -> 50.4%
+export const POLE_OPENING_BONUS = { 1: 2, 2: 2, 3: 3, mixed: 3 };
+export const POLE_BONUS_SIDE = 'lula';
 
 export const canPolarize = (factions) =>
   factions.length === 2 && Object.keys(POLES).every((f) => factions.includes(f));
@@ -177,6 +183,11 @@ function openingBonus(owner, troops, factions) {
   return Object.fromEntries(factions.map((f) => [f, top - totals[f]]));
 }
 
+function withPoleBonus(bonus, polarized, mode) {
+  if (!polarized) return bonus;
+  return { ...bonus, [POLE_BONUS_SIDE]: bonus[POLE_BONUS_SIDE] + POLE_OPENING_BONUS[mode] };
+}
+
 // rivals: the CPU factions, in turn order after the human (default: the classic duel).
 // spectator: every faction is CPU-controlled (AI-vs-AI simulation); there is no human.
 // deal: 'random' (default) or 'polarized' (Lula vs. Flávio duels only; otherwise random).
@@ -217,7 +228,7 @@ export function createGame(
     opener: Number.isInteger(opener) ? opener : Math.floor(rng() * factions.length),
     deal: polarized ? 'polarized' : 'random',
     armies: armyMode,
-    openingBonus: openingBonus(owner, troops, factions),
+    openingBonus: withPoleBonus(openingBonus(owner, troops, factions), polarized, armyMode),
     human: spectator ? null : humanFaction,
     factions,
     eliminated: [],

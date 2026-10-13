@@ -17,8 +17,8 @@ export const DEFAULT_SETTINGS = {
   reinforce: 'one',
 };
 
-// Multiplies the delay between AI actions in player matches.
-export const AI_SPEED_FACTOR = { normal: 1, fast: 0.55, veryFast: 0.3 };
+// Multiplies the delay between AI actions in player matches (see pace.js).
+export { SPEED_FACTOR as AI_SPEED_FACTOR } from './pace.js';
 
 // Troops per tap for each reinforcement mode ('picker' asks every time).
 export const REINFORCE_AMOUNT = { one: 1, five: 5, all: 'all', picker: 'picker' };

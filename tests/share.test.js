@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { cardModel, isLocalUrl, publicUrl, shareText } from '../src/game/share.js';
-import { createDailyGame, dailyChallenge } from '../src/game/daily.js';
+import { createDailyGame, dailyChallenge, seededRng } from '../src/game/daily.js';
 import { createGame } from '../src/game/engine.js';
 
 test('local addresses are never used on public cards', () => {
@@ -20,7 +20,7 @@ function finished(game, winner, round) {
 }
 
 test('share text: player win, player loss, simulation and daily challenge', () => {
-  const duel = createGame('lula', () => 0.3);
+  const duel = createGame('lula', seededRng(3));
   const win = shareText(cardModel(finished(duel, 'lula', 9), { quote: 'Picanha liberada.', url: 'https://warzil.vercel.app' }));
   assert.match(win, /Venci o WARZIL jogando de Lula em 9 rodadas, com 2 facções/);
   assert.match(win, /“Picanha liberada.”/);
@@ -31,7 +31,7 @@ test('share text: player win, player loss, simulation and daily challenge', () =
   assert.match(loss, /Flávio venceu o WARZIL \(eu joguei de Lula\) em 12 rodadas/);
   assert.doesNotMatch(loss, /Jogue:/, 'no address line without a public URL');
 
-  const sim = createGame('cury', () => 0.3, ['renan', 'caiado'], { spectator: true });
+  const sim = createGame('cury', seededRng(3), ['renan', 'caiado'], { spectator: true });
   assert.match(shareText(cardModel(finished(sim, 'renan', 11), { quote: 'x' })), /Renan venceu a simulação do WARZIL em 11 rodadas, com 3 facções/);
 
   const daily = createDailyGame(dailyChallenge('2026-10-13'));
@@ -41,7 +41,7 @@ test('share text: player win, player loss, simulation and daily challenge', () =
 });
 
 test('card model carries what the image needs', () => {
-  const g = finished(createGame('renan', () => 0.4, ['lula', 'flavio']), 'renan', 7);
+  const g = finished(createGame('renan', seededRng(4), ['lula', 'flavio']), 'renan', 7);
   const m = cardModel(g, { quote: 'Live amanhã.' });
   assert.equal(m.winnerName, 'Renan');
   assert.equal(m.factionCount, 3);
