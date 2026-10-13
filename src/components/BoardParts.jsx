@@ -1,10 +1,11 @@
 // Pieces shared by the player screen and the AI-vs-AI simulation screen.
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Caricature from './Caricature.jsx';
 import { FACTIONS, REGIONS, STATES } from '../game/data.js';
 import { calcReinforcements, controlledRegions, territoriesOf } from '../game/engine.js';
 import { describeEvent, eliminatorLine, fill, loseLine } from '../game/texts.js';
 import { play } from '../game/sound.js';
+import { DIARY_TYPES, isHighlight } from '../game/highlights.js';
 
 const name = (f) => FACTIONS[f].name;
 const stateName = (id) => STATES[id].name;
@@ -69,8 +70,8 @@ export function PlayerChip({ game, faction, compact = false }) {
   );
 }
 
-export function SpeechBubble({ game, choose }) {
-  const event = game.log[0];
+// `event` defaults to the latest one; the simulation passes a "held" event instead.
+export function SpeechBubble({ game, choose, event = game.log[0] }) {
   if (!event) return null;
   const speech = describeEvent(event, choose);
   if (!speech.text) return null;
@@ -136,21 +137,85 @@ export function RegionsPanel({ game }) {
   );
 }
 
+function DiaryRow({ e, choose }) {
+  switch (e.type) {
+    case 'conquer':
+      return (
+        <>
+          <b className={e.faction}>{name(e.faction)}</b> tomou {withArticle(e.state)}.{' '}
+          <i>
+            {name(e.loser)}: “{loseLine(e, choose)}”
+          </i>
+        </>
+      );
+    case 'region':
+      return (
+        <>
+          🗺️ <b className={e.faction}>{name(e.faction)}</b> domina o {REGIONS[e.region].name}. <i>“{describeEvent(e, choose).text}”</i>
+        </>
+      );
+    case 'regionLost':
+      return (
+        <>
+          <b className={e.faction}>{name(e.faction)}</b> perdeu o controle do {REGIONS[e.region].name}.
+        </>
+      );
+    case 'eliminated':
+      return (
+        <>
+          🏴 <b className={e.loser}>{name(e.loser)}</b> está fora da corrida. <i>“{describeEvent(e, choose).text}”</i>
+        </>
+      );
+    case 'lead':
+      return (
+        <>
+          📈 Virada! <b className={e.faction}>{name(e.faction)}</b> passa {name(e.previous)} e assume a liderança.
+        </>
+      );
+    case 'bigLoss':
+      return (
+        <>
+          💥 <b className={e.faction}>{name(e.faction)}</b> perdeu 3 exércitos de uma vez. <i>“{describeEvent(e, choose).text}”</i>
+        </>
+      );
+    default:
+      return (
+        <>
+          🏆 <b className={e.faction}>{name(e.faction)}</b>: “{describeEvent(e, choose).text}”
+        </>
+      );
+  }
+}
+
+// Everything that happened, newest first. Collapsed: the latest few entries;
+// expanded: the whole match grouped by round.
 export function CampaignLog({ game, choose }) {
-  const conquests = game.log.filter((e) => e.type === 'conquer').slice(0, 6);
-  if (!conquests.length) return null;
+  const [full, setFull] = useState(false);
+  const entries = game.log.filter((e) => DIARY_TYPES.includes(e.type));
+  if (!entries.length) return null;
+  const shown = full ? entries : entries.slice(0, 6);
+  let lastRound = null;
   return (
     <div className="panel log">
-      <div className="panel-title">Diário de campanha</div>
-      <ul>
-        {conquests.map((e) => (
-          <li key={e.id}>
-            <b className={e.faction}>{name(e.faction)}</b> tomou {withArticle(e.state)}.{' '}
-            <i>
-              {name(e.loser)}: “{loseLine(e, choose)}”
-            </i>
-          </li>
-        ))}
+      <div className="panel-title">
+        Diário de campanha
+        {entries.length > 6 && (
+          <button className="log-toggle" onClick={() => setFull(!full)} aria-expanded={full}>
+            {full ? 'Mostrar menos' : `Ver tudo (${entries.length})`}
+          </button>
+        )}
+      </div>
+      <ul className={full ? 'full' : ''}>
+        {shown.map((e) => {
+          const header = full && e.round !== lastRound ? <li className="log-round">Rodada {e.round}</li> : null;
+          lastRound = e.round;
+          return [
+            header,
+            <li key={e.id} className={isHighlight(e) ? 'highlight' : ''}>
+              <DiaryRow e={e} choose={choose} />
+            </li>,
+          ];
+        })}
       </ul>
     </div>
   );
@@ -158,8 +223,17 @@ export function CampaignLog({ game, choose }) {
 
 // Brief banner over the map when someone is knocked out or a region changes hands.
 export function EventBanner({ game, choose }) {
-  const event = game.log.slice(0, 4).find((e) => e.type === 'eliminated' || e.type === 'region');
+  const event = game.log.slice(0, 4).find((e) => ['eliminated', 'region', 'lead'].includes(e.type));
   if (!event) return null;
+  if (event.type === 'lead') {
+    return (
+      <div key={event.id} className={`event-banner region ${event.faction}`} role="status">
+        <strong>
+          📈 Virada! {name(event.faction)} assume a liderança
+        </strong>
+      </div>
+    );
+  }
   if (event.type === 'eliminated') {
     return (
       <div key={event.id} className={`event-banner eliminated ${event.loser}`} role="status">

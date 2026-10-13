@@ -1742,3 +1742,39 @@ html.reduce-motion .region-flash path {
   font-weight: 700;
   color: #2e7d32;
 }
+
+/* ---------- v0.5: full campaign diary ---------- */
+
+.log-toggle {
+  margin-left: auto;
+  border: none;
+  background: #eef0f6;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  min-height: 32px;
+}
+
+.log ul.full {
+  max-height: 55vh;
+  overflow: auto;
+}
+
+.log li.highlight {
+  background: #fff8e1;
+  border-radius: 8px;
+  padding: 6px 8px;
+  border-bottom: none;
+  margin: 2px 0;
+}
+
+.log li.log-round {
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  border-bottom: none;
+  padding: 8px 0 2px;
+}

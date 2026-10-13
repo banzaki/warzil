@@ -105,6 +105,8 @@ export function describeEvent(event, choose = stateless) {
       return { speaker: event.faction, text: fill(choose(key, l.regionLost, event.seed), event) };
     case 'bigLoss':
       return { speaker: event.faction, text: choose(key, l.bigLoss, event.seed) };
+    case 'lead':
+      return { speaker: 'news', text: `Virada! ${FACTIONS[event.faction].name} passa ${FACTIONS[event.previous].name} e assume a liderança.` };
     case 'eliminated':
       // Last words of the candidate who just left the race.
       return { speaker: event.loser, text: choose(key, LINES[event.loser].eliminated, event.seed) };

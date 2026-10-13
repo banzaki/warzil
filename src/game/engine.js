@@ -4,7 +4,8 @@ import { ADJACENCY, REGIONS, STATES, STATE_IDS, opponentOf } from './data.js';
 
 // Armies per faction at the start, by number of factions in the match.
 export const STARTING_TROOPS = { 2: 40, 3: 30, 4: 24 };
-const MAX_LOG = 40;
+// Enough for a whole match: the campaign diary can show everything that happened.
+const MAX_LOG = 800;
 
 export const isAdjacent = (a, b) => ADJACENCY[a].includes(b);
 
@@ -21,7 +22,7 @@ function shuffle(list, rng) {
 }
 
 function addLog(state, event, rng) {
-  const entry = { id: state.logCounter + 1, seed: rng(), ...event };
+  const entry = { id: state.logCounter + 1, seed: rng(), round: state.round, ...event };
   return { ...state, logCounter: entry.id, log: [entry, ...state.log].slice(0, MAX_LOG) };
 }
 
@@ -247,6 +248,12 @@ export function finishRally(state, rng = Math.random) {
   return next ? beginRally(state, next) : beginBattle(state, firstAlive(state), rng);
 }
 
+// Faction with strictly the most states, or null on a tie.
+function leaderByStates(state) {
+  const counts = state.factions.map((f) => [f, territoriesOf(state, f).length]).sort((a, b) => b[1] - a[1]);
+  return counts[0][1] > counts[1][1] ? counts[0][0] : null;
+}
+
 // ---------- Attack ----------
 
 export function canAttack(state, from, to) {
@@ -326,6 +333,13 @@ export function attack(state, from, to, rng = Math.random) {
   const before = controlledRegions(state, state.current);
   for (const region of controlledRegions(next, state.current)) {
     if (!before.includes(region)) next = addLog(next, { type: 'region', faction: state.current, region }, rng);
+  }
+
+  // Lead change ("virada"): the attacker now holds strictly more states than anyone.
+  const leaderBefore = leaderByStates(state);
+  const leaderAfter = leaderByStates(next);
+  if (state.round >= 2 && leaderAfter === state.current && leaderBefore && leaderBefore !== state.current) {
+    next = addLog(next, { type: 'lead', faction: state.current, previous: leaderBefore }, rng);
   }
 
   if (territoriesOf(next, loser).length === 0) {

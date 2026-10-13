@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { nextHeldEvent } from '../game/highlights.js';
 import BrazilMap from './BrazilMap.jsx';
 import Caricature from './Caricature.jsx';
 import { CampaignLog, EventBanner, PlayerChip, RegionsPanel, RollPanel, SpeechBubble, useGameSounds } from './BoardParts.jsx';
@@ -21,6 +22,27 @@ import {
 
 const EMPTY = new Set();
 const SIM_NOTE = 'Competição fictícia entre personagens do jogo. Não é previsão eleitoral.';
+// Minimum time a line stays in the bubble, whatever the speed.
+const HOLD_MS = 2600;
+
+// Keeps the speech bubble on one event long enough to read it; more important
+// events (eliminations, regions, lead changes) may take over earlier.
+function useHeldEvent(log) {
+  const [held, setHeld] = useState({ event: log[0] ?? null, at: Date.now() });
+  const latestId = log[0]?.id;
+  useEffect(() => {
+    const evaluate = () =>
+      setHeld((h) => {
+        const event = nextHeldEvent({ shown: h.event, shownAt: h.at, log, now: Date.now(), holdMs: HOLD_MS });
+        return event === h.event ? h : { event, at: Date.now() };
+      });
+    evaluate();
+    // Re-check when the current line's time is up, even if nothing new happens.
+    const timer = setTimeout(evaluate, HOLD_MS + 50);
+    return () => clearTimeout(timer);
+  }, [latestId]);
+  return held.event;
+}
 
 // "Simular guerra": every candidate is played by the computer; the viewer only watches.
 export default function SimulationScreen({ factions, onMenu, prefs }) {
@@ -28,6 +50,7 @@ export default function SimulationScreen({ factions, onMenu, prefs }) {
   const [choose, setChoose] = useState(createLinePicker);
   const { game } = sim;
   useGameSounds(game);
+  const heldEvent = useHeldEvent(game.log);
   const name = (f) => FACTIONS[f].name;
 
   useEffect(() => {
@@ -68,7 +91,7 @@ export default function SimulationScreen({ factions, onMenu, prefs }) {
         <section className="map-wrap">
           <BrazilMap game={game} clickable={EMPTY} highlighted={EMPTY} spent={EMPTY} onSelect={() => {}} />
           <EventBanner game={game} choose={choose} />
-          <SpeechBubble game={game} choose={choose} />
+          <SpeechBubble game={game} choose={choose} event={heldEvent} />
         </section>
 
         <aside className="sidebar">
