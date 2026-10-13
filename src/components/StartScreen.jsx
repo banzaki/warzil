@@ -20,7 +20,7 @@ export default function StartScreen({ invited, onInvitedChange, onPick }) {
           WAR<span className="logo-zil">ZIL</span>
         </h1>
         <p className="subtitle">A Guerra dos Votos</p>
-        <p className="tagline">Conquiste os 27 estados. Um dado de cada vez.</p>
+        <p className="tagline">27 estados. Dados, tretas e nenhuma diplomacia.</p>
       </header>
 
       <h2 className="choose">Escolha seu candidato</h2>
@@ -42,7 +42,7 @@ export default function StartScreen({ invited, onInvitedChange, onPick }) {
       </div>
 
       <details className="more" open={showMore} onToggle={(e) => setShowMore(e.currentTarget.open)}>
-        <summary>+ Mais candidatos</summary>
+        <summary>{showMore ? '− Menos candidatos' : '+ Mais candidatos'}</summary>
         <p className="more-hint">Convide até {MAX_INVITES} para uma partida de 3 ou 4 facções. Os rivais são da CPU.</p>
         <ul className="extras">
           {EXTRA_CANDIDATES.map((id) => {

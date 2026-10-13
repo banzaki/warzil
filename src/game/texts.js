@@ -1,6 +1,9 @@
-// All satirical copy lives here (Brazilian Portuguese). Jokes are deliberately
-// balanced: each candidate gets roughly the same number of jabs, about public
-// personas only. Lines use "{state}" as a subject to avoid gendered prepositions.
+// All satirical copy lives here (Brazilian Portuguese).
+// Rules for every candidate, so nobody gets favoured:
+// - the same number of lines of each kind;
+// - jokes about public personas only: speaking style, catchphrases, hobbies,
+//   home turf. No accusations, health, private family, religion or campaign slogans;
+// - "{state}" is used as a subject to avoid gendered prepositions ("a Bahia", "o Ceará").
 import { FACTIONS, STATES } from './data.js';
 
 export const DISCLAIMER =
@@ -10,110 +13,110 @@ export const DISCLAIMER =
 export const CANDIDATES = {
   lula: {
     name: 'Lula',
-    title: 'O Veterano do Churrasco',
-    pitch: 'Promete picanha para os 27 estados. Tem discurso para toda ocasião (2 horas cada).',
+    title: 'O Veterano do Palanque',
+    pitch: 'Transforma qualquer jogada em metáfora de futebol. Discurso curto? Nunca antes na história deste país.',
   },
   flavio: {
     name: 'Flávio',
-    title: 'O Herdeiro',
-    pitch: 'Herdou o sobrenome, o fã-clube e um grupo da família que não para de apitar.',
+    title: 'O Senador Herdeiro',
+    pitch: 'Carrega o sobrenome mais famoso do grupo da família. Tenta parecer o moderado da turma.',
   },
   cury: {
     name: 'Cury',
     title: 'O Psiquiatra Best-seller',
-    pitch: 'Promete tratar a ansiedade do país em 27 capítulos. Autógrafo incluso.',
+    pitch: 'Milhões de livros vendidos. Diagnostica o eleitorado com Síndrome do Pensamento Acelerado.',
   },
   renan: {
     name: 'Renan',
     title: 'O Rei da Live',
-    pitch: 'Faz campanha por live, meme e corte de vídeo. Dorme entre um corte e outro.',
+    pitch: 'Faz política em live de três horas, corte de 30 segundos e treta com a velha política.',
   },
   caiado: {
     name: 'Caiado',
     title: 'O Doutor do Agro',
-    pitch: 'Médico, fazendeiro e governador. Receita pro país: botina, rodeio e plantão.',
+    pitch: 'Médico, pecuarista e governador de Goiás. Fala grosso, come pamonha e não abre mão do chapéu.',
   },
 };
 
 const QUIPS = {
   start: {
-    lula: ['Companheiros! Acende a churrasqueira que tem um país pra ganhar.'],
-    flavio: ['Pai, tô ao vivo! Curte e compartilha que tem um país pra ganhar.'],
-    cury: ['Respira fundo, Brasil. Vamos gerenciar essa emoção juntos.'],
-    renan: ['Boa noite, chat! Hoje a live é pra conquistar o Brasil.'],
-    caiado: ['Bom dia, Brasil! Laçar estado é que nem laçar boi: paciência e firmeza.'],
+    lula: ['Companheiros e companheiras! O jogo começou e eu tô no aquecimento desde 1980.'],
+    flavio: ['Pai, pode avisar o grupo da família: hoje eu jogo como titular.'],
+    cury: ['Respire. Antes de conquistar o Brasil, conquiste a si mesmo. Depois o Brasil.'],
+    renan: ['Boa noite, chat! Live começando. Hoje a velha política vai tomar um corte.'],
+    caiado: ['Bom dia, Brasil! Aqui é na base da ordem: um estado de cada vez, sem enrolação.'],
   },
   turn: {
     lula: [
-      'Minha vez. Preparei um discurso curtinho. Três horas, no máximo.',
-      'Alguém me traz um cafezinho e um microfone?',
-      'Vamos criar o Ministério de Ganhar Esta Rodada.',
+      'Minha vez. Vou falar rapidinho... três horas, no máximo.',
+      'Isso aqui é igual futebol, companheiro: quem não chuta não faz gol.',
+      'Nunca antes na história deste país alguém jogou dado tão bem.',
     ],
     flavio: [
-      'Minha vez. Peraí, só vou postar uma selfie antes.',
-      'Rapidinho no grupo da família e já volto.',
-      'Estratégia nova: igual à antiga, só que em negrito.',
+      'Minha vez. Antes, um print pro grupo da família.',
+      'Calma, gente. Eu sou o moderado da família. Agora: ataque!',
+      'O Senado aprovou minha estratégia. Por unanimidade de um voto: o meu.',
     ],
     cury: [
-      'Antes de atacar, um minuto de gestão da emoção.',
-      'Esta rodada vai virar capítulo do meu próximo livro.',
-      'Calma. Ansiedade não ganha eleição. Dado ganha.',
+      'Pausa. Gestão da emoção primeiro, ataque depois.',
+      'Pensamento acelerado detectado. Vou atacar devagar.',
+      'Seja autor da sua história. Eu sou autor de 50 livros e desta rodada.',
     ],
     renan: [
-      'Ativa o sininho que vem ataque.',
-      'Chat, manda nos comentários qual estado eu ataco.',
-      'Isso aqui vai render corte. Cadê o editor?',
+      'Chat, vota aí na enquete: ataco ou ataco?',
+      'Ativa o sininho que vem treta com a velha política.',
+      'Isso aqui vai render corte. Editor, acorda!',
     ],
     caiado: [
-      'Deixa eu ajeitar o chapéu e já ataco.',
-      'Diagnóstico da rodada: falta de estado. Tratamento: ataque.',
-      'Botina calçada, hora de trabalhar.',
+      'Deixa eu ajeitar o chapéu e já resolvo.',
+      'Diagnóstico da rodada: falta estado. Tratamento: ataque.',
+      'Comigo é assim: ordem primeiro, pamonha depois.',
     ],
   },
   conquer: {
     lula: [
-      '{state} agora tem picanha no domingo. Promessa é promessa!',
-      '{state} entrou na campanha. O churrasco ganhou mais uma grelha.',
-      'Alô, {state}! Seu ministério sai na semana que vem.',
-      '{state} ganhou o novo programa Bolsa Churrasco. Verba a definir.',
-      '{state} virou depois de um discurso emocionante. Só quatro horas.',
+      '{state} agora tem picanha e cervejinha no fim de semana. Promessa é promessa!',
+      'Golaço! {state} entrou de cabeça, igual centroavante raiz.',
+      '{state} ganhou de presente um discurso de quatro horas.',
+      'Alô, {state}! Já marquei uma visita. E mais umas dez viagens pro exterior.',
+      '{state} ganhou um programa social novo. O nome a gente decide no churrasco.',
     ],
     flavio: [
-      '{state} tá com a gente! Mandando selfie no grupo da família.',
+      '{state} tá com a gente! Mandando print no grupo da família.',
       'Mais um no mapa: {state}. O pai reagiu com três joinhas.',
       '{state} entrou pro time. Adesivo de carro grátis pra todo mundo!',
-      'Alô, {state}! Nosso slogan: "Mesmo sobrenome, nova temporada".',
-      '{state} mudou de lado após um vídeo viral com trilha sonora suspeita.',
+      'Alô, {state}! Mesmo sobrenome, nova temporada.',
+      '{state} virou no estilo senador: com calma, terno e dado de seis.',
     ],
     cury: [
-      '{state} agora faz terapia em grupo. O grupo somos nós.',
-      '{state} entrou pro clube do livro. Leitura obrigatória: o meu.',
-      'Alô, {state}! Primeira sessão grátis. As outras também.',
-      '{state} virou capítulo 12: "O Vendedor de Votos".',
-      '{state} trocou a ansiedade pela esperança. E trocou de lado.',
+      '{state} agora pratica gestão da emoção. Três vezes ao dia, depois das refeições.',
+      '{state} entrou pro clube do livro. Leitura obrigatória: os meus.',
+      '{state} curou a Síndrome do Pensamento Acelerado. Agora só pensa no Cury.',
+      'Alô, {state}! O Vendedor de Sonhos chegou. Desconto pra quem levar a coleção.',
+      '{state} virou o capítulo 12 do meu próximo best-seller.',
     ],
     renan: [
       '{state} tá com a gente! O chat foi à loucura.',
-      '{state} virou meme. E depois virou voto.',
-      'Alô, {state}! Live amanhã às 21h explicando a conquista.',
+      '{state} virou meme. E o meme virou voto.',
+      'Alô, {state}! Live amanhã às 21h: "Como eu virei {state} com 3 dados".',
       'Mais um no mapa: {state}. O corte de 30 segundos já tá no ar.',
-      '{state} mudou de lado depois de uma thread de 47 posts.',
+      '{state} mudou de lado depois de uma thread de 47 posts contra a velha política.',
     ],
     caiado: [
-      '{state} agora tem rodeio aos sábados.',
+      '{state} agora tem rodeio aos sábados e pamonha aos domingos.',
       'Porteira aberta: {state} entrou pra fazenda.',
-      'Alô, {state}! Consulta, vacina e sanfona por conta da casa.',
-      '{state} passou no exame clínico: saudável e do nosso lado.',
+      '{state} passou no exame clínico: pressão boa e do nosso lado.',
+      'Alô, {state}! Chegou a ordem. E o sertanejo também.',
       'Mais um no mapa: {state}. Pode pôr na conta da safra.',
     ],
   },
   lose: {
     lula: [
-      'Perder {state} é só uma pausa estratégica pro churrasco.',
-      'Caiu {state}? Vamos montar um grupo de trabalho pra discutir.',
+      'Perdi {state}? Futebol é assim, companheiro. Tem jogo de volta.',
+      'Caiu {state}. Vou fazer um discurso sobre isso. Longo.',
     ],
     flavio: [
-      'Perdi {state}? Quero recontagem... dos dados.',
+      'Perdi {state}? Vou ver o que o grupo da família acha.',
       'Caiu {state}. Apagando o post antes que alguém tire print.',
     ],
     cury: [
@@ -122,7 +125,7 @@ const QUIPS = {
     ],
     renan: [
       'Perdi {state}? Live de emergência em cinco minutos.',
-      'Caiu {state}. Vou gravar um vídeo reagindo à minha derrota.',
+      'Caiu {state}. Vou gravar um vídeo reagindo à minha própria derrota.',
     ],
     caiado: [
       'Perdi {state}? É só a entressafra.',
@@ -131,7 +134,7 @@ const QUIPS = {
   },
   victory: {
     lula: [
-      'Vitória total! Picanha pra todo mundo... depois da revisão do orçamento.',
+      'Vitória total! Nunca antes na história deste país alguém ganhou de 27 a zero.',
       'O Brasil tá vermelho do Oiapoque ao Chuí. Agora, sobre aquele discurso...',
     ],
     flavio: [
@@ -147,20 +150,21 @@ const QUIPS = {
       'O Brasil tá laranja do Oiapoque ao Chuí. Dá like e compartilha!',
     ],
     caiado: [
-      'Vitória total! Churrasco com sanfona no Brasil inteiro.',
+      'Vitória total! Pamonha e sertanejo no Brasil inteiro.',
       'O Brasil tá verde do Oiapoque ao Chuí. Safra recorde de votos.',
     ],
   },
   // Said by whoever takes the human player's last state (multi-faction matches).
   knockout: {
-    lula: ['Mais um pra conta. Próximo, companheiro!'],
-    flavio: ['Tchau! Vou postar o print dessa vitória.'],
+    lula: ['Acabou o jogo pra você, companheiro. Mas a gente se vê no segundo turno.'],
+    flavio: ['Tchau! Vou postar o print dessa vitória no grupo.'],
     cury: ['Saiu do mapa? Respira. A gente conversa sobre isso na próxima sessão.'],
     renan: ['Saiu do mapa! Valeu pela audiência, deixa o like antes de ir.'],
     caiado: ['Saiu do mapa! Pode voltar pra casa que a porteira tá aberta.'],
   },
 };
 
+// Neutral headlines: they never mention a candidate.
 export const NEWS = [
   'URGENTE: {state} muda de lado após debate acalorado sobre o preço da coxinha.',
   'Pesquisa: {state} tem 48% de indecisos e 52% que só querem o fim dos jingles.',
@@ -171,7 +175,7 @@ export const NEWS = [
 export const VICTORY_TITLES = { win: 'Vitória de lavada!', lose: 'Derrota nas urnas!' };
 
 export const DEFEAT_LINES = {
-  lula: 'Lula já anuncia a turnê da volta. Ele conhece o caminho.',
+  lula: 'Lula já marcou a revanche. Ele garante que conhece bem o caminho de volta.',
   flavio: 'Flávio culpa o algoritmo e pede revanche no grupo da família.',
   cury: 'Cury já escreve o livro "Como Perder a Guerra sem Perder a Calma".',
   renan: 'Renan já está ao vivo analisando a própria derrota. Três horas de live.',
@@ -179,7 +183,7 @@ export const DEFEAT_LINES = {
 };
 
 const pick = (list, seed) => list[Math.floor(seed * list.length) % list.length];
-const fill = (text, stateId) => text.replace('{state}', stateId ? STATES[stateId].name : '');
+const fill = (text, stateId) => text.replaceAll('{state}', stateId ? STATES[stateId].name : '');
 
 // Turns a log event into { speaker, text }.
 export function describeEvent(event) {
