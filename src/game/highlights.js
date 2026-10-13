@@ -7,6 +7,9 @@ export const EVENT_PRIORITY = {
   eliminated: 4,
   lead: 3,
   region: 3,
+  lastStand: 3,
+  streak: 2,
+  underdog: 2,
   regionLost: 2,
   conquer: 1,
   bigLoss: 1,
@@ -29,5 +32,5 @@ export function nextHeldEvent({ shown, shownAt, log, now, holdMs }) {
 }
 
 // Diary rows worth listing (turn starts and the like are left out).
-export const DIARY_TYPES = ['conquer', 'region', 'regionLost', 'eliminated', 'lead', 'bigLoss', 'victory', 'knockout'];
-export const isHighlight = (e) => ['region', 'eliminated', 'lead', 'victory', 'knockout'].includes(e.type);
+export const DIARY_TYPES = ['conquer', 'region', 'regionLost', 'eliminated', 'lead', 'bigLoss', 'streak', 'lastStand', 'underdog', 'victory', 'knockout'];
+export const isHighlight = (e) => ['region', 'eliminated', 'lead', 'lastStand', 'victory', 'knockout'].includes(e.type);

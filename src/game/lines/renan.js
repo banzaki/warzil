@@ -88,4 +88,28 @@ export default {
     'Renan já está ao vivo analisando a própria derrota. Três horas de live.',
     'Renan perdeu o mapa, mas jura que ganhou o debate.',
   ],
+  // v0.6 contextual lines.
+  regionGainedSpecial: {
+    north: 'O Norte é meu. Primeira medida: concessão da floresta pra quem souber cuidar dela.',
+    northeast: 'Fechei o Nordeste. Bora desestatizar até o forró.',
+    centerWest: 'Centro-Oeste fechado. O agro já é livre mercado, só faltava eu.',
+    southeast: 'O Sudeste é meu. O PIB do país agora passa pela minha live.',
+    south: 'O Sul inteiro! Região organizada é região privatizável.',
+  },
+  streak: [
+    'Três seguidas! O corte disso vai bater um milhão.',
+    'Combo de conquistas. O establishment tá saindo do chat.',
+  ],
+  lastStand: [
+    'Último estado e não caiu! O sistema não me derruba.',
+    'Encurralado, mas segurei. Isso é resistência contra a velha política.',
+  ],
+  underdog: [
+    'Me deram como cancelado. Voltei com mais audiência.',
+    'Virada histórica! Live de emergência... de comemoração.',
+  ],
+  longVictory: [
+    'Venci depois de uma live de 20 rodadas. Recorde de permanência no chat.',
+    'Demorou, mas o livre mercado sempre vence no longo prazo.',
+  ],
 };

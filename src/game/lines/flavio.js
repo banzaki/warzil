@@ -2,16 +2,16 @@
 export default {
   card: {
     title: 'O Senador Herdeiro',
-    pitch: 'Sobrenome famoso, grupo da família apitando e um esforço heroico para parecer o moderado.',
+    pitch: 'Sobrenome famoso, grupo da família apitando e entrevista coletiva para qualquer conquista.',
   },
   start: [
     'Pai, tô ao vivo! Curte e compartilha que tem um país pra ganhar.',
     'Bom dia, grupo da família! Hoje eu sou titular.',
-    'Vamos com calma, com moderação... e com todos os exércitos.',
+    'Bom dia, Senado! Hoje a pauta é uma só: o mapa inteiro.',
   ],
   turn: [
     'Minha vez. Peraí, só respondendo o grupo da família.',
-    'Sou o moderado da família. Vou atacar só um pouquinho.',
+    'Coletiva de imprensa: "Não comento estratégia." Ataco logo depois.',
     'Entrevista rápida: sim, vou atacar. Não, não digo onde. Obrigado.',
     'O sobrenome abre porta. Os dados abrem estado.',
     'Aliança nova: quem tiver estado sobrando, me chama no privado.',
@@ -27,7 +27,7 @@ export default {
     '{O_state} virou no estilo senador: terno, gravata e dado de seis.',
     '{O_state} mudou de lado após um vídeo viral com trilha sonora suspeita.',
     '{O_state} aderiu! A família inteira mandou figurinha de comemoração.',
-    'Virei {o_state} com moderação. Só três dados. Moderadíssimo.',
+    'A assessoria já soltou a nota: {o_state} aderiu à família.',
     'Valores de família chegaram {em_state}. As figurinhas de bom dia também.',
     'Alô, {state}! O sobrenome chegou antes de mim.',
     '{O_state} assinou a ficha de filiação. A tia do zap já espalhou.',
@@ -44,7 +44,7 @@ export default {
     'Perder {o_state} não tava no roteiro. Quem escreveu esse roteiro?',
     '{O_state} saiu do grupo. Removido por um administrador.',
     'Perdi {o_state}, mas ganhei engajamento. Isso conta, né?',
-    'Caiu {o_state}? Nota oficial: foi uma retirada estratégica e moderada.',
+    'Caiu {o_state}? Nota oficial: foi uma retirada estratégica.',
   ],
   bigLoss: [
     'Três exércitos de uma vez? Quero recontagem... dos dados.',
@@ -65,7 +65,7 @@ export default {
   ],
   eliminates: [
     'Tchau, {rival}! Te removi do grupo.',
-    'O {rival} saiu do jogo. Mandei um "kkkk" educado e moderado.',
+    'O {rival} saiu do jogo. Mandei um "kkkk" e uma figurinha de joinha.',
     'O {rival} foi eliminado. A família inteira mandou figurinha.',
   ],
   eliminated: [
@@ -84,5 +84,29 @@ export default {
   defeat: [
     'Flávio culpa o algoritmo e pede revanche no grupo da família.',
     'Flávio já gravou um vídeo: "A família não desiste". Visualizações: a família.',
+  ],
+  // v0.6 contextual lines.
+  regionGainedSpecial: {
+    north: 'O Norte é nosso! Print da Amazônia azul pro grupo da família.',
+    northeast: 'Fechei o Nordeste! A assessoria pediu pra eu não comemorar tão alto.',
+    centerWest: 'O Centro-Oeste é todo nosso. Até o agro mandou figurinha de parabéns.',
+    southeast: 'O Sudeste inteiro! O Rio me ajudou a carregar São Paulo.',
+    south: 'O Sul fechado! Já tô sentindo o vento minuano da vitória.',
+  },
+  streak: [
+    'Três seguidos! O grupo da família não para de mandar áudio.',
+    'Conquista atrás de conquista. A coletiva vai ser longa hoje.',
+  ],
+  lastStand: [
+    'Último estado e segurou! O sobrenome resiste.',
+    'Tô por um fio, mas o grupo da família mandou 300 correntes de força.',
+  ],
+  underdog: [
+    'Achavam que eu tava fora? A temporada ainda não acabou.',
+    'Virada! Pai, pode desmarcar o pedido de desculpas.',
+  ],
+  longVictory: [
+    'Ganhei! Levou tantas rodadas que o grupo da família mudou de nome três vezes.',
+    'Vitória de maratona. A coletiva de hoje vai ter que ser em dois dias.',
   ],
 };

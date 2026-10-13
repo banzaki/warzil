@@ -172,6 +172,24 @@ function DiaryRow({ e, choose }) {
           📈 Virada! <b className={e.faction}>{name(e.faction)}</b> passa {name(e.previous)} e assume a liderança.
         </>
       );
+    case 'streak':
+      return (
+        <>
+          🔥 <b className={e.faction}>{name(e.faction)}</b> emendou {e.count} conquistas seguidas. <i>“{describeEvent(e, choose).text}”</i>
+        </>
+      );
+    case 'lastStand':
+      return (
+        <>
+          🛡️ <b className={e.faction}>{name(e.faction)}</b> segurou o último estado. <i>“{describeEvent(e, choose).text}”</i>
+        </>
+      );
+    case 'underdog':
+      return (
+        <>
+          📈 <b className={e.faction}>{name(e.faction)}</b> reage no fundo do poço. <i>“{describeEvent(e, choose).text}”</i>
+        </>
+      );
     case 'bigLoss':
       return (
         <>

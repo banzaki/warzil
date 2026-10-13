@@ -90,4 +90,33 @@ export default {
     'Lula já marcou a revanche. Diz que conhece bem o caminho de volta.',
     'Lula foi pro churrasco de consolação e já está negociando a próxima aliança.',
   ],
+  // v0.6 contextual lines.
+  // Region fully taken, by region (used about half the time).
+  regionGainedSpecial: {
+    north: 'O Norte é nosso! Reunião de cúpula com açaí no cardápio.',
+    northeast: 'O Nordeste inteiro! Aqui eu jogo em casa e com torcida a favor.',
+    centerWest: 'Fechei o Centro-Oeste. Vou ter que aprender a conversar com o agro de botina.',
+    southeast: 'O Sudeste é nosso! Quatro estados e nenhuma vaga no estacionamento da Paulista.',
+    south: 'O Sul inteiro! Chimarrão na assembleia e churrasco gaúcho de verdade.',
+  },
+  // Three or more conquests in one turn.
+  streak: [
+    'Três seguidas! Isso não é vitória, é goleada de time grande.',
+    'Mais um, mais um, mais um... parece campanha de 2002.',
+  ],
+  // Defended the last remaining state against an attack.
+  lastStand: [
+    'Último estado de pé! Ninguém tira o companheiro do páreo.',
+    'Tô na última trincheira, mas já saí de situação pior. Segura!',
+  ],
+  // Conquered something while holding 3 states or fewer.
+  underdog: [
+    'Me deram como carta fora do baralho? Já ouvi isso antes. Voltei.',
+    'Recuperação no segundo tempo. Futebol e política são assim.',
+  ],
+  // Victory after 15 or more rounds.
+  longVictory: [
+    'Demorou, mas veio! Campanha longa é minha especialidade.',
+    'Vitória depois de tantas rodadas que até o churrasco esfriou.',
+  ],
 };

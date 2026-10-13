@@ -88,10 +88,17 @@ export function describeEvent(event, choose = stateless) {
   const l = LINES[event.faction];
   const key = `${event.id}-${event.type}`;
   switch (event.type) {
+    case 'victory': {
+      // A long war gets its own lines.
+      const pool = (event.round ?? 0) >= 15 ? l.longVictory : l.victory;
+      return { speaker: event.faction, text: choose(key, pool, event.seed) };
+    }
     case 'start':
     case 'turn':
-    case 'victory':
     case 'knockout':
+    case 'streak':
+    case 'lastStand':
+    case 'underdog':
       return { speaker: event.faction, text: choose(key, l[event.type], event.seed) };
     case 'conquer': {
       if (event.seed < 0.2) return { speaker: 'news', text: fill(choose(key, NEWS, event.seed * 5), event) };
@@ -99,8 +106,12 @@ export function describeEvent(event, choose = stateless) {
       const pool = special && reseed(event.seed) < 0.5 ? special : l.conquer;
       return { speaker: event.faction, text: fill(choose(key, pool, event.seed), event) };
     }
-    case 'region':
-      return { speaker: event.faction, text: fill(choose(key, l.regionGained, event.seed), event) };
+    case 'region': {
+      // Region-specific line about half the time, otherwise a generic one.
+      const special = l.regionGainedSpecial?.[event.region];
+      const pool = special && reseed(event.seed) < 0.5 ? [special] : l.regionGained;
+      return { speaker: event.faction, text: fill(choose(key, pool, event.seed), event) };
+    }
     case 'regionLost':
       return { speaker: event.faction, text: fill(choose(key, l.regionLost, event.seed), event) };
     case 'bigLoss':

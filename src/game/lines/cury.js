@@ -85,4 +85,28 @@ export default {
     'Cury já escreve o livro "Como Perder a Guerra sem Perder a Calma".',
     'Cury agradece a derrota: "Foi a terapia mais cara que já fiz."',
   ],
+  // v0.6 contextual lines.
+  regionGainedSpecial: {
+    north: 'O Norte em paz interior. A floresta também precisa de gestão da emoção.',
+    northeast: 'O Nordeste inteiro curado da ansiedade. Mais sol, menos pensamento acelerado.',
+    centerWest: 'O Centro-Oeste é meu. Terapia com vista para a soja.',
+    southeast: 'O Sudeste! Nunca vi uma região tão ansiosa aceitar ajuda tão rápido.',
+    south: 'O Sul em equilíbrio. Até o frio ficou emocionalmente estável.',
+  },
+  streak: [
+    'Três conquistas seguidas. Cuidado com a euforia: ela também é uma emoção.',
+    'Sequência de vitórias. Vou ter que lançar um volume dois.',
+  ],
+  lastStand: [
+    'Um estado só, mas uma mente inteira. Resistimos.',
+    'Sobrevivi ao ataque. Resiliência não se ensina, se rola nos dados.',
+  ],
+  underdog: [
+    'Do fundo do poço eu tirei um capítulo inteiro. E um estado.',
+    'Quem estava à beira do abismo agora escreve o prefácio da virada.',
+  ],
+  longVictory: [
+    'Venci depois de muitas rodadas. A paciência também é uma inteligência.',
+    'Vitória lenta, mas emocionalmente sustentável.',
+  ],
 };

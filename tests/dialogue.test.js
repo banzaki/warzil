@@ -2,13 +2,13 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { FACTIONS, REGIONS, STATE_IDS } from '../src/game/data.js';
 import { LINES, NEWS, createLinePicker, defeatLine, describeEvent, eliminatorLine, fill, loseLine } from '../src/game/texts.js';
-import { attack, blitz, createGame } from '../src/game/engine.js';
+import { attack, blitz, createGame, occupy } from '../src/game/engine.js';
 import { seededRng } from '../src/game/daily.js';
 
 const IDS = Object.keys(FACTIONS);
-const LIST_KEYS = ['start', 'turn', 'conquer', 'lose', 'bigLoss', 'regionGained', 'regionLost', 'eliminates', 'eliminated', 'victory', 'knockout', 'defeat'];
+const LIST_KEYS = ['start', 'turn', 'conquer', 'lose', 'bigLoss', 'regionGained', 'regionLost', 'eliminates', 'eliminated', 'victory', 'knockout', 'defeat', 'streak', 'lastStand', 'underdog', 'longVictory'];
 const TOKENS = /\{(state|o_state|O_state|de_state|em_state|region|rival)\}/g;
-const allLines = (l) => [...LIST_KEYS.flatMap((k) => l[k]), ...Object.values(l.conquerSpecial).flat()];
+const allLines = (l) => [...LIST_KEYS.flatMap((k) => l[k]), ...Object.values(l.conquerSpecial).flat(), ...Object.values(l.regionGainedSpecial)];
 
 test('every candidate has every category, with the same number of lines', () => {
   for (const key of LIST_KEYS) {
@@ -127,4 +127,47 @@ test('interleaved picks from other lists do not cause early repeats', () => {
     assert.ok(!seen.slice(-(pool.length - 1)).includes(line), `early repeat: ${line}`);
     seen.push(line);
   }
+});
+
+test('every candidate has one special line for each region', () => {
+  for (const id of IDS) {
+    assert.deepEqual(Object.keys(LINES[id].regionGainedSpecial).sort(), Object.keys(REGIONS).sort(), id);
+  }
+});
+
+test('new context events produce lines; long wars use their own victory lines', () => {
+  for (const faction of IDS) {
+    for (const type of ['streak', 'lastStand', 'underdog']) {
+      const r = describeEvent({ id: 1, seed: 0.3, faction, type, count: 3, state: 'ba' });
+      assert.ok(LINES[faction][type].includes(r.text), `${faction} ${type}`);
+    }
+    const long = describeEvent({ id: 2, seed: 0.3, faction, type: 'victory', round: 18 });
+    assert.ok(LINES[faction].longVictory.includes(long.text));
+    const short = describeEvent({ id: 3, seed: 0.3, faction, type: 'victory', round: 8 });
+    assert.ok(LINES[faction].victory.includes(short.text));
+  }
+});
+
+test('engine reports streaks, last stands and comebacks', () => {
+  // Streak: Lula takes three states in one battle turn.
+  const owner = Object.fromEntries(STATE_IDS.map((id) => [id, 'cury']));
+  Object.assign(owner, { sp: 'lula', pr: 'flavio', sc: 'flavio', rs: 'flavio', mg: 'flavio' });
+  let g = { ...board(owner, { sp: 30, pr: 1, sc: 1, rs: 1, mg: 1 }), turnConquests: 0, round: 2 };
+  g = occupy(blitz(g, 'sp', 'pr', scripted(6, 1)), 99);
+  g = occupy(blitz(g, 'pr', 'sc', scripted(6, 1)), 99);
+  g = blitz(g, 'sc', 'rs', scripted(6, 1));
+  assert.ok(g.log.some((e) => e.type === 'streak' && e.faction === 'lula' && e.count === 3));
+  // Last stand: Flávio's only state survives a roll, logged once per turn.
+  const owner2 = { ...owner, pr: 'lula', sc: 'lula', rs: 'lula', mg: 'flavio' };
+  let h = { ...board(owner2, { sp: 10, mg: 5 }), lastStandLogged: [] };
+  h = attack(h, 'sp', 'mg', scripted(1));
+  assert.equal(h.log[0].type, 'lastStand');
+  assert.equal(h.log[0].faction, 'flavio');
+  assert.equal(attack(h, 'sp', 'mg', scripted(1)).log.filter((e) => e.type === 'lastStand').length, 1);
+  // Comeback: a faction with 3 states or fewer conquers in round 2+.
+  const owner3 = Object.fromEntries(STATE_IDS.map((id) => [id, 'flavio']));
+  Object.assign(owner3, { sp: 'lula', mg: 'lula' });
+  let k = { ...board(owner3, { sp: 10, pr: 1 }), round: 3, factions: ['lula', 'flavio'] };
+  k = blitz(k, 'sp', 'pr', scripted(6, 1));
+  assert.ok(k.log.some((e) => e.type === 'underdog' && e.faction === 'lula'));
 });
