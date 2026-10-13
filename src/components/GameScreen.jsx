@@ -18,7 +18,10 @@ import {
   fortifyTargets,
   movableTroops,
   occupy,
+  finishRally,
   placeTroops,
+  resetRally,
+  undoPlacement,
   selectTarget,
   selectTerritory,
 } from '../game/engine.js';
@@ -110,7 +113,7 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate }
     panel = (
       <div className="panel-body thinking">
         <span className="spinner" aria-hidden="true" />
-        {name(game.current)} está {game.phase === 'attack' ? 'atacando' : game.phase === 'reinforce' ? 'convocando a militância' : 'armando a próxima'}…
+        {name(game.current)} está {game.phase === 'attack' ? 'atacando' : game.phase === 'reinforce' ? 'no comício, distribuindo reforços' : 'armando a próxima'}…
       </div>
     );
   } else if (game.phase === 'reinforce') {
@@ -126,6 +129,18 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate }
             </button>
           ))}
         </div>
+        <div className="buttons rally-undo">
+          <button className="btn ghost" onClick={() => setGame(undoPlacement(game))} disabled={!game.rallyPlacements.length}>
+            ↶ Desfazer
+          </button>
+          <button className="btn ghost" onClick={() => setGame(resetRally(game))} disabled={!game.rallyPlacements.length}>
+            Recomeçar
+          </button>
+        </div>
+        <button className="btn primary" onClick={() => setGame(finishRally(game))} disabled={game.reinforcements > 0}>
+          {game.reinforcements > 0 ? `Faltam ${game.reinforcements}` : 'Concluir comício ✓'}
+        </button>
+        <p className="hint small">Todos fazem o comício antes de qualquer ataque.</p>
       </div>
     );
   } else if (game.phase === 'attack') {

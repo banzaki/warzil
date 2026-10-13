@@ -39,13 +39,44 @@ export function calcReinforcements(state, faction) {
   return { base, bonus, regions, total: base + bonus };
 }
 
-function beginTurn(state, faction) {
-  const { total } = calcReinforcements(state, faction);
+// ---------- Round structure ----------
+// Each round has two stages:
+//   1. Rally (phase 'reinforce'): every surviving faction places its reinforcements,
+//      in turn order, and confirms with finishRally(). Nobody attacks yet.
+//   2. Battle: each surviving faction attacks, occupies and moves, then endTurn().
+// When the last faction ends its battle turn, a new round starts with a new rally.
+
+const isAlive = (state, faction) => !state.eliminated.includes(faction);
+
+// Next surviving faction after `faction` in turn order; null once the order wraps.
+const nextInOrder = (state, faction) =>
+  state.factions.slice(state.factions.indexOf(faction) + 1).find((f) => isAlive(state, f)) ?? null;
+
+const firstAlive = (state) => state.factions.find((f) => isAlive(state, f));
+
+function beginRally(state, faction) {
   return {
     ...state,
     current: faction,
     phase: 'reinforce',
-    reinforcements: total,
+    reinforcements: calcReinforcements(state, faction).total,
+    rallyPlacements: [],
+    selected: null,
+    target: null,
+    pendingOccupy: null,
+    lastRoll: null,
+    movedOut: {},
+    received: {},
+  };
+}
+
+function beginBattle(state, faction, rng) {
+  const next = {
+    ...state,
+    current: faction,
+    phase: 'attack',
+    reinforcements: 0,
+    rallyPlacements: [],
     selected: null,
     target: null,
     pendingOccupy: null,
@@ -54,6 +85,7 @@ function beginTurn(state, faction) {
     received: {},
     turn: state.turn + 1,
   };
+  return addLog(next, { type: 'turn', faction }, rng);
 }
 
 // rivals: the CPU factions, in turn order after the human (default: the classic duel).
@@ -103,7 +135,7 @@ export function createGame(humanFaction, rng = Math.random, rivals = [opponentOf
     log: [],
     logCounter: 0,
   };
-  return addLog(beginTurn(state, humanFaction), { type: 'start', faction: humanFaction }, rng);
+  return addLog(beginRally(state, factions[0]), { type: 'start', faction: humanFaction }, rng);
 }
 
 // ---------- Reinforce ----------
@@ -112,15 +144,41 @@ export function placeTroops(state, id, amount = 1) {
   if (state.phase !== 'reinforce' || state.owner[id] !== state.current) return state;
   const n = Math.min(amount, state.reinforcements);
   if (n <= 0) return state;
-  const reinforcements = state.reinforcements - n;
   return {
     ...state,
     troops: { ...state.troops, [id]: state.troops[id] + n },
-    reinforcements,
-    phase: reinforcements === 0 ? 'attack' : 'reinforce',
+    reinforcements: state.reinforcements - n,
+    rallyPlacements: [...state.rallyPlacements, { id, n }],
     selected: null,
     target: null,
   };
+}
+
+// Take back the last placement of this rally (before it is confirmed).
+export function undoPlacement(state) {
+  if (state.phase !== 'reinforce' || state.rallyPlacements.length === 0) return state;
+  const { id, n } = state.rallyPlacements.at(-1);
+  return {
+    ...state,
+    troops: { ...state.troops, [id]: state.troops[id] - n },
+    reinforcements: state.reinforcements + n,
+    rallyPlacements: state.rallyPlacements.slice(0, -1),
+  };
+}
+
+// Take back every placement of this rally.
+export function resetRally(state) {
+  let next = state;
+  while (next.phase === 'reinforce' && next.rallyPlacements.length) next = undoPlacement(next);
+  return next;
+}
+
+// Confirm the rally once every reinforcement is placed. The next faction rallies;
+// after the last one, the battle stage starts with the first surviving faction.
+export function finishRally(state, rng = Math.random) {
+  if (state.phase !== 'reinforce' || state.reinforcements > 0) return state;
+  const next = nextInOrder(state, state.current);
+  return next ? beginRally(state, next) : beginBattle(state, firstAlive(state), rng);
 }
 
 // ---------- Attack ----------
@@ -295,17 +353,13 @@ export function fortify(state, from, to, amount) {
   };
 }
 
-// Pass the turn to the next faction still in the race; a new round starts on wrap-around.
+// End this faction's battle turn. The next surviving faction battles; after the
+// last one, a new round starts with everybody's rally.
 export function endTurn(state, rng = Math.random) {
-  if (state.phase === 'over') return state;
-  const { factions, eliminated } = state;
-  const start = factions.indexOf(state.current);
-  let i = start;
-  do i = (i + 1) % factions.length;
-  while (eliminated.includes(factions[i]));
-  const next = factions[i];
-  const round = i <= start ? state.round + 1 : state.round;
-  return addLog(beginTurn({ ...state, round }, next), { type: 'turn', faction: next }, rng);
+  if (state.phase === 'over' || state.phase === 'reinforce') return state;
+  const next = nextInOrder(state, state.current);
+  if (next) return beginBattle(state, next, rng);
+  return beginRally({ ...state, round: state.round + 1 }, firstAlive(state));
 }
 
 // ---------- UI helpers ----------

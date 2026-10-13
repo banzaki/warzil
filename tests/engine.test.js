@@ -13,6 +13,7 @@ import {
   defenderDiceCount,
   endAttack,
   endTurn,
+  finishRally,
   fortify,
   movableTroops,
   occupy,
@@ -334,8 +335,15 @@ test('reinforce -> attack -> occupy -> move -> AI turn', () => {
   const from = mine.find((id) => ADJACENCY[id].some((n) => g.owner[n] === 'lula'));
   const to = ADJACENCY[from].find((n) => g.owner[n] === 'lula');
   g = placeTroops(g, from, 999);
-  assert.equal(g.phase, 'attack');
   assert.equal(g.reinforcements, 0);
+  // v0.5 collective rally: placing everything does not start the battle by itself.
+  assert.equal(g.phase, 'reinforce');
+  g = finishRally(g, rng);
+  assert.equal(g.current, 'lula', 'the AI rallies next');
+  assert.equal(g.phase, 'reinforce');
+  while (g.phase === 'reinforce') g = aiStep(g, rng);
+  assert.equal(g.current, 'flavio', 'battle starts with the first faction');
+  assert.equal(g.phase, 'attack');
 
   const own = mine.find((id) => id !== from);
   assert.equal(attack(g, from, own, rng), g);
@@ -353,11 +361,16 @@ test('reinforce -> attack -> occupy -> move -> AI turn', () => {
   g = fortify(g, from, to, 3);
   g = endTurn(g, rng);
   assert.equal(g.current, 'lula');
-  assert.equal(g.phase, 'reinforce');
+  assert.equal(g.phase, 'attack', 'the AI already rallied this round');
 
   let steps = 0;
   while (g.current === 'lula' && g.phase !== 'over' && steps++ < 1000) g = aiStep(g, rng);
   assert.ok(steps < 1000, 'AI turn did not finish');
+  if (g.phase !== 'over') {
+    assert.equal(g.current, 'flavio');
+    assert.equal(g.phase, 'reinforce', 'new round starts with the rally');
+    assert.equal(g.round, 2);
+  }
   assertInvariants(g);
 });
 
@@ -423,16 +436,25 @@ test('deal for 3 and 4 factions: territories and armies', () => {
   assertInvariants(g4);
 });
 
+// Rally everybody (all armies on their first state), or end the battle turn.
+function advance(g) {
+  if (g.phase !== 'reinforce') return endTurn(g);
+  const first = territoriesOf(g, g.current)[0];
+  return finishRally(placeTroops(g, first, g.reinforcements));
+}
+
 test('turn order cycles through factions and counts rounds', () => {
   let g = createGame('lula', seeded(4), ['flavio', 'cury']);
   const seen = [];
-  for (let i = 0; i < 6; i++) {
-    seen.push([g.current, g.round]);
-    g = endTurn(g);
+  for (let i = 0; i < 12; i++) {
+    seen.push([g.phase === 'reinforce' ? 'rally' : 'battle', g.current, g.round]);
+    g = advance(g);
   }
   assert.deepEqual(seen, [
-    ['lula', 1], ['flavio', 1], ['cury', 1],
-    ['lula', 2], ['flavio', 2], ['cury', 2],
+    ['rally', 'lula', 1], ['rally', 'flavio', 1], ['rally', 'cury', 1],
+    ['battle', 'lula', 1], ['battle', 'flavio', 1], ['battle', 'cury', 1],
+    ['rally', 'lula', 2], ['rally', 'flavio', 2], ['rally', 'cury', 2],
+    ['battle', 'lula', 2], ['battle', 'flavio', 2], ['battle', 'cury', 2],
   ]);
 });
 

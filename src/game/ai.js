@@ -1,7 +1,7 @@
 // Simple opponent. aiStep() performs exactly one visible action, so the UI can
 // animate the AI turn by calling it on a timer until the turn passes.
 import { ADJACENCY, REGIONS, STATES, STATE_IDS } from './data.js';
-import { attack, canFortify, endAttack, endTurn, fortify, movableTroops, occupy, placeTroops } from './engine.js';
+import { attack, canFortify, endAttack, endTurn, finishRally, fortify, movableTroops, occupy, placeTroops } from './engine.js';
 
 // Loop guards only: the rules allow unlimited attacks, these just bound CPU time.
 const MAX_ATTACKS_PER_TURN = 200;
@@ -84,6 +84,7 @@ function pickFortify(state) {
 export function aiStep(state, rng = Math.random) {
   switch (state.phase) {
     case 'reinforce': {
+      if (state.reinforcements === 0) return finishRally(state, rng);
       const id = pickReinforceTarget(state);
       // Two placements per turn: most on the attack hub, the rest re-evaluated.
       const amount = state.reinforcements > 2 ? Math.ceil((state.reinforcements * 2) / 3) : state.reinforcements;

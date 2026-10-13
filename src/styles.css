@@ -1459,3 +1459,21 @@ b.caiado {
     font-size: 0.9rem;
   }
 }
+
+/* ---------- v0.5: rally ---------- */
+
+.rally-undo .btn {
+  flex: 1;
+  min-height: 44px;
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+  transform: none;
+}
+
+.hint.small {
+  font-size: 0.8rem;
+  margin: 0;
+}
