@@ -3,6 +3,8 @@ import BrazilMap from './BrazilMap.jsx';
 import Caricature from './Caricature.jsx';
 import { CampaignLog, EventBanner, PlayerChip, RegionsPanel, RollPanel, SpeechBubble, useGameSounds } from './BoardParts.jsx';
 import SettingsButton from './SettingsPanel.jsx';
+import ShareSheet from './ShareSheet.jsx';
+import { cardModel } from '../game/share.js';
 import { FACTIONS } from '../game/data.js';
 import { roundOrder } from '../game/engine.js';
 import { PHASE_NAMES, createLinePicker, describeEvent } from '../game/texts.js';
@@ -142,6 +144,7 @@ export default function SimulationScreen({ factions, onMenu, prefs }) {
                 Voltar ao menu
               </button>
             </div>
+            <ShareSheet model={cardModel(game, { quote: describeEvent(victory, choose).text })} />
           </div>
         </div>
       )}

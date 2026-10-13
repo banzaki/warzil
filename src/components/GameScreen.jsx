@@ -3,6 +3,8 @@ import BrazilMap from './BrazilMap.jsx';
 import Caricature from './Caricature.jsx';
 import { CampaignLog, EventBanner, PlayerChip, RegionsPanel, RollPanel, SpeechBubble, useGameSounds } from './BoardParts.jsx';
 import SettingsButton from './SettingsPanel.jsx';
+import ShareSheet from './ShareSheet.jsx';
+import { cardModel } from '../game/share.js';
 import QuantityPicker from './QuantityPicker.jsx';
 import { FACTIONS, STATES, STATE_IDS } from '../game/data.js';
 import {
@@ -399,6 +401,7 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate, 
                 Trocar candidato
               </button>
             </div>
+            <ShareSheet model={cardModel(game, { quote: describeEvent(finalEvent, choose).text })} />
           </div>
         </div>
       )}

@@ -1680,3 +1680,65 @@ html.reduce-motion .region-flash path {
   font-weight: 700;
   font-size: 0.88rem;
 }
+
+/* ---------- v0.5: share sheet ---------- */
+
+.btn.share-open {
+  width: 100%;
+  margin-top: 10px;
+}
+
+.share-overlay {
+  z-index: 30;
+}
+
+.share-card {
+  width: min(480px, 100%);
+  max-height: 94dvh;
+  overflow: auto;
+  background: #fff;
+  color: var(--ink);
+  border-radius: 20px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  --c: var(--blue);
+  --c-dark: var(--blue-dark);
+}
+
+.share-preview {
+  width: 100%;
+  border-radius: 12px;
+  aspect-ratio: 1080 / 1350;
+  object-fit: contain;
+  background: #14213d;
+}
+
+.share-wait {
+  text-align: center;
+  padding: 40px 0;
+  color: var(--muted);
+}
+
+.share-card .btn {
+  flex: 1;
+  text-align: center;
+  text-decoration: none;
+}
+
+.share-text {
+  width: 100%;
+  font: inherit;
+  font-size: 0.85rem;
+  border-radius: 10px;
+  border: 1px solid #d6d9e3;
+  padding: 8px;
+  resize: none;
+}
+
+.share-status {
+  margin: 0;
+  font-weight: 700;
+  color: #2e7d32;
+}
