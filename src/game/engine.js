@@ -205,13 +205,13 @@ function openingBonus(owner, troops, factions) {
 // Calibrated with scripts/calibrate-order.mjs and confirmed with 6000-8000 AI
 // matches each; win rate by position (%), target gap between positions <= 5:
 //   2: 1 army 49.6/50.4 · 2: 49.9/50.1 · 3: 50.2/49.8 · mixed 50.3/49.7
-//   3: 1 army 35.7/32.1/32.2 · 2: 35.1/33.3/31.5 · 3: 32.7/33.3/34.0 · mixed 31.7/33.3/35.0
+//   3: 1 army 35.7/32.1/32.2 · 2: 35.1/33.3/31.5 · 3: 32.7/33.3/34.0 · mixed 33.3/34.1/32.6
 //   4: 1 army 24.1/26.0/25.7/24.2 · 2: 23.1/24.5/26.6/25.9 · 3: 26.3/25.0/24.0/24.7
 //      mixed 25.6/24.7/24.0/25.8 (no compensation needed)
 // Without it (fixed order, 1 army): 75.8/24.2 · 46.7/28.1/25.2 · 31.1/25.9/22.9/20.1.
 export const POSITION_BONUS = {
   2: { 1: [0, 5], 2: [0, 5], 3: [0, 4], mixed: [0, 4] },
-  3: { 1: [0, 1, 2], 2: [0, 1, 2], 3: [0, 1, 2], mixed: [0, 1, 2] },
+  3: { 1: [0, 1, 2], 2: [0, 1, 2], 3: [0, 1, 2], mixed: [0, 1, 1] },
   4: { 1: [0, 1, 2, 2], 2: [0, 1, 2, 3], 3: [0, 0, 0, 2], mixed: [0, 0, 0, 0] },
 };
 // The polarized duel has its own row (its pole bonus already shifts the balance).
