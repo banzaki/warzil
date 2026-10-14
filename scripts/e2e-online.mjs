@@ -14,7 +14,7 @@ const aiCount = Number(aiArg);
 const NICKS = ['Ana', 'Beto', 'Caio', 'Duda'];
 const tag = `on${picks.length}h${aiCount}ai`;
 
-const browser = await chromium.launch({ channel: 'chrome', headless: true });
+const browser = await chromium.launch({ channel: 'chrome', headless: true, args: ['--disable-gpu', '--renderer-process-limit=1'] });
 const errors = [];
 const players = [];
 for (let i = 0; i < picks.length; i++) {
@@ -36,7 +36,7 @@ const over = (p) => p.page.$('.overlay .end-card').then(Boolean);
 
 // ---------- Lobby ----------
 await host.page.goto(BASE);
-await host.page.getByRole('button', { name: 'Jogar com amigos' }).click();
+await host.page.getByRole('button', { name: /Jogar online/ }).click();
 await host.page.getByLabel('Seu apelido').fill(host.nick);
 await host.page.getByRole('button', { name: /Criar sala/ }).click();
 await host.page.waitForSelector('.invite-link');
@@ -46,7 +46,7 @@ log('room created:', code, link);
 for (const p of players.slice(1)) {
   await p.page.goto(link);
   await p.page.getByLabel('Seu apelido').fill(p.nick);
-  await p.page.getByRole('button', { name: `Entrar na sala ${code}` }).click();
+  await p.page.getByRole('button', { name: /Entrar na sala/ }).click();
   await p.page.waitForSelector('.lobby-players');
 }
 // Unique candidates: the second player tries the host's candidate first.

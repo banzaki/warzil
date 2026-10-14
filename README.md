@@ -28,6 +28,20 @@ Live at **https://warzil.qbbruno.workers.dev** (Cloudflare Workers, free plan).
 - Local development of the online mode: `npx wrangler dev` (port 8787, serves `dist/` + API) and,
   for hot reload, `npm run dev` (Vite proxies `/api` to port 8787).
 
+## Local multiplayer, support and metrics
+
+- "Jogar local": 2-4 seats on one device, each a person or the CPU with a different candidate
+  and an optional nickname (`src/game/hotseat.js`). Same engine and turn-order draw as online
+  rooms; a hand-over screen ("Passe o dispositivo!") covers the board between two people.
+- "Apoie o WARZIL": voluntary Pix modal (`src/game/support.js`), shown only in builds with
+  `VITE_SUPPORT_PIX=on`. The QR image is a clean re-render of the owner's payload.
+- Usage counters (`worker/metrics.js`): one count per event and day (Brasília time), no
+  personal data. Read them at `/api/stats?key=<STATS_KEY>` (optional `&days=7`); the key is a
+  Worker secret (`npx wrangler secret put STATS_KEY [--env preview]`).
+- Staging: `npm run deploy:preview` -> https://warzil-preview.qbbruno.workers.dev (own storage).
+- Browser checks (need Chrome): `scripts/e2e-online.mjs`, `scripts/e2e-local.mjs`,
+  `scripts/e2e-support.mjs` (usage in each file's header).
+
 ## How to play
 
 1. **Rally** – place reinforcements (half your state count, min. 3, plus region bonuses).
@@ -35,7 +49,7 @@ Live at **https://warzil.qbbruno.workers.dev** (Cloudflare Workers, free plan).
    highest dice are compared and ties go to the defender.
 3. **Regroup** – optionally move troops once between two neighbouring states, then end the turn.
 
-Starting armies: 1 per state (default), 2, 3 or mixed (1-5, equal budget); whoever starts with less gets the difference in the opening rally. Round 1: everybody rallies (with undo) before anyone attacks; from round 2 each participant plays a full turn (rally, battle, movement). The seat opening the match is drawn and the opener rotates every round. Optional "Brasil Polarizado" start for Lula vs. Flávio, a date-seeded "Desafio do dia", a shareable PNG victory card (set `VITE_PUBLIC_URL` to print the public address) and a ⚙️ settings menu.
+Starting armies: 1 per state (default), 2, 3 or mixed (1-5, equal budget); whoever starts with less gets the difference in the opening rally. Round 1: everybody rallies (with undo) before anyone attacks; from round 2 each participant plays a full turn (rally, battle, movement). The turn order is drawn once and stays fixed; later seats get a few extra reinforcements in the opening rally. Optional "Brasil Polarizado" start for Lula vs. Flávio, a date-seeded "Desafio do dia", a shareable PNG victory card (set `VITE_PUBLIC_URL` to print the public address) and a ⚙️ settings menu.
 
 "Simular guerra" on the start screen runs an AI-vs-AI match (2–4 candidates) with pause and 1x/2x/4x speed.
 

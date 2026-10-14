@@ -22,7 +22,12 @@ for (const [label, opts] of [
   await page.goto(BASE);
   await page.getByRole('button', { name: /Apoie o WARZIL/ }).click();
   await page.waitForSelector('.support-card');
-  const qrOk = await page.$eval('.support-qr', (img) => img.complete && img.naturalWidth > 0);
+  const qrOk = await page
+    .waitForFunction(() => {
+      const img = document.querySelector('.support-qr');
+      return img.complete && img.naturalWidth > 0;
+    }, null, { timeout: 10000 })
+    .then(() => true, () => false);
   check(`${label}: modal opens, QR image loads`, qrOk);
   await page.getByRole('button', { name: 'Copiar Pix Copia e Cola' }).click();
   await page.getByRole('button', { name: /Copiado/ }).waitFor();
