@@ -2,7 +2,7 @@
 // happened: a plain roll is quick, a conquest gets a beat, an elimination a
 // longer one. Settings scale everything; no pause blocks the player.
 
-// Delays at "Normal" (ms). "Muito rápida" (x0.32) matches the v0.5 Normal.
+// Delays at "Normal" (1x, ms). "Rápida" is 2x (default), "Muito rápida" 4x.
 export const BASE_DELAY = { reinforce: 1500, attack: 1100, occupy: 900, fortify: 900 };
 
 // Extra time after an event, so the player can follow the story.
@@ -18,7 +18,7 @@ export const EVENT_EXTRA = {
   eliminated: 2600,
 };
 
-export const SPEED_FACTOR = { normal: 1, fast: 0.55, veryFast: 0.32 };
+export const SPEED_FACTOR = { normal: 1, fast: 0.5, veryFast: 0.25 };
 
 // With more CPU rivals the wait between human turns grows, so steps get a bit faster.
 const RIVALS_FACTOR = { 2: 1, 3: 0.85, 4: 0.75 };

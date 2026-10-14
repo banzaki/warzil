@@ -38,6 +38,8 @@ for (const n of sizes) {
   for (let i = 0; i < N; i++) {
     const lineup = deal === 'polarized' ? shuffle(['lula', 'flavio']) : shuffle(ALL).slice(0, n);
     let g = createGame(lineup[0], Math.random, lineup.slice(1), { spectator: true, deal, armies });
+    // Seat = position in the drawn turn order (v0.7.1), not in the line-up list.
+    const seats = [...g.factions];
     const counts = lineup.map((f) => territoriesOf(g, f).length);
     const short = lineup.filter((f, k) => counts[k] < Math.max(...counts));
     startArmies += armyTotal(g, lineup[0]);
@@ -58,7 +60,7 @@ for (const n of sizes) {
       if (g.eliminated.length > before) outRound[g.eliminated.at(-1)] = g.round;
     }
     rounds.push(g.round);
-    seatWins[lineup.indexOf(g.winner)]++;
+    seatWins[seats.indexOf(g.winner)]++;
     for (const f of lineup) {
       byFaction[f] ??= { games: 0, wins: 0 };
       byFaction[f].games++;
@@ -69,12 +71,12 @@ for (const n of sizes) {
       shortWins += short.includes(g.winner) ? 1 : 0;
     }
     if (Object.values(outRound).some((r) => r <= 3)) early++;
-    if (outRound[lineup[0]] <= 4) seat1Early++;
+    if (outRound[seats[0]] <= 4) seat1Early++;
   }
   rounds.sort((a, b) => a - b);
   console.log(`\n${n} factions, ${N} matches (${deal} deal, armies ${armiesArg})`);
   console.log(`  rounds: median ${rounds[N >> 1]}, p90 ${rounds[Math.floor(N * 0.9)]}, max ${rounds.at(-1)}, >20: ${pct(rounds.filter((r) => r > 20).length, N)}`);
-  console.log(`  win by seat (fair ${(100 / n).toFixed(1)}%): ${seatWins.map((w, i) => `seat${i + 1} ${pct(w, N)}`).join(', ')}`);
+  console.log(`  win by turn position (fair ${(100 / n).toFixed(1)}%): ${seatWins.map((w, i) => `seat${i + 1} ${pct(w, N)}`).join(', ')}`);
   console.log(`  win by candidate: ${Object.entries(byFaction).map(([f, s]) => `${f} ${pct(s.wins, s.games)}`).join(', ')}`);
   if (shortGames) console.log(`  fewer-states participant wins: ${pct(shortWins, shortGames)} (fair ${(100 / n).toFixed(1)}%)`);
   console.log(`  start: seat-1 armies avg ${(startArmies / N).toFixed(1)}, largest single stack ${maxStack} | first battler has a favourable attack: ${pct(viableOpening, N)}`);

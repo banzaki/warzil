@@ -21,9 +21,9 @@ const ROWS = [
     key: 'aiSpeed',
     label: 'Velocidade da IA',
     options: [
-      ['normal', 'Normal'],
-      ['fast', 'Rápida'],
-      ['veryFast', 'Muito rápida'],
+      ['normal', 'Normal (1x)'],
+      ['fast', 'Rápida (2x)'],
+      ['veryFast', 'Muito rápida (4x)'],
     ],
   },
   {
@@ -69,7 +69,7 @@ export default function SettingsButton({ settings, onChange, onReset }) {
                       role="radio"
                       aria-checked={settings[row.key] === value}
                       className={`chip ${settings[row.key] === value ? 'on' : ''}`}
-                      onClick={() => onChange({ ...settings, [row.key]: value })}
+                      onClick={() => onChange({ ...settings, [row.key]: value, ...(row.key === 'aiSpeed' ? { aiSpeedChosen: true } : {}) })}
                     >
                       {text}
                     </button>

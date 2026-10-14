@@ -9,13 +9,11 @@ import { seededRng } from '../src/game/daily.js';
 // A constant rng would deal the same map forever (re-deal loop); use a seeded one.
 const game = (phase, latest) => ({ ...createGame('lula', seededRng(42)), phase, log: latest ? [latest] : [] });
 
-test('Normal is clearly slower than v0.5; "Muito rápida" is about the old Normal', () => {
+test('speeds are exactly 1x, 2x and 4x of Normal', () => {
   const g = game('attack');
   const normal = aiDelay(g, 0, 'normal');
-  const fast = aiDelay(g, 0, 'fast');
-  const veryFast = aiDelay(g, 0, 'veryFast');
-  assert.ok(normal > fast && fast > veryFast);
-  assert.ok(Math.abs(veryFast - 350) <= 20, `very fast attack ${veryFast} ms vs v0.5 normal 350 ms`);
+  assert.equal(aiDelay(g, 0, 'fast'), normal / 2, 'Rápida = 2x (the default)');
+  assert.equal(aiDelay(g, 0, 'veryFast'), normal / 4, 'Muito rápida = 4x');
   assert.ok(normal >= 1000, 'Normal attack step >= 1 s');
 });
 
