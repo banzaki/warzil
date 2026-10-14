@@ -4,6 +4,7 @@ import Caricature from './Caricature.jsx';
 import { CampaignLog, EventBanner, PlayerChip, RegionsPanel, RollPanel, SpeechBubble, useGameSounds } from './BoardParts.jsx';
 import SettingsButton from './SettingsPanel.jsx';
 import ShareSheet from './ShareSheet.jsx';
+import SupportButton from './SupportButton.jsx';
 import { cardModel } from '../game/share.js';
 import QuantityPicker from './QuantityPicker.jsx';
 import OrderDraw from './OrderDraw.jsx';
@@ -488,6 +489,7 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate, 
               </div>
             )}
             <ShareSheet model={cardModel(game, { quote: describeEvent(finalEvent, choose).text })} />
+            <SupportButton className="support-end" />
           </div>
         </div>
       )}

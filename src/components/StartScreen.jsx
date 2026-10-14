@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Caricature from './Caricature.jsx';
 import SettingsButton from './SettingsPanel.jsx';
+import SupportButton from './SupportButton.jsx';
 import { EXTRA_CANDIDATES, MAX_FACTIONS, PROTAGONISTS } from '../game/data.js';
 import { CANDIDATES, DISCLAIMER } from '../game/texts.js';
 import { formatDailyKey } from '../game/daily.js';
@@ -236,6 +237,7 @@ export default function StartScreen({
             📖 Como jogar
           </button>
           <SettingsButton {...prefs} label="⚙️ Configurações" />
+          <SupportButton />
         </div>
         {footer}
       </main>

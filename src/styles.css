@@ -2786,3 +2786,96 @@ html.reduce-motion .draw-bonus {
     font-size: 1.25rem;
   }
 }
+
+/* ---------- v0.7.2: "Apoie o WARZIL" (Pix) ---------- */
+
+.support-overlay {
+  z-index: 35;
+}
+
+.support-card {
+  position: relative;
+  color: var(--ink);
+  width: min(400px, 100%);
+  max-height: 94dvh;
+  overflow-y: auto;
+  background: #fff;
+  border-radius: 24px;
+  border: 5px solid #e91e63;
+  box-shadow: 0 10px 0 #880e4f;
+  padding: 20px 18px 16px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.support-card h2 {
+  font-family: 'Bungee', 'Impact', sans-serif;
+  color: #ad1457;
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.support-card p {
+  margin: 0;
+}
+
+.support-qr {
+  width: 200px;
+  height: 200px;
+  border-radius: 12px;
+  border: 1px solid #eee;
+}
+
+.support-copy {
+  width: 100%;
+  flex-direction: column;
+}
+
+.support-copy .btn {
+  width: 100%;
+}
+
+.support-close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  font-size: 1.3rem;
+  cursor: pointer;
+  color: var(--muted);
+}
+
+.support-manual {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.support-manual textarea {
+  font: inherit;
+  font-size: 0.75rem;
+  word-break: break-all;
+}
+
+.support-note {
+  font-size: 0.78rem;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.btn.support-end {
+  margin-top: 8px;
+  min-height: 0;
+  padding: 6px 14px;
+  font-size: 0.9rem;
+}
