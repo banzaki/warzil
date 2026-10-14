@@ -48,7 +48,10 @@ export function PlayerChip({ game, faction, compact = false }) {
       <div className={classes} title={`${name(faction)}: ${lands.length} estados, ${troops} exércitos`}>
         <Caricature who={faction} mood={mood} size={36} />
         <div className="player-info">
-          <strong>{name(faction)}</strong>
+          <strong>
+            {name(faction)}
+            {game.playerNames?.[faction] && faction !== game.human ? <small className="chip-nick"> {game.playerNames[faction]}</small> : null}
+          </strong>
           <span>{out ? 'fora' : `${lands.length} est. · ${troops}`}</span>
         </div>
       </div>
@@ -60,7 +63,7 @@ export function PlayerChip({ game, faction, compact = false }) {
       <div className="player-info">
         <strong>
           {name(faction)}
-          {faction === game.human ? ' (você)' : ' (CPU)'}
+          {faction === game.human ? ' (você)' : game.playerNames?.[faction] ? ` (${game.playerNames[faction]})` : ' (CPU)'}
         </strong>
         <span>
           {lands.length} estados · {troops} exércitos · +{calcReinforcements(game, faction).total}/turno

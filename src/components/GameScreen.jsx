@@ -8,27 +8,16 @@ import { cardModel } from '../game/share.js';
 import QuantityPicker from './QuantityPicker.jsx';
 import { FACTIONS, STATES, STATE_IDS } from '../game/data.js';
 import {
-  attack,
   attackTargets,
-  blitz,
   canAttack,
   canFortify,
-  endAttack,
   attackerDiceCount,
   defenderDiceCount,
-  endTurn,
-  fortify,
   fortifyTargets,
   movableTroops,
-  occupy,
-  finishRally,
-  placeTroops,
   roundOrder,
-  resetRally,
-  undoPlacement,
-  selectTarget,
-  selectTerritory,
 } from '../game/engine.js';
+import { applyAction } from '../game/actions.js';
 import { aiStep } from '../game/ai.js';
 import { REINFORCE_AMOUNT } from '../game/settings.js';
 import { aiDelay } from '../game/pace.js';
@@ -37,8 +26,37 @@ import { DISCLAIMER, PHASE_HELP, PHASE_NAMES, VICTORY_TITLES, createLinePicker, 
 
 const EMPTY = new Set();
 
-export default function GameScreen({ initialGame, onRematch, onChangeCandidate, prefs, onMatchEnd, dailyRecord }) {
-  const [game, setGame] = useState(initialGame);
+// online (optional): { game, me, names, isHost, dispatch, onRematch, onLeave } for a
+// server-run room. Without it the match is local (solo, daily, vs. AI).
+export default function GameScreen({ initialGame, onRematch, onChangeCandidate, prefs, onMatchEnd, dailyRecord, online }) {
+  const [localGame, setLocalGame] = useState(initialGame);
+  // Online: which state is selected/targeted is local to this screen.
+  const [localSel, setLocalSel] = useState({ selected: null, target: null });
+  const game = online
+    ? { ...online.game, human: online.me, playerNames: online.names, selected: localSel.selected, target: localSel.target }
+    : localGame;
+
+  // Every move goes through applyAction: locally for solo games, to the server online.
+  const act = (action) => {
+    if (!online) {
+      setLocalGame((g) => applyAction(g, action));
+    } else if (action.kind === 'select') {
+      setLocalSel({ selected: action.id ?? null, target: null });
+    } else if (action.kind === 'target') {
+      setLocalSel((sel) => ({ ...sel, target: action.id ?? null }));
+    } else {
+      online.dispatch(action);
+    }
+  };
+
+  // Online: after each server update, keep the origin/target the engine left
+  // (so "Atacar" again works), and clear it when it is someone else's turn.
+  const serverGame = online?.game;
+  useEffect(() => {
+    if (!serverGame) return;
+    const mine = serverGame.current === online.me;
+    setLocalSel(mine ? { selected: serverGame.selected, target: serverGame.target } : { selected: null, target: null });
+  }, [serverGame]);
   const { settings } = prefs;
   const [placeAmount, setPlaceAmount] = useState(REINFORCE_AMOUNT[settings.reinforce]);
   const [placeTarget, setPlaceTarget] = useState(null);
@@ -52,7 +70,7 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate, 
   // Report the result once (daily challenge records).
   const reported = useRef(false);
   useEffect(() => {
-    if (game.phase === 'over' && !reported.current) {
+    if (!online && game.phase === 'over' && !reported.current) {
       reported.current = true;
       onMatchEnd?.(game);
     }
@@ -66,11 +84,12 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate, 
   // happened (a conquest or an elimination gets a beat to be noticed).
   const seenLogId = useRef(game.log[0]?.id ?? 0);
   useEffect(() => {
-    if (game.current === game.human || game.phase === 'over') return undefined;
+    // Online, the server plays the AI.
+    if (online || game.current === game.human || game.phase === 'over') return undefined;
     const delay = aiDelay(game, seenLogId.current, settings.aiSpeed);
     const timer = setTimeout(() => {
       seenLogId.current = game.log[0]?.id ?? 0;
-      setGame((g) => aiStep(g));
+      setLocalGame((g) => aiStep(g));
     }, delay);
     return () => clearTimeout(timer);
   }, [game, settings.aiSpeed]);
@@ -122,19 +141,19 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate, 
           setPlaceTarget(id);
           setPlaceCount(Math.min(placeCount, game.reinforcements) || 1);
         } else {
-          setGame(placeTroops(game, id, placeAmount === 'all' ? game.reinforcements : placeAmount));
+          act({ kind: 'place', id, amount: placeAmount === 'all' ? game.reinforcements : placeAmount });
         }
         break;
       case 'attack':
         // Tapping a glowing enemy rolls the dice right away; the selection stays for the next roll.
-        if (game.selected && canAttack(game, game.selected, id)) setGame(attack(game, game.selected, id));
-        else if (mine && id === game.selected) setGame(selectTerritory(game, null));
-        else if (mine && attackTargets(game, id).length > 0) setGame(selectTerritory(game, id));
+        if (game.selected && canAttack(game, game.selected, id)) act({ kind: 'attack', from: game.selected, to: id });
+        else if (mine && id === game.selected) act({ kind: 'select', id: null });
+        else if (mine && attackTargets(game, id).length > 0) act({ kind: 'select', id });
         break;
       case 'fortify':
-        if (game.selected && canFortify(game, game.selected, id)) setGame(selectTarget(game, id));
-        else if (mine && id === game.selected) setGame(selectTerritory(game, null));
-        else if (mine && fortifyTargets(game, id).length > 0) setGame(selectTerritory(game, id));
+        if (game.selected && canFortify(game, game.selected, id)) act({ kind: 'target', id });
+        else if (mine && id === game.selected) act({ kind: 'select', id: null });
+        else if (mine && fortifyTargets(game, id).length > 0) act({ kind: 'select', id });
         break;
       default:
         break;
@@ -146,11 +165,20 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate, 
 
   // ---------- Action panel ----------
   let panel = null;
-  if (!isHumanTurn && game.phase !== 'over') {
+  const iAmOut = game.eliminated.includes(human);
+  if (online && iAmOut && game.phase !== 'over') {
+    panel = (
+      <div className="panel-body">
+        <p>🏴 Você foi eliminado. Acompanhe a guerra até o fim: a revanche vem depois.</p>
+      </div>
+    );
+  } else if (!isHumanTurn && game.phase !== 'over') {
+    const who = game.playerNames?.[game.current];
     panel = (
       <div className="panel-body thinking">
         <span className="spinner" aria-hidden="true" />
-        {name(game.current)} está {game.phase === 'attack' ? 'atacando' : game.phase === 'reinforce' ? 'no comício, distribuindo reforços' : 'armando a próxima'}…
+        {name(game.current)}
+        {who ? ` (${who})` : ''} está {game.phase === 'attack' ? 'atacando' : game.phase === 'reinforce' ? 'no comício, distribuindo reforços' : 'armando a próxima'}…
       </div>
     );
   } else if (game.phase === 'reinforce') {
@@ -189,7 +217,7 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate, 
               <button
                 className="btn primary"
                 onClick={() => {
-                  setGame(placeTroops(game, placeTarget, Math.min(placeCount, game.reinforcements)));
+                  act({ kind: 'place', id: placeTarget, amount: Math.min(placeCount, game.reinforcements) });
                   setPlaceTarget(null);
                 }}
               >
@@ -200,14 +228,14 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate, 
             game.reinforcements > 0 && <p className="hint">Toque num estado seu para escolher a quantidade.</p>
           ))}
         <div className="buttons rally-undo">
-          <button className="btn ghost" onClick={() => setGame(undoPlacement(game))} disabled={!game.rallyPlacements.length}>
+          <button className="btn ghost" onClick={() => act({ kind: 'undo' })} disabled={!game.rallyPlacements.length}>
             ↶ Desfazer
           </button>
-          <button className="btn ghost" onClick={() => setGame(resetRally(game))} disabled={!game.rallyPlacements.length}>
+          <button className="btn ghost" onClick={() => act({ kind: 'resetRally' })} disabled={!game.rallyPlacements.length}>
             Recomeçar
           </button>
         </div>
-        <button className="btn primary" onClick={() => setGame(finishRally(game))} disabled={game.reinforcements > 0}>
+        <button className="btn primary" onClick={() => act({ kind: 'finishRally' })} disabled={game.reinforcements > 0}>
           {game.reinforcements > 0 ? `Faltam ${game.reinforcements}` : 'Concluir comício ✓'}
         </button>
         {game.round === 1 && game.openingBonus?.[human] > 0 && (
@@ -237,10 +265,10 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate, 
               🎲 {myDice} contra {defenderDiceCount(game.troops[game.target])} · toque no inimigo ou:
             </p>
             <div className="buttons">
-              <button className="btn primary" onClick={() => setGame(attack(game, from, game.target))}>
+              <button className="btn primary" onClick={() => act({ kind: 'attack', from, to: game.target })}>
                 🎲 Atacar
               </button>
-              <button className="btn warn" onClick={() => setGame(blitz(game, from, game.target))}>
+              <button className="btn warn" onClick={() => act({ kind: 'blitz', from, to: game.target })}>
                 ⚡ Tudo ou nada
               </button>
             </div>
@@ -252,7 +280,7 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate, 
               : PHASE_HELP.attack}
           </p>
         )}
-        <button className="btn ghost" onClick={() => setGame(endAttack(game))}>
+        <button className="btn ghost" onClick={() => act({ kind: 'endAttack' })}>
           Ir para movimentação →
         </button>
       </div>
@@ -268,7 +296,7 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate, 
         <p className="hint">
           Mínimo {min} (dados do último ataque). {stateName(from)} fica com {game.troops[from] + min - occupyTotal}.
         </p>
-        <button className="btn primary" onClick={() => setGame(occupy(game, occupyTotal))}>
+        <button className="btn primary" onClick={() => act({ kind: 'occupy', total: occupyTotal })}>
           Confirmar {occupyTotal}
         </button>
       </div>
@@ -291,10 +319,10 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate, 
               onChange={setMoveAmount}
             />
             <div className="buttons">
-              <button className="btn primary" onClick={() => setGame(fortify(game, from, game.target, moveAmount))}>
+              <button className="btn primary" onClick={() => act({ kind: 'fortify', from, to: game.target, amount: moveAmount })}>
                 Mover {moveAmount}
               </button>
-              <button className="btn ghost" onClick={() => setGame(selectTerritory(game, null))}>
+              <button className="btn ghost" onClick={() => act({ kind: 'select', id: null })}>
                 Cancelar
               </button>
             </div>
@@ -306,7 +334,7 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate, 
               : PHASE_HELP.fortify}
           </p>
         )}
-        <button className="btn ghost" onClick={() => setGame(endTurn(game))}>
+        <button className="btn ghost" onClick={() => act({ kind: 'endTurn' })}>
           Encerrar turno →
         </button>
       </div>
@@ -372,8 +400,8 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate, 
           <RegionsPanel game={game} />
           <CampaignLog game={game} choose={choose} />
 
-          <button className="btn ghost quit" onClick={onChangeCandidate}>
-            ⟲ Voltar ao menu
+          <button className="btn ghost quit" onClick={online ? online.onLeave : onChangeCandidate}>
+            {online ? '⟲ Sair da sala' : '⟲ Voltar ao menu'}
           </button>
           <p className="disclaimer">{DISCLAIMER}</p>
         </aside>
@@ -403,14 +431,29 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate, 
                 Tentativas: {dailyRecord.attempts} · Vitórias: {dailyRecord.wins} · Melhor: {dailyRecord.bestRounds ? `${dailyRecord.bestRounds} rodadas` : '—'}
               </p>
             )}
-            <div className="buttons">
-              <button className="btn primary" onClick={onRematch} autoFocus>
-                🔁 {game.daily ? 'Tentar de novo' : 'Revanche'}
-              </button>
-              <button className="btn ghost" onClick={onChangeCandidate}>
-                Trocar candidato
-              </button>
-            </div>
+            {online ? (
+              <div className="buttons">
+                {online.isHost ? (
+                  <button className="btn primary" onClick={online.onRematch} autoFocus>
+                    🔁 Revanche na sala
+                  </button>
+                ) : (
+                  <p className="hint">Aguardando o anfitrião chamar a revanche…</p>
+                )}
+                <button className="btn ghost" onClick={online.onLeave}>
+                  Sair da sala
+                </button>
+              </div>
+            ) : (
+              <div className="buttons">
+                <button className="btn primary" onClick={onRematch} autoFocus>
+                  🔁 {game.daily ? 'Tentar de novo' : 'Revanche'}
+                </button>
+                <button className="btn ghost" onClick={onChangeCandidate}>
+                  Trocar candidato
+                </button>
+              </div>
+            )}
             <ShareSheet model={cardModel(game, { quote: describeEvent(finalEvent, choose).text })} />
           </div>
         </div>

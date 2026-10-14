@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import StartScreen from './components/StartScreen.jsx';
 import GameScreen from './components/GameScreen.jsx';
 import SimulationScreen from './components/SimulationScreen.jsx';
+import OnlineScreen from './components/OnlineScreen.jsx';
+import { loadSession } from './online/client.js';
 import { createGame } from './game/engine.js';
 import { loadSettings, resetSettings, saveSettings } from './game/settings.js';
 import { setMuted } from './game/sound.js';
@@ -25,6 +27,10 @@ export default function App() {
   // Bumping the key gives a rematch a completely fresh screen.
   const [matchId, setMatchId] = useState(0);
   const [settings, setSettings] = useState(loadSettings);
+  // Online rooms: opened from the menu or directly by an invite link (?sala=CODE).
+  const [inviteCode] = useState(() => new URLSearchParams(window.location.search).get('sala')?.toUpperCase() ?? null);
+  // A saved session (reload during a match) reopens the room automatically.
+  const [online, setOnline] = useState(() => Boolean(inviteCode) || Boolean(loadSession()));
   // Start-of-match deal for Lula vs. Flávio duels: 'random' (default) or 'polarized'.
   const [deal, setDeal] = useState('random');
   const [dailyRecords, setDailyRecords] = useState(loadDailyRecords);
@@ -61,6 +67,19 @@ export default function App() {
     setSimFactions(null);
   };
 
+  if (online) {
+    return (
+      <OnlineScreen
+        initialCode={inviteCode}
+        prefs={prefs}
+        onExit={() => {
+          setOnline(false);
+          if (inviteCode) window.history.replaceState(null, '', '/');
+        }}
+      />
+    );
+  }
+
   if (simFactions) return <SimulationScreen key={matchId} factions={simFactions} onMenu={toMenu} prefs={prefs} />;
 
   if (!game) {
@@ -72,6 +91,7 @@ export default function App() {
         onDealChange={setDeal}
         onPick={start}
         prefs={prefs}
+        onOnline={() => setOnline(true)}
         daily={{ challenge: dailyChallenge(), record: dayRecord(dailyRecords, dailyKey()), onPlay: () => startDaily() }}
         onSimulate={(factions) => {
           setSimFactions(factions);

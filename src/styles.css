@@ -2008,3 +2008,206 @@ html.reduce-motion .region-flash path {
     padding: 10px 12px;
   }
 }
+
+/* ---------- online ---------- */
+
+.online-card-box {
+  max-width: 560px;
+  margin: 14px auto 0;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.08);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.online-card-box h3 {
+  margin: 0;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+  font-weight: 800;
+}
+
+.field input,
+.code-input {
+  font: inherit;
+  font-size: 1.1rem;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  background: #fff;
+  color: var(--ink);
+}
+
+.code-input {
+  text-transform: uppercase;
+  letter-spacing: 0.25em;
+  text-align: center;
+  font-weight: 900;
+  flex: 1;
+  min-width: 0;
+}
+
+.join-row {
+  display: flex;
+  gap: 8px;
+}
+
+.btn.big {
+  font-size: 1.1rem;
+  padding: 14px 18px;
+}
+
+.or {
+  opacity: 0.75;
+  font-size: 0.85rem;
+}
+
+.online-error {
+  margin: 0;
+  color: #ffcdd2;
+  font-weight: 800;
+}
+
+.online-back {
+  display: block;
+  margin: 16px auto 0;
+}
+
+.small-logo {
+  font-size: clamp(2.2rem, 9vw, 3.4rem);
+}
+
+.invite-label {
+  margin: 0;
+  font-weight: 800;
+}
+
+.invite-link {
+  margin: 0;
+  font-family: ui-monospace, Consolas, monospace;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 10px;
+  padding: 8px;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+.lobby-players {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+}
+
+.lobby-players li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.lobby-players li small {
+  margin-left: auto;
+  opacity: 0.85;
+}
+
+.no-face {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.15);
+  font-weight: 900;
+}
+
+.tag {
+  font-size: 0.7rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: var(--yellow);
+  color: var(--ink);
+}
+
+.tag.you {
+  background: #fff;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #9e9e9e;
+}
+
+.dot.on {
+  background: #66bb6a;
+}
+
+.lobby-picks .sim-pick small {
+  font-size: 0.7rem;
+  opacity: 0.8;
+}
+
+.btn.start-online {
+  display: block;
+  margin: 16px auto 0;
+  min-width: 280px;
+  background: #2e7d32;
+  box-shadow: 0 4px 0 #1b5e20;
+}
+
+.btn.start-online:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.waiting {
+  margin-top: 16px;
+  font-weight: 800;
+  color: var(--yellow);
+}
+
+.conn-banner,
+.online-toast {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 40;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-weight: 800;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+}
+
+.conn-banner {
+  top: 8px;
+  background: var(--yellow);
+  color: var(--ink);
+}
+
+.online-toast {
+  bottom: 16px;
+  background: #1d1d27;
+  color: #fff;
+}
+
+.chip-nick {
+  font-weight: 700;
+  opacity: 0.75;
+}

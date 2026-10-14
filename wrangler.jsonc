@@ -1,10 +1,21 @@
-// Cloudflare Workers deployment: the built game (dist/) as static assets.
-// Free plan: static asset requests are free; no paid features are used.
+// Cloudflare Workers deployment (free plan): the built game (dist/) as static
+// assets, plus the online API and one Durable Object per room.
 {
   "name": "warzil",
+  "main": "worker/index.js",
   "compatibility_date": "2026-10-06",
   "assets": {
     "directory": "./dist",
-    "not_found_handling": "single-page-application"
-  }
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "durable_objects": {
+    "bindings": [
+      { "name": "ROOMS", "class_name": "RoomObject" },
+      { "name": "LIMITER", "class_name": "Limiter" }
+    ]
+  },
+  // Free plan: SQLite-backed Durable Objects.
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["RoomObject", "Limiter"] }]
 }
