@@ -1,6 +1,7 @@
 // Browser side of the online rooms: HTTP calls, the saved session and the
 // WebSocket connection (with automatic reconnection).
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { trackConnError } from '../game/metrics.js';
 
 const SESSION_KEY = 'warzil-online';
 const NICK_KEY = 'warzil-nick';
@@ -122,6 +123,7 @@ export function useRoom(session) {
       ws.onclose = () => {
         if (stopped) return;
         failures += 1;
+        trackConnError();
         // A room that never accepted us (expired, wrong token) is gone.
         if (!everOpened && failures >= 4) {
           setStatus('gone');

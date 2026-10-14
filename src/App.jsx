@@ -7,6 +7,7 @@ import { loadSession } from './online/client.js';
 import { normalizeCode } from '../worker/codes.js';
 import { createGame } from './game/engine.js';
 import { createLocalGame, localPlayers } from './game/hotseat.js';
+import { track } from './game/metrics.js';
 import { loadSettings, resetSettings, saveSettings } from './game/settings.js';
 import { setMuted } from './game/sound.js';
 import {
@@ -57,24 +58,28 @@ export default function App() {
     onReset: () => setSettings(resetSettings()),
   };
 
-  const start = (human, opponents, matchDeal = deal) => {
+  const start = (human, opponents, matchDeal = deal, rematch = false) => {
+    track(rematch ? 'solo_rematch' : 'solo_start');
     setHotseat(null);
     setGame(createGame(human, Math.random, opponents, { deal: matchDeal, armies: settings.armies }));
     setMatchId((n) => n + 1);
   };
   // Rematches keep the same seats; the engine draws a new order.
-  const startLocal = (seats, matchDeal) => {
+  const startLocal = (seats, matchDeal, rematch = false) => {
+    track(rematch ? 'local_rematch' : 'local_start');
     setHotseat({ ...localPlayers(seats), seats, deal: matchDeal });
     setGame(createLocalGame(seats, Math.random, { deal: matchDeal, armies: settings.armies }));
     setMatchId((n) => n + 1);
   };
   // Daily challenge: same line-up and deal for everybody on that day (key = date).
-  const startDaily = (key = dailyKey()) => {
+  const startDaily = (key = dailyKey(), rematch = false) => {
+    track(rematch ? 'solo_rematch' : 'solo_start');
     setDailyRecords((r) => saveDailyRecords(recordAttempt(r, key)));
     setGame(createDailyGame(dailyChallenge(key)));
     setMatchId((n) => n + 1);
   };
   const onMatchEnd = (finished) => {
+    track(hotseat ? 'local_end' : 'solo_end');
     if (!finished.daily) return;
     const result = { won: finished.winner === finished.human, rounds: finished.round };
     setDailyRecords((r) => saveDailyRecords(recordResult(r, finished.daily, result)));
@@ -131,10 +136,10 @@ export default function App() {
       hotseat={hotseat}
       onRematch={() =>
         hotseat
-          ? startLocal(hotseat.seats, hotseat.deal)
+          ? startLocal(hotseat.seats, hotseat.deal, true)
           : game.daily
-            ? startDaily(game.daily)
-            : start(game.human, game.factions.filter((f) => f !== game.human))
+            ? startDaily(game.daily, true)
+            : start(game.human, game.factions.filter((f) => f !== game.human), deal, true)
       }
       onMatchEnd={onMatchEnd}
       dailyRecord={game.daily ? dayRecord(dailyRecords, game.daily) : null}

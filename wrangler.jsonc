@@ -13,11 +13,15 @@
   "durable_objects": {
     "bindings": [
       { "name": "ROOMS", "class_name": "RoomObject" },
-      { "name": "LIMITER", "class_name": "Limiter" }
+      { "name": "LIMITER", "class_name": "Limiter" },
+      { "name": "METRICS", "class_name": "Metrics" }
     ]
   },
-  // Free plan: SQLite-backed Durable Objects.
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["RoomObject", "Limiter"] }],
+  // Free plan: SQLite-backed Durable Objects. v2 adds the usage counters.
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["RoomObject", "Limiter"] },
+    { "tag": "v2", "new_sqlite_classes": ["Metrics"] }
+  ],
   // Staging (npm run deploy:preview): a separate Worker, warzil-preview, with its
   // own Durable Objects and storage; it never shares rooms or data with production.
   "env": {
@@ -32,10 +36,14 @@
       "durable_objects": {
         "bindings": [
           { "name": "ROOMS", "class_name": "RoomObject" },
-          { "name": "LIMITER", "class_name": "Limiter" }
+          { "name": "LIMITER", "class_name": "Limiter" },
+          { "name": "METRICS", "class_name": "Metrics" }
         ]
       },
-      "migrations": [{ "tag": "v1", "new_sqlite_classes": ["RoomObject", "Limiter"] }]
+      "migrations": [
+        { "tag": "v1", "new_sqlite_classes": ["RoomObject", "Limiter"] },
+        { "tag": "v2", "new_sqlite_classes": ["Metrics"] }
+      ]
     }
   }
 }

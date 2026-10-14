@@ -1,6 +1,7 @@
 // One Durable Object per room: holds the official state, talks to the players
 // over WebSockets (hibernation API) and plays AI turns on alarms.
 import { DurableObject } from 'cloudflare:workers';
+import { countEvent } from './metrics-object.js';
 import {
   COVER_AFTER_MS,
   coverAt,
@@ -50,8 +51,14 @@ export class RoomObject extends DurableObject {
   }
 
   async save(room) {
+    const before = this.room;
     this.room = room;
     await this.ctx.storage.put('room', room);
+    // Usage counters, from state changes only (reconnects and reloads never count).
+    if (before && room) {
+      if ((room.matchNo ?? 0) > (before.matchNo ?? 0)) this.ctx.waitUntil(countEvent(this.env, before.status === 'over' ? 'online_rematch' : 'online_start'));
+      if (before.status !== 'over' && room.status === 'over') this.ctx.waitUntil(countEvent(this.env, 'online_end'));
+    }
   }
 
   broadcast(room) {
@@ -106,6 +113,7 @@ export class RoomObject extends DurableObject {
       if (error) return json({ error }, 400);
       await this.save(room);
       await this.schedule(room);
+      this.ctx.waitUntil(countEvent(this.env, 'room_created'));
       return json({ code, token, playerId });
     }
 
