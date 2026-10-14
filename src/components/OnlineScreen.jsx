@@ -192,7 +192,7 @@ function Lobby({ view, send, onLeave }) {
                 aria-checked={view.settings.armies === value}
                 disabled={!isHost}
                 className={`chip ${view.settings.armies === value ? 'on' : ''}`}
-                onClick={() => send({ type: 'settings', settings: { ...view.settings, armies: value } })}
+                onClick={() => send({ type: 'settings', settings: { armies: value } })}
               >
                 {label}
               </button>
@@ -209,7 +209,7 @@ function Lobby({ view, send, onLeave }) {
                 aria-checked={view.settings.aiCount === n}
                 disabled={!isHost}
                 className={`chip ${view.settings.aiCount === n ? 'on' : ''}`}
-                onClick={() => send({ type: 'settings', settings: { ...view.settings, aiCount: n } })}
+                onClick={() => send({ type: 'settings', settings: { aiCount: n } })}
               >
                 {n === 0 ? 'Nenhuma' : `+${n} IA`}
               </button>

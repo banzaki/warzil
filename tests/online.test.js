@@ -325,3 +325,10 @@ test('after "Sair" the AI covers at once, even when the socket closes afterwards
   room = setConnected(room, id, false, T0 + 1100).room; // webSocketClose
   assert.equal(needsServerMove(room, T0 + 1200), true);
 });
+
+test('lobby settings are partial updates: quick clicks do not undo each other', () => {
+  let room = lobby();
+  room = setSettings(room, 'p0', { aiCount: 1 }, T0).room;
+  room = setSettings(room, 'p0', { armies: 2 }, T0).room;
+  assert.deepEqual(room.settings, { armies: 2, aiCount: 1 });
+});

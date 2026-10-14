@@ -97,6 +97,7 @@ export function pickFaction(room, playerId, faction, now) {
   return { room: touch({ ...room, players }, now) };
 }
 
+// Partial updates: only the fields sent change, so two quick clicks never undo each other.
 export function setSettings(room, playerId, settings, now) {
   if (playerId !== room.hostId) return fail(room, 'host-only');
   if (room.status !== 'lobby') return fail(room, 'started');
