@@ -4,6 +4,10 @@
   "name": "warzil",
   "main": "worker/index.js",
   "compatibility_date": "2026-10-06",
+  // Official address (Cloudflare Custom Domain on the warzil.com.br zone); the
+  // workers.dev address keeps working alongside it.
+  "workers_dev": true,
+  "routes": [{ "pattern": "warzil.com.br", "custom_domain": true }],
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",
@@ -27,6 +31,9 @@
   "env": {
     "preview": {
       "name": "warzil-preview",
+      // Staging stays on workers.dev only (routes would otherwise be inherited).
+      "workers_dev": true,
+      "routes": [],
       "assets": {
         "directory": "./dist",
         "binding": "ASSETS",

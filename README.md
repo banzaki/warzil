@@ -17,7 +17,7 @@ Other scripts:
 
 ## Public site and online rooms
 
-Live at **https://warzil.qbbruno.workers.dev** (Cloudflare Workers, free plan).
+Live at **https://warzil.com.br** (Cloudflare Workers custom domain, free plan; also https://warzil.qbbruno.workers.dev).
 
 - `npm run deploy` builds the game and deploys one Worker: static assets + the online API.
 - Online: "Jogar online" -> nickname -> create a room or join with the code / invite link
