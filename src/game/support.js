@@ -1,12 +1,15 @@
 // Voluntary support by Pix ("Apoie o WARZIL"). The payload is exactly what the
-// owner's QR code encodes (decoded and CRC-checked); public/pix-qr.svg is a clean
-// re-render of it. No checkout, no payment tracking: the bank app does the rest.
+// owner's QR code encodes (decoded and CRC-checked); public/pix-qr.png is that QR
+// image, checked to decode to the same payload. No checkout, no payment tracking.
 export const PIX = {
   key: 'a5da07d0-1476-46a9-a5d0-7e381b0ec7c8',
   payload:
     '00020126880014br.gov.bcb.pix0136a5da07d0-1476-46a9-a5d0-7e381b0ec7c80226Obrigado por apoiar Warzil27600016BR.COM.PAGSEGURO013641F7EF48-948B-477F-B027-239359C8BCE65204000053039865802BR5920BRUNO QUEIROZ BARATA6009Sao Paulo62290525PAGS0000000002610141116766304A4DF',
-  qr: '/pix-qr.svg',
+  qr: '/pix-qr.png',
 };
+
+// "Fale com o criador": the owner's WhatsApp Business.
+export const CONTACT_URL = 'https://wa.me/5511924915082';
 
 // Shown only in builds that turn it on (VITE_SUPPORT_PIX=on), so it goes public
 // only after the owner has checked the payment details.

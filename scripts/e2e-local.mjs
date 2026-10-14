@@ -145,6 +145,7 @@ await page.waitForSelector('.overlay .end-card', { timeout: 60000 });
 log(`human turns ${turns}, hand-overs ${handoffs.length}, board visible behind a hand-over: ${leaks}`);
 log('hand-over sequence:', handoffs.slice(0, 8).join(' | '), handoffs.length > 8 ? '…' : '');
 log('end:', (await page.textContent('#end-title')).trim(), '|', (await page.textContent('.end-stats')).trim());
+await page.waitForTimeout(800); // let the end card finish its entrance
 await page.screenshot({ path: `${OUT}/${tag}-end.png` });
 
 // ---------- Rematch: same seats, new draw ----------

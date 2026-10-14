@@ -2825,8 +2825,6 @@ html.reduce-motion .draw-bonus {
 .support-qr {
   width: 200px;
   height: 200px;
-  border-radius: 12px;
-  border: 1px solid #eee;
 }
 
 .support-copy {
@@ -2878,4 +2876,36 @@ html.reduce-motion .draw-bonus {
   min-height: 0;
   padding: 6px 14px;
   font-size: 0.9rem;
+}
+
+/* Support button: secondary but easy to spot (white pill, red outline). */
+.btn.support-open {
+  background: #fff;
+  color: var(--red-dark);
+  border: 2px solid var(--red);
+  box-shadow: 0 4px 0 var(--red-dark);
+}
+
+.support-row {
+  display: flex;
+  justify-content: center;
+  margin: -6px 0 18px;
+}
+
+/* "Fale com o criador": small footer link. */
+.disclaimer .contact {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  margin-top: 10px;
+}
+
+.disclaimer .contact a {
+  font-weight: 800;
+}
+
+.disclaimer .contact small {
+  font-size: 0.75rem;
+  opacity: 0.8;
 }

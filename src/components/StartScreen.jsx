@@ -2,6 +2,7 @@ import { useState } from 'react';
 import Caricature from './Caricature.jsx';
 import SettingsButton from './SettingsPanel.jsx';
 import SupportButton from './SupportButton.jsx';
+import { CONTACT_URL } from '../game/support.js';
 import { EXTRA_CANDIDATES, MAX_FACTIONS, PROTAGONISTS } from '../game/data.js';
 import { CANDIDATES, DISCLAIMER } from '../game/texts.js';
 import { formatDailyKey } from '../game/daily.js';
@@ -158,6 +159,12 @@ export default function StartScreen({
         svg-maps
       </a>{' '}
       de Victor Cazanave (CC BY 4.0).
+      <span className="contact">
+        <a href={CONTACT_URL} target="_blank" rel="noreferrer">
+          Fale com o criador
+        </a>
+        <small>Feedback, sugestões, parcerias e propostas comerciais.</small>
+      </span>
     </footer>
   );
 
@@ -237,6 +244,8 @@ export default function StartScreen({
             📖 Como jogar
           </button>
           <SettingsButton {...prefs} label="⚙️ Configurações" />
+        </div>
+        <div className="support-row">
           <SupportButton />
         </div>
         {footer}

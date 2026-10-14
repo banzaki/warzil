@@ -1,6 +1,7 @@
 // "Apoie o WARZIL" end-to-end check on desktop and phone: the modal opens and
 // closes, the QR image loads, and both copy buttons put the right text on the
-// clipboard (and the fallback works without the async clipboard API).
+// clipboard (and the fallback works without the async clipboard API); the footer
+// contact link points to the owner's WhatsApp.
 // Needs Chrome and a build with VITE_SUPPORT_PIX=on (e.g. staging).
 // Usage: node scripts/e2e-support.mjs <screenshotDir> <baseUrl>
 import { chromium } from 'playwright-core';
@@ -20,6 +21,9 @@ for (const [label, opts] of [
   await ctx.grantPermissions(['clipboard-read', 'clipboard-write'], { origin });
   const page = await ctx.newPage();
   await page.goto(BASE);
+  await page.screenshot({ path: `${OUT}/home-${label}.png`, fullPage: true });
+  const contact = await page.getByRole('link', { name: 'Fale com o criador' }).evaluate((a) => [a.href, a.target]);
+  check(`${label}: "Fale com o criador" opens WhatsApp in a new tab`, contact[0] === 'https://wa.me/5511924915082' && contact[1] === '_blank');
   await page.getByRole('button', { name: /Apoie o WARZIL/ }).click();
   await page.waitForSelector('.support-card');
   const qrOk = await page
