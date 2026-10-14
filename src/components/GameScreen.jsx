@@ -23,19 +23,27 @@ import { aiStep } from '../game/ai.js';
 import { REINFORCE_AMOUNT } from '../game/settings.js';
 import { aiDelay } from '../game/pace.js';
 import { formatDailyKey } from '../game/daily.js';
+import { needsHandoff, viewerOf } from '../game/hotseat.js';
+import Handoff from './Handoff.jsx';
 import { DISCLAIMER, PHASE_HELP, PHASE_NAMES, VICTORY_TITLES, createLinePicker, defeatLine, describeEvent, fill } from '../game/texts.js';
 
 const EMPTY = new Set();
 
 // online (optional): { game, me, names, isHost, dispatch, onRematch, onLeave } for a
 // server-run room. Without it the match is local (solo, daily, vs. AI).
-export default function GameScreen({ initialGame, onRematch, onChangeCandidate, prefs, onMatchEnd, dailyRecord, online }) {
+// hotseat (optional): { humans, names } when friends share this device; the board
+// is shown from the point of view of whoever is playing (or played last).
+export default function GameScreen({ initialGame, onRematch, onChangeCandidate, prefs, onMatchEnd, dailyRecord, online, hotseat }) {
   const [localGame, setLocalGame] = useState(initialGame);
   // Online: which state is selected/targeted is local to this screen.
   const [localSel, setLocalSel] = useState({ selected: null, target: null });
+  // Hotseat: the last person who confirmed "Estou pronto".
+  const [readyFor, setReadyFor] = useState(null);
+  // Memoized so the AI timer below is not restarted by unrelated re-renders.
+  const hotseatGame = useMemo(() => hotseat && { ...localGame, human: viewerOf(localGame, hotseat.humans), playerNames: hotseat.names }, [localGame, hotseat]);
   const game = online
     ? { ...online.game, human: online.me, playerNames: online.names, selected: localSel.selected, target: localSel.target }
-    : localGame;
+    : (hotseatGame ?? localGame);
 
   // Every move goes through applyAction: locally for solo games, to the server online.
   const act = (action) => {
@@ -357,12 +365,22 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate, 
   // lost their last state while rivals remain ('knockout').
   const finalEvent = game.log.find((e) => e.type === 'victory' || e.type === 'knockout');
   const humanWon = game.winner === human;
-  const finalLoser = humanWon ? game.eliminated.at(-1) : human;
-  const loserFaces = humanWon ? rivals : [human];
+  const finalLoser = humanWon || hotseat ? game.eliminated.at(-1) : human;
+  const loserFaces = humanWon || hotseat ? game.factions.filter((f) => f !== game.winner) : [human];
+  const handoff = hotseat && !drawOpen && needsHandoff(localGame, hotseat.humans, readyFor);
 
   return (
     <div className={`game theme-${human}`}>
-      {drawOpen && <OrderDraw order={game.factions} names={online ? online.names : {}} you={online ? online.me : game.human} bonus={game.positionBonus} onDone={closeDraw} />}
+      {drawOpen && (
+        <OrderDraw
+          order={game.factions}
+          names={online ? online.names : (hotseat?.names ?? {})}
+          you={online ? online.me : hotseat ? null : game.human}
+          bonus={game.positionBonus}
+          onDone={closeDraw}
+        />
+      )}
+      {handoff && <Handoff faction={game.current} name={hotseat.names[game.current]} onReady={() => setReadyFor(game.current)} />}
       <header className={`hud ${rivals.length > 1 ? 'multi' : ''}`}>
         <PlayerChip game={game} faction={human} />
         <div className="round">
@@ -429,7 +447,9 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate, 
                 <Caricature key={f} who={f} mood="sad" size={loserFaces.length > 1 ? 56 : 84} className="loser-face" />
               ))}
             </div>
-            <h2 id="end-title">{humanWon ? VICTORY_TITLES.win : VICTORY_TITLES.lose}</h2>
+            <h2 id="end-title">
+              {hotseat ? (hotseat.names[game.winner] ? VICTORY_TITLES.local.replace('{who}', hotseat.names[game.winner]) : VICTORY_TITLES.localCpu) : humanWon ? VICTORY_TITLES.win : VICTORY_TITLES.lose}
+            </h2>
             <p className="end-quote">“{describeEvent(finalEvent, choose).text}”</p>
             <p className="end-sub">{defeatLine(finalLoser, finalEvent.seed, choose)}</p>
             <p className="end-stats">
@@ -463,7 +483,7 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate, 
                   🔁 {game.daily ? 'Tentar de novo' : 'Revanche'}
                 </button>
                 <button className="btn ghost" onClick={onChangeCandidate}>
-                  Trocar candidato
+                  {hotseat ? 'Trocar jogadores' : 'Trocar candidato'}
                 </button>
               </div>
             )}

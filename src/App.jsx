@@ -6,6 +6,7 @@ import OnlineScreen from './components/OnlineScreen.jsx';
 import { loadSession } from './online/client.js';
 import { normalizeCode } from '../worker/codes.js';
 import { createGame } from './game/engine.js';
+import { createLocalGame, localPlayers } from './game/hotseat.js';
 import { loadSettings, resetSettings, saveSettings } from './game/settings.js';
 import { setMuted } from './game/sound.js';
 import {
@@ -37,6 +38,12 @@ export default function App() {
   // Start-of-match deal for Lula vs. Flávio duels: 'random' (default) or 'polarized'.
   const [deal, setDeal] = useState('random');
   const [dailyRecords, setDailyRecords] = useState(loadDailyRecords);
+  // Local multiplayer: seats set up in the menu, and who plays the running match.
+  const [localSeats, setLocalSeats] = useState([
+    { faction: 'lula', human: true, nick: '' },
+    { faction: 'flavio', human: true, nick: '' },
+  ]);
+  const [hotseat, setHotseat] = useState(null);
 
   useEffect(() => {
     setMuted(!settings.sound);
@@ -51,7 +58,14 @@ export default function App() {
   };
 
   const start = (human, opponents, matchDeal = deal) => {
+    setHotseat(null);
     setGame(createGame(human, Math.random, opponents, { deal: matchDeal, armies: settings.armies }));
+    setMatchId((n) => n + 1);
+  };
+  // Rematches keep the same seats; the engine draws a new order.
+  const startLocal = (seats, matchDeal) => {
+    setHotseat({ ...localPlayers(seats), seats, deal: matchDeal });
+    setGame(createLocalGame(seats, Math.random, { deal: matchDeal, armies: settings.armies }));
     setMatchId((n) => n + 1);
   };
   // Daily challenge: same line-up and deal for everybody on that day (key = date).
@@ -66,7 +80,8 @@ export default function App() {
     setDailyRecords((r) => saveDailyRecords(recordResult(r, finished.daily, result)));
   };
   const toMenu = () => {
-    setMenuStep(game && !game.daily ? 'candidate' : 'mode');
+    setMenuStep(hotseat ? 'local' : game && !game.daily ? 'candidate' : 'mode');
+    setHotseat(null);
     setGame(null);
     setSimFactions(null);
   };
@@ -97,6 +112,9 @@ export default function App() {
         onPick={start}
         prefs={prefs}
         onOnline={() => setOnline(true)}
+        localSeats={localSeats}
+        onLocalSeatsChange={setLocalSeats}
+        onLocal={startLocal}
         daily={{ challenge: dailyChallenge(), record: dayRecord(dailyRecords, dailyKey()), onPlay: () => startDaily() }}
         onSimulate={(factions) => {
           setSimFactions(factions);
@@ -110,7 +128,14 @@ export default function App() {
     <GameScreen
       key={matchId}
       initialGame={game}
-      onRematch={() => (game.daily ? startDaily(game.daily) : start(game.human, game.factions.filter((f) => f !== game.human)))}
+      hotseat={hotseat}
+      onRematch={() =>
+        hotseat
+          ? startLocal(hotseat.seats, hotseat.deal)
+          : game.daily
+            ? startDaily(game.daily)
+            : start(game.human, game.factions.filter((f) => f !== game.human))
+      }
       onMatchEnd={onMatchEnd}
       dailyRecord={game.daily ? dayRecord(dailyRecords, game.daily) : null}
       onChangeCandidate={toMenu}

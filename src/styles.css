@@ -2599,3 +2599,190 @@ html.reduce-motion .draw-bonus {
   font-weight: 700;
   opacity: 0.75;
 }
+
+/* ---------- v0.7.2: three ways to play, compact daily card, local multiplayer ---------- */
+
+.mode-main {
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.mode-big.local {
+  background: var(--blue-soft);
+}
+
+.modes {
+  align-items: stretch;
+}
+
+.modes .mode-card .btn.mode-play {
+  flex: 0 0 auto;
+  margin-top: auto;
+}
+
+.modes .daily-card {
+  margin: 0;
+}
+
+.modes .daily-card > strong {
+  color: var(--yellow);
+}
+
+.modes .daily-lineup {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0;
+}
+
+.modes .daily-lineup small {
+  font-weight: 700;
+  opacity: 0.85;
+  margin-left: 4px;
+}
+
+.modes .daily-stats {
+  margin: 0;
+}
+
+.local-seats {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.local-seat {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.08);
+  border-left: 5px solid var(--c);
+}
+
+.local-seat-fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.local-seat select,
+.local-nick {
+  font: inherit;
+  font-weight: 800;
+  min-height: 44px;
+  padding: 6px 10px;
+  border-radius: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  background: #fff;
+  color: var(--ink);
+}
+
+.local-nick {
+  flex: 1 1 180px;
+  min-width: 0;
+  font-weight: 700;
+}
+
+.local-note {
+  display: block;
+  margin-top: 8px;
+  opacity: 0.85;
+}
+
+.local-lineup {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.overlay.handoff {
+  background: var(--bg);
+  backdrop-filter: none;
+  z-index: 30;
+  /* Opaque from the first frame: the board never shows through a fade. */
+  animation: none;
+}
+
+.handoff-card {
+  width: min(420px, 100%);
+  background: #fff;
+  border-radius: 24px;
+  border: 5px solid var(--c);
+  box-shadow: 0 10px 0 var(--c-dark);
+  padding: 22px 20px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.handoff-card h2 {
+  font-family: 'Bungee', 'Impact', sans-serif;
+  color: var(--c-dark);
+  margin: 4px 0 0;
+  font-size: 1.6rem;
+}
+
+.handoff-card p {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.handoff-card .btn {
+  min-width: 220px;
+  min-height: 56px;
+  font-size: 1.2rem;
+}
+
+.handoff-card small {
+  opacity: 0.7;
+  font-weight: 700;
+}
+
+@media (max-width: 560px) {
+  .mode-main {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .mode-big {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto auto;
+    column-gap: 12px;
+    row-gap: 2px;
+    align-items: center;
+    text-align: left;
+    padding: 12px 14px;
+  }
+
+  .mode-big .mode-faces,
+  .mode-big .mode-icon {
+    grid-row: span 2;
+  }
+
+  .mode-big .mode-icon {
+    font-size: 2.4rem;
+    line-height: 48px;
+  }
+
+  .mode-big .mode-faces svg {
+    width: 44px;
+    height: 44px;
+  }
+
+  .mode-big strong {
+    font-size: 1.25rem;
+  }
+}

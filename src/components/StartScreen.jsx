@@ -4,6 +4,7 @@ import SettingsButton from './SettingsPanel.jsx';
 import { EXTRA_CANDIDATES, MAX_FACTIONS, PROTAGONISTS } from '../game/data.js';
 import { CANDIDATES, DISCLAIMER } from '../game/texts.js';
 import { formatDailyKey } from '../game/daily.js';
+import { MIN_LOCAL_HUMANS, NICK_MAX, validSeats } from '../game/hotseat.js';
 
 const ARMY_LABELS = [
   [1, '1 por estado'],
@@ -25,7 +26,22 @@ const isDuelLulaFlavio = (human, rivals) => rivals.length === 1 && [human, rival
 // screen opens with the turn-order draw). `step` comes from App so "Trocar
 // candidato" can come back straight to step 2.
 // onPick(human, rivals) starts a solo match; onSimulate(factions) an AI-vs-AI one.
-export default function StartScreen({ step: initialStep = 'mode', rivals, onRivalsChange, deal, onDealChange, onPick, onSimulate, onOnline, prefs, daily }) {
+// localSeats/onLocalSeatsChange/onLocal(seats, deal): local multiplayer on this device.
+export default function StartScreen({
+  step: initialStep = 'mode',
+  rivals,
+  onRivalsChange,
+  deal,
+  onDealChange,
+  onPick,
+  onSimulate,
+  onOnline,
+  localSeats,
+  onLocalSeatsChange,
+  onLocal,
+  prefs,
+  daily,
+}) {
   const [step, setStep] = useState(initialStep);
   const [human, setHuman] = useState(null);
   const [showMore, setShowMore] = useState(false);
@@ -47,6 +63,70 @@ export default function StartScreen({ step: initialStep = 'mode', rivals, onRiva
   };
   const polarizedOk = human && isDuelLulaFlavio(human, rivals);
   const toggleSim = (id) => setSimPicks((picks) => (picks.includes(id) ? picks.filter((f) => f !== id) : [...picks, id]));
+
+  // Local multiplayer seats: each one a different candidate, a person or the CPU.
+  const seats = localSeats ?? [];
+  const setSeat = (i, change) => onLocalSeatsChange(seats.map((s, k) => (k === i ? { ...s, ...change } : s)));
+  const setLocalSize = (size) => {
+    const free = ALL_CANDIDATES.filter((f) => !seats.some((s) => s.faction === f));
+    const added = free.slice(0, Math.max(0, size - seats.length)).map((faction) => ({ faction, human: true, nick: '' }));
+    onLocalSeatsChange([...seats, ...added].slice(0, size));
+  };
+  const localHumans = seats.filter((s) => s.human).length;
+  const localPolarizedOk = seats.length === 2 && isDuelLulaFlavio(seats[0].faction, [seats[1].faction]);
+
+  // Shared by the solo and local setups.
+  const armiesChoice = (
+    <div className="deal-choice">
+      <span>Exércitos iniciais</span>
+      <div className="chips" role="radiogroup" aria-label="Exércitos iniciais">
+        {ARMY_LABELS.map(([value, label]) => (
+          <button
+            key={String(value)}
+            role="radio"
+            aria-checked={prefs.settings.armies === value}
+            className={`chip ${prefs.settings.armies === value ? 'on' : ''}`}
+            onClick={() => prefs.onChange({ ...prefs.settings, armies: value })}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      {prefs.settings.armies === 'mixed' && <small>De 1 a 5 por estado, com o mesmo total de exércitos para todos.</small>}
+    </div>
+  );
+  const dealChoice = (ok) => (
+    <div className="deal-choice">
+      <span>Distribuição dos estados</span>
+      <div className="chips" role="radiogroup" aria-label="Distribuição inicial">
+        {[
+          ['random', 'Aleatória'],
+          ['polarized', 'Brasil Polarizado'],
+        ].map(([value, label]) => (
+          <button
+            key={value}
+            role="radio"
+            aria-checked={(ok ? deal : 'random') === value}
+            disabled={value === 'polarized' && !ok}
+            className={`chip ${(ok ? deal : 'random') === value ? 'on' : ''}`}
+            onClick={() => onDealChange(value)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      {!ok ? (
+        <small>Brasil Polarizado vale só para o duelo Lula x Flávio.</small>
+      ) : (
+        deal === 'polarized' && (
+          <small>
+            Cenário fictício: Lula começa concentrado no Norte/Nordeste e Flávio no Centro-Sul. O lado Norte/Nordeste recebe +2 ou +3 reforços no primeiro
+            comício para compensar o território mais espalhado. Não é retrato do eleitorado.
+          </small>
+        )
+      )}
+    </div>
+  );
 
   const header = (compact) => (
     <header className={`start-header ${compact ? 'compact' : ''}`}>
@@ -98,6 +178,15 @@ export default function StartScreen({ step: initialStep = 'mode', rivals, onRiva
             <strong>Jogar sozinho</strong>
             <small>Contra a CPU, com 2 a 4 candidatos</small>
           </button>
+          {onLocal && (
+            <button className="mode-big local" onClick={() => setStep('local')}>
+              <span className="mode-icon" aria-hidden="true">
+                👥
+              </span>
+              <strong>Jogar local</strong>
+              <small>2 a 4 pessoas no mesmo aparelho</small>
+            </button>
+          )}
           {onOnline && (
             <button className="mode-big online" onClick={onOnline}>
               <span className="mode-icon" aria-hidden="true">
@@ -111,23 +200,24 @@ export default function StartScreen({ step: initialStep = 'mode', rivals, onRiva
 
         <div className="modes">
           <section className="mode-card daily-card">
-            <div className="daily-head">
-              <strong>📅 Desafio do dia · {formatDailyKey(daily.challenge.key)}</strong>
-              <small>Mesmo começo para todo mundo hoje (exércitos {armyLabel(daily.challenge.armies)}). Vença no menor número de rodadas.</small>
-            </div>
-            <div className="daily-lineup">
+            <strong>📅 Desafio do dia · {formatDailyKey(daily.challenge.key)}</strong>
+            <small>Mesmo começo para todo mundo hoje. Vença no menor número de rodadas.</small>
+            <span className="daily-lineup">
               {daily.challenge.factions.map((f, i) => (
-                <span key={f} className={`daily-face ${f}`}>
-                  <Caricature who={f} mood={i === 0 ? 'happy' : 'neutral'} size={i === 0 ? 48 : 36} />
-                  <small>{i === 0 ? `Você: ${name(f)}` : name(f)}</small>
-                </span>
+                <Caricature key={f} who={f} mood={i === 0 ? 'happy' : 'neutral'} size={30} />
               ))}
-            </div>
-            <p className="daily-stats">
-              Tentativas hoje: {daily.record.attempts} · Vitórias: {daily.record.wins} · Melhor:{' '}
-              {daily.record.bestRounds ? `${daily.record.bestRounds} rodadas` : '—'}
-            </p>
-            <button className="btn primary daily-play" onClick={daily.onPlay}>
+              <small>
+                Você: {name(daily.challenge.factions[0])} · exércitos {armyLabel(daily.challenge.armies)}
+              </small>
+            </span>
+            {daily.record.attempts > 0 && (
+              <small className="daily-stats">
+                Hoje: {daily.record.attempts} {daily.record.attempts === 1 ? 'tentativa' : 'tentativas'} · {daily.record.wins}{' '}
+                {daily.record.wins === 1 ? 'vitória' : 'vitórias'}
+                {daily.record.bestRounds ? ` · melhor: ${daily.record.bestRounds} rodadas` : ''}
+              </small>
+            )}
+            <button className="btn primary mode-play daily-play" onClick={daily.onPlay}>
               {daily.record.attempts ? 'Tentar de novo' : 'Jogar o desafio'}
             </button>
           </section>
@@ -263,60 +353,115 @@ export default function StartScreen({ step: initialStep = 'mode', rivals, onRiva
             <small>Adversários da CPU. Toque para trocar quem entra na partida.</small>
           </div>
 
-          <div className="deal-choice">
-            <span>Exércitos iniciais</span>
-            <div className="chips" role="radiogroup" aria-label="Exércitos iniciais">
-              {ARMY_LABELS.map(([value, label]) => (
-                <button
-                  key={String(value)}
-                  role="radio"
-                  aria-checked={prefs.settings.armies === value}
-                  className={`chip ${prefs.settings.armies === value ? 'on' : ''}`}
-                  onClick={() => prefs.onChange({ ...prefs.settings, armies: value })}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-            {prefs.settings.armies === 'mixed' && <small>De 1 a 5 por estado, com o mesmo total de exércitos para todos.</small>}
-          </div>
-
-          <div className="deal-choice">
-            <span>Distribuição dos estados</span>
-            <div className="chips" role="radiogroup" aria-label="Distribuição inicial">
-              {[
-                ['random', 'Aleatória'],
-                ['polarized', 'Brasil Polarizado'],
-              ].map(([value, label]) => (
-                <button
-                  key={value}
-                  role="radio"
-                  aria-checked={(polarizedOk ? deal : 'random') === value}
-                  disabled={value === 'polarized' && !polarizedOk}
-                  className={`chip ${(polarizedOk ? deal : 'random') === value ? 'on' : ''}`}
-                  onClick={() => onDealChange(value)}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-            {!polarizedOk ? (
-              <small>Brasil Polarizado vale só para o duelo Lula x Flávio.</small>
-            ) : (
-              deal === 'polarized' && (
-                <small>
-                  Cenário fictício: Lula começa concentrado no Norte/Nordeste e Flávio no Centro-Sul. O lado Norte/Nordeste recebe +2 ou +3 reforços no primeiro
-                  comício para compensar o território mais espalhado. Não é retrato do eleitorado.
-                </small>
-              )
-            )}
-          </div>
+          {armiesChoice}
+          {dealChoice(polarizedOk)}
         </section>
 
         <button className="btn primary start-match" onClick={() => onPick(human, rivals, polarizedOk ? deal : 'random')}>
           🎲 Sortear a ordem e começar
         </button>
         <div className="step-nav">{back('candidate')}</div>
+      </main>
+    );
+  }
+
+  // ---------- Local multiplayer: 1) seats, 2) match settings ----------
+  if (step === 'local') {
+    return (
+      <main className="start">
+        <div className="start-gear">
+          <SettingsButton {...prefs} />
+        </div>
+        {header(true)}
+        <p className="step-label">Jogar local · Passo 1 de 2</p>
+        <h2 className="choose">Quem vai jogar?</h2>
+
+        <section className="match-setup">
+          <div className="deal-choice">
+            <span>Participantes</span>
+            <div className="chips" role="radiogroup" aria-label="Número de participantes">
+              {[2, 3, 4].map((size) => (
+                <button key={size} role="radio" aria-checked={seats.length === size} className={`chip ${seats.length === size ? 'on' : ''}`} onClick={() => setLocalSize(size)}>
+                  {size}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <ol className="local-seats">
+            {seats.map((s, i) => (
+              <li key={i} className={`local-seat ${s.faction}`}>
+                <Caricature who={s.faction} mood="happy" size={48} />
+                <span className="local-seat-fields">
+                  <select value={s.faction} aria-label={`Candidato da vaga ${i + 1}`} onChange={(e) => setSeat(i, { faction: e.target.value })}>
+                    {ALL_CANDIDATES.map((id) => (
+                      <option key={id} value={id} disabled={seats.some((o, k) => k !== i && o.faction === id)}>
+                        {name(id)}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="chips" role="radiogroup" aria-label={`Quem joga na vaga ${i + 1}`}>
+                    <button role="radio" aria-checked={s.human} className={`chip ${s.human ? 'on' : ''}`} onClick={() => setSeat(i, { human: true })}>
+                      Pessoa
+                    </button>
+                    <button role="radio" aria-checked={!s.human} className={`chip ${!s.human ? 'on' : ''}`} onClick={() => setSeat(i, { human: false })}>
+                      CPU
+                    </button>
+                  </span>
+                  {s.human && (
+                    <input
+                      className="local-nick"
+                      value={s.nick}
+                      maxLength={NICK_MAX}
+                      placeholder={`Apelido (opcional) · Jogador ${i + 1}`}
+                      aria-label={`Apelido da vaga ${i + 1} (opcional)`}
+                      onChange={(e) => setSeat(i, { nick: e.target.value })}
+                    />
+                  )}
+                </span>
+              </li>
+            ))}
+          </ol>
+          <small className="local-note">
+            {localHumans < MIN_LOCAL_HUMANS
+              ? 'Chame pelo menos 2 pessoas. Para jogar só contra a CPU, use “Jogar sozinho”.'
+              : 'Todos usam o mesmo aparelho: no fim de cada turno, ele passa para a próxima pessoa.'}
+          </small>
+        </section>
+
+        <button className="btn primary start-match" disabled={!validSeats(seats)} onClick={() => setStep('local-setup')}>
+          Continuar →
+        </button>
+        <div className="step-nav">{back('mode')}</div>
+      </main>
+    );
+  }
+
+  if (step === 'local-setup') {
+    return (
+      <main className="start">
+        <div className="start-gear">
+          <SettingsButton {...prefs} />
+        </div>
+        {header(true)}
+        <p className="step-label">Jogar local · Passo 2 de 2</p>
+        <h2 className="choose">Configure a partida</h2>
+        <section className="match-setup">
+          <div className="local-lineup">
+            {seats.map((s, i) => (
+              <span key={s.faction} className="daily-face">
+                <Caricature who={s.faction} mood="happy" size={44} />
+                <small>{s.human ? s.nick.trim() || `Jogador ${i + 1}` : 'CPU'}</small>
+              </span>
+            ))}
+          </div>
+          {armiesChoice}
+          {dealChoice(localPolarizedOk)}
+        </section>
+        <button className="btn primary start-match" disabled={!validSeats(seats)} onClick={() => onLocal(seats, localPolarizedOk ? deal : 'random')}>
+          🎲 Sortear a ordem e começar
+        </button>
+        <div className="step-nav">{back('local')}</div>
       </main>
     );
   }

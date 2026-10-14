@@ -19,7 +19,7 @@ export const CANDIDATES = Object.fromEntries(
   Object.entries(LINES).map(([id, l]) => [id, { name: FACTIONS[id].name, ...l.card }]),
 );
 
-export const VICTORY_TITLES = { win: 'Vitória de lavada!', lose: 'Derrota nas urnas!' };
+export const VICTORY_TITLES = { win: 'Vitória de lavada!', lose: 'Derrota nas urnas!', local: 'Vitória de {who}!', localCpu: 'A CPU levou o Brasil!' };
 
 // ---------- Placeholders ----------
 
