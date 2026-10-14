@@ -40,7 +40,8 @@ const ROWS = [
 ];
 
 // Gear button + small settings sheet. `settings`/`onChange` come from App.
-export default function SettingsButton({ settings, onChange, onReset }) {
+// label: show a text button ("⚙️ Configurações") instead of the round gear.
+export default function SettingsButton({ settings, onChange, onReset, label }) {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -52,9 +53,15 @@ export default function SettingsButton({ settings, onChange, onReset }) {
 
   return (
     <>
-      <button className="gear" aria-label="Configurações" title="Configurações" onClick={() => setOpen(true)}>
-        ⚙️
-      </button>
+      {label ? (
+        <button className="btn ghost" onClick={() => setOpen(true)}>
+          {label}
+        </button>
+      ) : (
+        <button className="gear" aria-label="Configurações" title="Configurações" onClick={() => setOpen(true)}>
+          ⚙️
+        </button>
+      )}
       {open && (
         <div className="overlay settings-overlay" role="dialog" aria-modal="true" aria-labelledby="settings-title" onClick={() => setOpen(false)}>
           <div className="settings-card" onClick={(e) => e.stopPropagation()}>

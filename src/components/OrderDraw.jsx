@@ -7,7 +7,8 @@ const HOLD_MS = 1600;
 
 // Short "drawing numbers" animation for the turn order, which is already
 // decided (state.factions). It only shows the result; skipping changes nothing.
-export default function OrderDraw({ order, names = {}, onDone }) {
+// you: the viewer's candidate (marked "você"), if any.
+export default function OrderDraw({ order, names = {}, you = null, onDone }) {
   // Cards appear in a neutral (alphabetical) arrangement, then reveal their number.
   const cards = [...order].sort((a, b) => FACTIONS[a].name.localeCompare(FACTIONS[b].name));
   const total = cards.length * REVEAL_MS + HOLD_MS;
@@ -25,11 +26,12 @@ export default function OrderDraw({ order, names = {}, onDone }) {
           {cards.map((f) => {
             const position = order.indexOf(f);
             return (
-              <div key={f} className={`draw-pick ${f}`}>
+              <div key={f} className={`draw-pick ${f} ${f === you ? 'you' : ''}`}>
                 <Caricature who={f} mood="happy" size={56} />
                 <span className="draw-name">
                   {FACTIONS[f].name}
                   {names[f] ? <small> {names[f]}</small> : null}
+                  {f === you ? <small> (você)</small> : null}
                 </span>
                 <span className="draw-number" style={{ animationDelay: `${(position + 1) * REVEAL_MS}ms` }}>
                   {position + 1}º

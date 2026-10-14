@@ -2415,3 +2415,123 @@ html.reduce-motion .draw-final {
     max-height: calc(100dvh - 20px);
   }
 }
+
+/* ---------- v0.7.1: start screen in steps ---------- */
+
+.start-header.compact {
+  margin-bottom: 8px;
+}
+
+.start-header.compact .logo {
+  font-size: clamp(2rem, 7vw, 2.8rem);
+}
+
+.mode-main {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+  margin: 18px auto 18px;
+  max-width: 900px;
+}
+
+.mode-big {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 20px 16px;
+  border: 0;
+  border-radius: 22px;
+  cursor: pointer;
+  color: var(--ink);
+  background: #fff;
+  box-shadow: 0 8px 0 rgba(0, 0, 0, 0.25);
+  transition: transform 0.12s ease;
+}
+
+.mode-big:hover {
+  transform: translateY(-2px);
+}
+
+.mode-big strong {
+  font-family: 'Bungee', 'Impact', sans-serif;
+  font-size: 1.5rem;
+}
+
+.mode-big small {
+  font-weight: 700;
+  opacity: 0.75;
+}
+
+.mode-big.online {
+  background: var(--yellow);
+}
+
+.mode-faces {
+  display: flex;
+  gap: 6px;
+}
+
+.mode-icon {
+  font-size: 3.4rem;
+  line-height: 64px;
+}
+
+.mode-links {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 18px 0;
+}
+
+.step-label {
+  margin: 0;
+  font-weight: 800;
+  opacity: 0.7;
+}
+
+.step-nav {
+  display: flex;
+  justify-content: center;
+  margin: 16px 0;
+}
+
+.you-are {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 1.1rem;
+}
+
+.opponents {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.start-match {
+  display: block;
+  width: min(420px, 100%);
+  margin: 18px auto 0;
+  font-size: 1.2rem;
+  min-height: 56px;
+}
+
+.sim-step {
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.you-change {
+  padding: 6px 14px;
+  min-height: 0;
+}
+
+.draw-pick.you {
+  box-shadow: 0 0 0 3px var(--yellow);
+}

@@ -23,8 +23,10 @@ export default function App() {
   const [game, setGame] = useState(null);
   // Candidates chosen for an AI-vs-AI simulation (null when not simulating).
   const [simFactions, setSimFactions] = useState(null);
-  // Extra candidates invited from "+ Mais candidatos"; kept when returning to the menu.
-  const [invited, setInvited] = useState([]);
+  // Opponents chosen in the menu; kept when returning to it.
+  const [rivals, setRivals] = useState([]);
+  // Menu step to open on: 'mode', or 'candidate' after "Trocar candidato".
+  const [menuStep, setMenuStep] = useState('mode');
   // Bumping the key gives a rematch a completely fresh screen.
   const [matchId, setMatchId] = useState(0);
   const [settings, setSettings] = useState(loadSettings);
@@ -48,8 +50,8 @@ export default function App() {
     onReset: () => setSettings(resetSettings()),
   };
 
-  const start = (human, rivals) => {
-    setGame(createGame(human, Math.random, rivals, { deal, armies: settings.armies }));
+  const start = (human, opponents, matchDeal = deal) => {
+    setGame(createGame(human, Math.random, opponents, { deal: matchDeal, armies: settings.armies }));
     setMatchId((n) => n + 1);
   };
   // Daily challenge: same line-up and deal for everybody on that day (key = date).
@@ -64,6 +66,7 @@ export default function App() {
     setDailyRecords((r) => saveDailyRecords(recordResult(r, finished.daily, result)));
   };
   const toMenu = () => {
+    setMenuStep(game && !game.daily ? 'candidate' : 'mode');
     setGame(null);
     setSimFactions(null);
   };
@@ -86,8 +89,9 @@ export default function App() {
   if (!game) {
     return (
       <StartScreen
-        invited={invited}
-        onInvitedChange={setInvited}
+        step={menuStep}
+        rivals={rivals}
+        onRivalsChange={setRivals}
         deal={deal}
         onDealChange={setDeal}
         onPick={start}

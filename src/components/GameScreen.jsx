@@ -355,7 +355,7 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate, 
 
   return (
     <div className={`game theme-${human}`}>
-      {drawOpen && <OrderDraw order={game.factions} names={online ? online.names : {}} onDone={closeDraw} />}
+      {drawOpen && <OrderDraw order={game.factions} names={online ? online.names : {}} you={online ? online.me : game.human} onDone={closeDraw} />}
       <header className={`hud ${rivals.length > 1 ? 'multi' : ''}`}>
         <PlayerChip game={game} faction={human} />
         <div className="round">

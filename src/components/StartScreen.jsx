@@ -13,249 +13,372 @@ const ARMY_LABELS = [
 ];
 const armyLabel = (mode) => (mode === 'mixed' ? 'misturados, de 1 a 5' : `${mode} por estado`);
 
-const MAX_INVITES = MAX_FACTIONS - PROTAGONISTS.length;
-
 const ALL_CANDIDATES = [...PROTAGONISTS, ...EXTRA_CANDIDATES];
+const name = (id) => CANDIDATES[id].name;
 
-// invited: extra candidates joining Lula and Flávio (0-2). onPick(human, rivals).
-// onSimulate(factions): start an AI-vs-AI simulation with 2-4 candidates.
-// onOnline: open the online (private rooms) flow, when available.
-export default function StartScreen({ invited, onInvitedChange, deal, onDealChange, onPick, onSimulate, onOnline, prefs, daily }) {
-  const [showMore, setShowMore] = useState(invited.length > 0);
-  const [showSim, setShowSim] = useState(false);
+// Default opponents for a match of `size`: the protagonists first, then the others.
+const defaultRivals = (human, size) => ALL_CANDIDATES.filter((f) => f !== human).slice(0, size - 1);
+
+const isDuelLulaFlavio = (human, rivals) => rivals.length === 1 && [human, rivals[0]].sort().join() === 'flavio,lula';
+
+// Menu in steps: 1) mode, 2) candidate, 3) match settings, 4) start (the game
+// screen opens with the turn-order draw). `step` comes from App so "Trocar
+// candidato" can come back straight to step 2.
+// onPick(human, rivals) starts a solo match; onSimulate(factions) an AI-vs-AI one.
+export default function StartScreen({ step: initialStep = 'mode', rivals, onRivalsChange, deal, onDealChange, onPick, onSimulate, onOnline, prefs, daily }) {
+  const [step, setStep] = useState(initialStep);
+  const [human, setHuman] = useState(null);
+  const [showMore, setShowMore] = useState(false);
   const [simPicks, setSimPicks] = useState(PROTAGONISTS);
-  const toggleSim = (id) =>
-    setSimPicks((picks) => (picks.includes(id) ? picks.filter((f) => f !== id) : [...picks, id]));
-  const participants = [...PROTAGONISTS, ...invited];
-  const pick = (id) => onPick(id, participants.filter((f) => f !== id));
-  const toggle = (id) =>
-    onInvitedChange(invited.includes(id) ? invited.filter((f) => f !== id) : [...invited, id]);
 
-  return (
-    <main className="start">
-      <div className="start-gear">
-        <SettingsButton {...prefs} />
-      </div>
-      <header className="start-header">
-        <h1 className="logo">
-          WAR<span className="logo-zil">ZIL</span>
-        </h1>
-        <p className="subtitle">A Guerra dos Votos</p>
-        <p className="tagline">27 estados. Dados, tretas e nenhuma diplomacia.</p>
-      </header>
+  const chooseCandidate = (id) => {
+    setHuman(id);
+    // Keep the previous opponents when they still make sense, otherwise the default duel.
+    const kept = rivals.filter((f) => f !== id);
+    onRivalsChange(kept.length ? kept : defaultRivals(id, 2));
+    setStep('setup');
+  };
+  const lineupSize = rivals.length + 1;
+  const setSize = (size) => onRivalsChange([...rivals, ...defaultRivals(human, MAX_FACTIONS).filter((f) => !rivals.includes(f))].slice(0, size - 1));
+  const toggleRival = (id) => {
+    if (rivals.includes(id)) {
+      if (rivals.length > 1) onRivalsChange(rivals.filter((f) => f !== id));
+    } else if (lineupSize < MAX_FACTIONS) onRivalsChange([...rivals, id]);
+  };
+  const polarizedOk = human && isDuelLulaFlavio(human, rivals);
+  const toggleSim = (id) => setSimPicks((picks) => (picks.includes(id) ? picks.filter((f) => f !== id) : [...picks, id]));
 
-      <h2 className="choose">Escolha seu candidato</h2>
-      {invited.length > 0 && (
-        <p className="match-size">
-          Partida com {participants.length} candidatos: {participants.map((f) => CANDIDATES[f].name).join(', ')}
-        </p>
+  const header = (compact) => (
+    <header className={`start-header ${compact ? 'compact' : ''}`}>
+      <h1 className="logo">
+        WAR<span className="logo-zil">ZIL</span>
+      </h1>
+      {!compact && (
+        <>
+          <p className="subtitle">A Guerra dos Votos</p>
+          <p className="tagline">27 estados. Dados, tretas e nenhuma diplomacia.</p>
+        </>
       )}
-      <div className="candidates">
-        {PROTAGONISTS.map((id) => (
-          <button key={id} className={`candidate-card ${id}`} onClick={() => pick(id)}>
-            <Caricature who={id} mood="happy" size={130} />
-            <span className="candidate-name">{CANDIDATES[id].name}</span>
-            <span className="candidate-title">{CANDIDATES[id].title}</span>
-            <span className="candidate-pitch">{CANDIDATES[id].pitch}</span>
-            <span className="candidate-cta">Jogar de {CANDIDATES[id].name}</span>
-          </button>
-        ))}
-      </div>
+    </header>
+  );
 
-      {/* Extra candidates: a big, inviting button right under the two protagonists. */}
-      <section className="more-candidates">
-        <button className={`more-toggle ${showMore ? 'open' : ''}`} aria-expanded={showMore} onClick={() => setShowMore(!showMore)}>
-          <span className="more-faces">
-            {EXTRA_CANDIDATES.map((id) => (
-              <Caricature key={id} who={id} mood="happy" size={40} />
-            ))}
-          </span>
-          <span className="more-label">
-            {showMore ? '− Menos candidatos' : '+ Mais candidatos'}
-            <small>Cury, Renan e Caiado: partidas com 3 ou 4 candidatos</small>
-          </span>
-        </button>
-        {showMore && (
-          <>
-            <p className="more-hint">Convide até {MAX_INVITES}. Os adversários são da CPU. Você pode jogar com qualquer participante.</p>
-            <ul className="extras">
-              {EXTRA_CANDIDATES.map((id) => {
-                const on = invited.includes(id);
-                const full = !on && invited.length >= MAX_INVITES;
-                return (
-                  <li key={id} className={`extra ${id} ${on ? 'on' : ''}`}>
-                    <Caricature who={id} mood={on ? 'happy' : 'neutral'} size={64} />
-                    <span className="extra-text">
-                      <b>{CANDIDATES[id].name}</b>
-                      <small>{CANDIDATES[id].title}</small>
-                      <span className="extra-pitch">{CANDIDATES[id].pitch}</span>
-                    </span>
-                    <span className="extra-actions">
-                      <button className="chip" aria-pressed={on} disabled={full} onClick={() => toggle(id)}>
-                        {on ? 'Convidado ✓' : 'Convidar'}
-                      </button>
-                      {on && (
-                        <button className="chip on" onClick={() => pick(id)}>
-                          Jogar de {CANDIDATES[id].name}
-                        </button>
-                      )}
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-          </>
-        )}
-      </section>
+  const back = (to, label = '← Voltar') => (
+    <button className="btn ghost step-back" onClick={() => setStep(to)}>
+      {label}
+    </button>
+  );
 
-      <section className="match-setup">
-        <h3>Configurações da partida</h3>
-        <div className="deal-choice">
-          <span>Exércitos iniciais</span>
-          <div className="chips" role="radiogroup" aria-label="Exércitos iniciais">
-            {ARMY_LABELS.map(([value, label]) => (
-              <button
-                key={String(value)}
-                role="radio"
-                aria-checked={prefs.settings.armies === value}
-                className={`chip ${prefs.settings.armies === value ? 'on' : ''}`}
-                onClick={() => prefs.onChange({ ...prefs.settings, armies: value })}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-          {prefs.settings.armies === 'mixed' && <small>De 1 a 5 por estado, com o mesmo total de exércitos para todos.</small>}
+  const footer = (
+    <footer className="disclaimer">
+      {DISCLAIMER}
+      <br />
+      Mapa:{' '}
+      <a href="https://github.com/VictorCazanave/svg-maps" target="_blank" rel="noreferrer">
+        svg-maps
+      </a>{' '}
+      de Victor Cazanave (CC BY 4.0).
+    </footer>
+  );
+
+  // ---------- 1) Mode ----------
+  if (step === 'mode') {
+    return (
+      <main className="start">
+        <div className="start-gear">
+          <SettingsButton {...prefs} />
         </div>
+        {header(false)}
 
-        <div className="deal-choice">
-          <span>Distribuição dos estados</span>
-          <div className="chips" role="radiogroup" aria-label="Distribuição inicial">
-            {[
-              ['random', 'Aleatória'],
-              ['polarized', 'Brasil Polarizado'],
-            ].map(([value, label]) => (
-              <button
-                key={value}
-                role="radio"
-                aria-checked={deal === value}
-                disabled={value === 'polarized' && invited.length > 0}
-                className={`chip ${deal === value ? 'on' : ''}`}
-                onClick={() => onDealChange(value)}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-          {invited.length > 0 ? (
-            <small>Brasil Polarizado vale só para o duelo Lula x Flávio.</small>
-          ) : (
-            deal === 'polarized' && (
-              <small>
-                Cenário fictício: Lula começa concentrado no Norte/Nordeste e Flávio no Centro-Sul. O lado Norte/Nordeste recebe +2 ou +3
-                reforços no primeiro comício para compensar o território mais espalhado. Não é retrato do eleitorado.
-              </small>
-            )
+        <div className="mode-main">
+          <button className="mode-big solo" onClick={() => setStep('candidate')}>
+            <span className="mode-faces">
+              <Caricature who="lula" mood="happy" size={64} />
+              <Caricature who="flavio" mood="happy" size={64} />
+            </span>
+            <strong>Jogar sozinho</strong>
+            <small>Contra a CPU, com 2 a 4 candidatos</small>
+          </button>
+          {onOnline && (
+            <button className="mode-big online" onClick={onOnline}>
+              <span className="mode-icon" aria-hidden="true">
+                🌐
+              </span>
+              <strong>Jogar online</strong>
+              <small>Sala privada com amigos pelo link. Sem cadastro.</small>
+            </button>
           )}
         </div>
-      </section>
 
-      <h2 className="choose other-modes">Outros modos</h2>
-      <div className="modes">
-        {onOnline && (
-          <section className="mode-card online-card">
-            <strong>🌐 Jogar online</strong>
-            <small>Crie uma sala privada e chame os amigos pelo link. Sem cadastro.</small>
-            <button className="btn primary mode-play" onClick={onOnline}>
-              Jogar com amigos
+        <div className="modes">
+          <section className="mode-card daily-card">
+            <div className="daily-head">
+              <strong>📅 Desafio do dia · {formatDailyKey(daily.challenge.key)}</strong>
+              <small>Mesmo começo para todo mundo hoje (exércitos {armyLabel(daily.challenge.armies)}). Vença no menor número de rodadas.</small>
+            </div>
+            <div className="daily-lineup">
+              {daily.challenge.factions.map((f, i) => (
+                <span key={f} className={`daily-face ${f}`}>
+                  <Caricature who={f} mood={i === 0 ? 'happy' : 'neutral'} size={i === 0 ? 48 : 36} />
+                  <small>{i === 0 ? `Você: ${name(f)}` : name(f)}</small>
+                </span>
+              ))}
+            </div>
+            <p className="daily-stats">
+              Tentativas hoje: {daily.record.attempts} · Vitórias: {daily.record.wins} · Melhor:{' '}
+              {daily.record.bestRounds ? `${daily.record.bestRounds} rodadas` : '—'}
+            </p>
+            <button className="btn primary daily-play" onClick={daily.onPlay}>
+              {daily.record.attempts ? 'Tentar de novo' : 'Jogar o desafio'}
             </button>
           </section>
-        )}
 
-        <section className="mode-card sim-card">
-          <strong>🎬 Simular guerra — IA x IA</strong>
-          <small>Escolha de 2 a {MAX_FACTIONS} candidatos e assista o computador jogar.</small>
-          {!showSim ? (
-            <button className="btn primary mode-play" onClick={() => setShowSim(true)}>
+          <section className="mode-card sim-card">
+            <strong>🎬 Simular guerra — IA x IA</strong>
+            <small>Escolha de 2 a {MAX_FACTIONS} candidatos e assista o computador jogar.</small>
+            <button className="btn primary mode-play" onClick={() => setStep('sim')}>
               Montar a simulação
             </button>
-          ) : (
-            <>
-              <div className="sim-picks">
-                {ALL_CANDIDATES.map((id) => {
-                  const on = simPicks.includes(id);
-                  return (
-                    <button
-                      key={id}
-                      className={`sim-pick ${id} ${on ? 'on' : ''}`}
-                      aria-pressed={on}
-                      disabled={!on && simPicks.length >= MAX_FACTIONS}
-                      onClick={() => toggleSim(id)}
-                    >
-                      <Caricature who={id} mood={on ? 'happy' : 'neutral'} size={44} />
-                      <span>{CANDIDATES[id].name}</span>
+          </section>
+        </div>
+
+        <div className="mode-links">
+          <button className="btn ghost" onClick={() => setStep('how')}>
+            📖 Como jogar
+          </button>
+          <SettingsButton {...prefs} label="⚙️ Configurações" />
+        </div>
+        {footer}
+      </main>
+    );
+  }
+
+  // ---------- 2) Candidate ----------
+  if (step === 'candidate') {
+    return (
+      <main className="start">
+        <div className="start-gear">
+          <SettingsButton {...prefs} />
+        </div>
+        {header(true)}
+        <p className="step-label">Passo 1 de 2</p>
+        <h2 className="choose">Escolha seu candidato</h2>
+        <div className="candidates">
+          {PROTAGONISTS.map((id) => (
+            <button key={id} className={`candidate-card ${id}`} onClick={() => chooseCandidate(id)}>
+              <Caricature who={id} mood="happy" size={130} />
+              <span className="candidate-name">{name(id)}</span>
+              <span className="candidate-title">{CANDIDATES[id].title}</span>
+              <span className="candidate-pitch">{CANDIDATES[id].pitch}</span>
+              <span className="candidate-cta">Jogar de {name(id)}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Extra candidates: a big, inviting button right under the two protagonists. */}
+        <section className="more-candidates">
+          <button className={`more-toggle ${showMore ? 'open' : ''}`} aria-expanded={showMore} onClick={() => setShowMore(!showMore)}>
+            <span className="more-faces">
+              {EXTRA_CANDIDATES.map((id) => (
+                <Caricature key={id} who={id} mood="happy" size={40} />
+              ))}
+            </span>
+            <span className="more-label">
+              {showMore ? '− Menos candidatos' : '+ Mais candidatos'}
+              <small>Jogue de Cury, Renan ou Caiado, ou chame-os como adversários no próximo passo</small>
+            </span>
+          </button>
+          {showMore && (
+            <ul className="extras">
+              {EXTRA_CANDIDATES.map((id) => (
+                <li key={id} className={`extra ${id}`}>
+                  <Caricature who={id} mood="happy" size={64} />
+                  <span className="extra-text">
+                    <b>{name(id)}</b>
+                    <small>{CANDIDATES[id].title}</small>
+                    <span className="extra-pitch">{CANDIDATES[id].pitch}</span>
+                  </span>
+                  <span className="extra-actions">
+                    <button className="chip on" onClick={() => chooseCandidate(id)}>
+                      Jogar de {name(id)}
                     </button>
-                  );
-                })}
-              </div>
-              <button
-                className="btn primary sim-start"
-                disabled={simPicks.length < 2}
-                onClick={() => onSimulate(ALL_CANDIDATES.filter((id) => simPicks.includes(id)))}
-              >
-                ▶ Iniciar simulação ({simPicks.length})
-              </button>
-            </>
+                  </span>
+                </li>
+              ))}
+            </ul>
           )}
         </section>
+        <div className="step-nav">{back('mode')}</div>
+      </main>
+    );
+  }
 
-        <section className="mode-card daily-card">
-          <div className="daily-head">
-            <strong>📅 Desafio do dia · {formatDailyKey(daily.challenge.key)}</strong>
-            <small>
-              Mesmo começo para todo mundo hoje (exércitos {armyLabel(daily.challenge.armies)}). Vença no menor número de rodadas.
-            </small>
+  // ---------- 3) Match settings, then 4) start ----------
+  if (step === 'setup' && human) {
+    return (
+      <main className="start">
+        <div className="start-gear">
+          <SettingsButton {...prefs} />
+        </div>
+        {header(true)}
+        <p className="step-label">Passo 2 de 2</p>
+        <h2 className="choose">Configure a partida</h2>
+
+        <section className="match-setup">
+          <div className="you-are">
+            <Caricature who={human} mood="happy" size={56} />
+            <span>
+              Você joga de <b>{name(human)}</b>
+            </span>
+            <button className="btn ghost you-change" onClick={() => setStep('candidate')}>
+              Trocar
+            </button>
           </div>
-          <div className="daily-lineup">
-            {daily.challenge.factions.map((f, i) => (
-              <span key={f} className={`daily-face ${f}`}>
-                <Caricature who={f} mood={i === 0 ? 'happy' : 'neutral'} size={i === 0 ? 48 : 36} />
-                <small>{i === 0 ? `Você: ${CANDIDATES[f].name}` : CANDIDATES[f].name}</small>
-              </span>
-            ))}
+
+          <div className="deal-choice">
+            <span>Participantes</span>
+            <div className="chips" role="radiogroup" aria-label="Número de participantes">
+              {[2, 3, 4].map((size) => (
+                <button key={size} role="radio" aria-checked={lineupSize === size} className={`chip ${lineupSize === size ? 'on' : ''}`} onClick={() => setSize(size)}>
+                  {size}
+                </button>
+              ))}
+            </div>
+            <div className="opponents" role="group" aria-label="Adversários">
+              {ALL_CANDIDATES.filter((f) => f !== human).map((id) => {
+                const on = rivals.includes(id);
+                return (
+                  <button
+                    key={id}
+                    className={`sim-pick ${id} ${on ? 'on' : ''}`}
+                    aria-pressed={on}
+                    disabled={(!on && lineupSize >= MAX_FACTIONS) || (on && rivals.length === 1)}
+                    onClick={() => toggleRival(id)}
+                  >
+                    <Caricature who={id} mood={on ? 'happy' : 'neutral'} size={44} />
+                    <span>{name(id)}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <small>Adversários da CPU. Toque para trocar quem entra na partida.</small>
           </div>
-          <p className="daily-stats">
-            Tentativas hoje: {daily.record.attempts} · Vitórias: {daily.record.wins} · Melhor:{' '}
-            {daily.record.bestRounds ? `${daily.record.bestRounds} rodadas` : '—'}
-          </p>
-          <button className="btn primary daily-play" onClick={daily.onPlay}>
-            {daily.record.attempts ? 'Tentar de novo' : 'Jogar o desafio'}
+
+          <div className="deal-choice">
+            <span>Exércitos iniciais</span>
+            <div className="chips" role="radiogroup" aria-label="Exércitos iniciais">
+              {ARMY_LABELS.map(([value, label]) => (
+                <button
+                  key={String(value)}
+                  role="radio"
+                  aria-checked={prefs.settings.armies === value}
+                  className={`chip ${prefs.settings.armies === value ? 'on' : ''}`}
+                  onClick={() => prefs.onChange({ ...prefs.settings, armies: value })}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            {prefs.settings.armies === 'mixed' && <small>De 1 a 5 por estado, com o mesmo total de exércitos para todos.</small>}
+          </div>
+
+          <div className="deal-choice">
+            <span>Distribuição dos estados</span>
+            <div className="chips" role="radiogroup" aria-label="Distribuição inicial">
+              {[
+                ['random', 'Aleatória'],
+                ['polarized', 'Brasil Polarizado'],
+              ].map(([value, label]) => (
+                <button
+                  key={value}
+                  role="radio"
+                  aria-checked={(polarizedOk ? deal : 'random') === value}
+                  disabled={value === 'polarized' && !polarizedOk}
+                  className={`chip ${(polarizedOk ? deal : 'random') === value ? 'on' : ''}`}
+                  onClick={() => onDealChange(value)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            {!polarizedOk ? (
+              <small>Brasil Polarizado vale só para o duelo Lula x Flávio.</small>
+            ) : (
+              deal === 'polarized' && (
+                <small>
+                  Cenário fictício: Lula começa concentrado no Norte/Nordeste e Flávio no Centro-Sul. O lado Norte/Nordeste recebe +2 ou +3 reforços no primeiro
+                  comício para compensar o território mais espalhado. Não é retrato do eleitorado.
+                </small>
+              )
+            )}
+          </div>
+        </section>
+
+        <button className="btn primary start-match" onClick={() => onPick(human, rivals, polarizedOk ? deal : 'random')}>
+          🎲 Sortear a ordem e começar
+        </button>
+        <div className="step-nav">{back('candidate')}</div>
+      </main>
+    );
+  }
+
+  // ---------- Simulation setup ----------
+  if (step === 'sim') {
+    return (
+      <main className="start">
+        {header(true)}
+        <section className="mode-card sim-card sim-step">
+          <strong>🎬 Simular guerra — IA x IA</strong>
+          <small>Escolha de 2 a {MAX_FACTIONS} candidatos e assista o computador jogar.</small>
+          <div className="sim-picks">
+            {ALL_CANDIDATES.map((id) => {
+              const on = simPicks.includes(id);
+              return (
+                <button
+                  key={id}
+                  className={`sim-pick ${id} ${on ? 'on' : ''}`}
+                  aria-pressed={on}
+                  disabled={!on && simPicks.length >= MAX_FACTIONS}
+                  onClick={() => toggleSim(id)}
+                >
+                  <Caricature who={id} mood={on ? 'happy' : 'neutral'} size={44} />
+                  <span>{name(id)}</span>
+                </button>
+              );
+            })}
+          </div>
+          <button className="btn primary sim-start" disabled={simPicks.length < 2} onClick={() => onSimulate(ALL_CANDIDATES.filter((id) => simPicks.includes(id)))}>
+            ▶ Iniciar simulação ({simPicks.length})
           </button>
         </section>
-      </div>
+        <div className="step-nav">{back('mode')}</div>
+      </main>
+    );
+  }
 
+  // ---------- How to play ----------
+  return (
+    <main className="start">
+      {header(true)}
       <section className="how">
         <h3>Como jogar</h3>
         <ol>
-          <li><b>Comício:</b> coloque seus reforços. Errou? Dá para desfazer. Na 1ª rodada, todos fazem o comício antes de qualquer ataque.</li>
-          <li><b>Batalha:</b> ataque vizinhos quantas vezes quiser, com até 3 dados. Empate é da defesa.</li>
-          <li><b>Movimentação:</b> cada estado envia exércitos uma vez por turno. Quem chega não sai de novo.</li>
+          <li>
+            <b>Comício:</b> coloque seus reforços. Errou? Dá para desfazer. Na 1ª rodada, todos fazem o comício antes de qualquer ataque.
+          </li>
+          <li>
+            <b>Batalha:</b> ataque vizinhos quantas vezes quiser, com até 3 dados. Empate é da defesa.
+          </li>
+          <li>
+            <b>Movimentação:</b> cada estado envia exércitos uma vez por turno. Quem chega não sai de novo.
+          </li>
         </ol>
         <p>
-          Da 2ª rodada em diante, cada candidato faz o turno completo: comício, batalha e movimentação. Quem abre a partida é sorteado e a vez de abrir
-          passa adiante a cada rodada. Domine uma região inteira para ganhar bônus. Seja o último candidato no mapa para vencer.
+          A ordem dos turnos é sorteada no início da partida e fica a mesma até o fim. Da 2ª rodada em diante, cada candidato faz o turno completo: comício,
+          batalha e movimentação. Domine uma região inteira para ganhar bônus. Seja o último candidato no mapa para vencer.
         </p>
       </section>
-
-      <footer className="disclaimer">
-        {DISCLAIMER}
-        <br />
-        Mapa:{' '}
-        <a href="https://github.com/VictorCazanave/svg-maps" target="_blank" rel="noreferrer">
-          svg-maps
-        </a>{' '}
-        de Victor Cazanave (CC BY 4.0).
-      </footer>
+      <div className="step-nav">{back('mode')}</div>
+      {footer}
     </main>
   );
 }
