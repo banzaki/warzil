@@ -18,6 +18,7 @@ export default {
     'Cada exército meu passou por um workshop de inteligência emocional.',
     'Não sou um general. Sou um sonhador com 27 metas.',
     'Respira em quatro tempos, segura em quatro, ataca no quinto.',
+    'Capítulo novo do livro: "Como conquistar estados sem perder a calma".',
   ],
   conquer: [
     '{O_state} agora pratica gestão da emoção. Três vezes ao dia.',
@@ -37,6 +38,7 @@ export default {
     df: ['Brasília: finalmente um paciente à altura do meu consultório.'],
     sp: ['São Paulo: a capital da ansiedade agora é minha paciente.'],
     rj: ['Rio de Janeiro: trânsito, calor e estresse. O paciente perfeito.'],
+    mg: ['Minas Gerais: pão de queijo e zero crise de ansiedade. Paciente com alta imediata.'],
   },
   lose: [
     'Perder {o_state} é um convite ao autoconhecimento.',

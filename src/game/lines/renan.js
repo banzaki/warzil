@@ -19,6 +19,7 @@ export default {
     'Vou abrir uma concessão de 30 anos pra este ataque.',
     'Debate de três horas com o chat: decidimos atacar. Unanimidade dos que ficaram acordados.',
     'Acabar com a velha política dá trabalho. Precisa de muito estado.',
+    'Live começando! Deixa o like que hoje o mapa muda de cor.',
   ],
   conquer: [
     '{O_state} tá com a gente! O chat foi à loucura.',
@@ -40,6 +41,7 @@ export default {
       'Brasília: vou fechar 30 ministérios. Começando pelos dos outros candidatos.',
     ],
     sp: ['São Paulo: de volta pro QG da live. Wi-fi bom, chat lotado.'],
+    rj: ['Rio de Janeiro: abri licitação até pra vista do Pão de Açúcar.'],
   },
   lose: [
     'Perdi {o_state}, mas ganhei o debate.',

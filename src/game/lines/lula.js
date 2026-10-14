@@ -18,6 +18,7 @@ export default {
     'Prometo que neste turno cada brasileiro ganha um estado. Ou meio. Depende do orçamento.',
     'Se der certo, foi o time. Se der errado, foi o gramado.',
     'Me lembra 1979: assembleia no estádio, todo mundo de pé. Só que agora são os dados.',
+    'Companheiros e companheiras, hoje a campanha chega até o Acre! Alguém confirma que o Acre existe?',
   ],
   conquer: [
     '{O_state} agora tem picanha no domingo. Promessa é promessa!',
@@ -35,7 +36,10 @@ export default {
   ],
   // State-specific conquest lines (used about half the time on that state).
   conquerSpecial: {
-    sp: ['Voltei pro ABC, companheiro! São Paulo tem cheiro de assembleia.'],
+    sp: [
+      'Voltei pro ABC, companheiro! São Paulo tem cheiro de assembleia.',
+      'Nunca antes na história desse país alguém tomou São Paulo com três dados e um discurso de improviso!',
+    ],
     pe: ['Pernambuco! Voltei pra terra natal e trouxe picanha pra família toda.'],
     df: ['Brasília de novo? Pode deixar, já sei onde fica o cafezinho.'],
   },

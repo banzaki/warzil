@@ -18,6 +18,7 @@ export default {
     'Estratégia nova: igual à antiga, só que em negrito.',
     'Mandei um áudio de 4 minutos pro grupo explicando o plano. Ninguém ouviu.',
     'A tia do zap aprovou o ataque com três correntes e um bom dia.',
+    'Bom dia, grupo da família! Hoje tem ataque, figurinha nova e áudio de 6 minutos.',
   ],
   conquer: [
     '{O_state} tá com a gente! Mandando print no grupo da família.',
@@ -37,6 +38,7 @@ export default {
     rj: ['Rio de Janeiro: aqui o sobrenome dispensa apresentação.'],
     df: ['Brasília! Conheço os corredores do Senado de olho fechado.'],
     sp: ['São Paulo no time. O grupo da família virou grupo da metrópole.'],
+    mg: ['Minas Gerais: tomei um cafezinho, falei baixinho e saí com a aliança assinada.'],
   },
   lose: [
     'Perdi {o_state}? Vou ver o que o grupo da família acha.',

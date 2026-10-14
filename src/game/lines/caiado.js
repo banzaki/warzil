@@ -19,6 +19,7 @@ export default {
     'Sou médico. Sei exatamente onde dói no adversário.',
     'Vou levar o modelo goiano pro país. E o pequi também.',
     'Reunião de secretariado: cinco minutos. Ataque: agora.',
+    'Receita do dia: dois ataques em jejum e um estado depois do almoço.',
   ],
   conquer: [
     '{O_state} passou no exame clínico: pressão boa e do nosso lado.',
@@ -40,6 +41,7 @@ export default {
       'Goiás: celeiro do Brasil e sede do meu gabinete.',
     ],
     df: ['Brasília? Fica aqui do lado de casa. Fui a pé.'],
+    mt: ['Mato Grosso: safra cheia, estrada longa e sinal de celular nenhum. Me sinto em casa.'],
   },
   lose: [
     'Perdi {o_state}? É só a entressafra.',
