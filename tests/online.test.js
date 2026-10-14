@@ -316,3 +316,12 @@ test('a host who stays disconnected is replaced; a short reload is not', () => {
   const alone = setConnected(room, 'p1', false, T0).room;
   assert.equal(ensureHost(alone, T0 + COVER_AFTER_MS).hostId, 'p0');
 });
+
+test('after "Sair" the AI covers at once, even when the socket closes afterwards', () => {
+  let room = startGame(lobby(), 'p0', seededRng(20), T0).room;
+  room = setConnected(setConnected(room, 'p0', true, T0).room, 'p1', true, T0).room;
+  const { id } = seatOf(room);
+  room = leaveRoom(room, id, T0 + 1000).room;
+  room = setConnected(room, id, false, T0 + 1100).room; // webSocketClose
+  assert.equal(needsServerMove(room, T0 + 1200), true);
+});

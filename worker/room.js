@@ -66,7 +66,9 @@ export const playerByToken = (room, token) => room.players.find((p) => p.token =
 // Reconnecting with the same link brings a player back (also after "Sair"),
 // and hands their turn back to them if the AI was covering it.
 export function setConnected(room, playerId, connected, now) {
-  const players = room.players.map((p) => (p.id === playerId ? { ...p, connected, lastSeen: now, ...(connected ? { left: false } : {}) } : p));
+  // The socket closing right after "Sair" must not restart the cover clock.
+  const update = (p) => (connected ? { ...p, connected, lastSeen: now, left: false } : { ...p, connected, lastSeen: p.left ? p.lastSeen : now });
+  const players = room.players.map((p) => (p.id === playerId ? update(p) : p));
   let next = { ...room, players };
   if (connected && isCovering(room, playerId)) next = { ...next, covering: null, lastMoveAt: now };
   return { room: touch(next, now) };
