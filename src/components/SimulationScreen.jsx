@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { nextHeldEvent } from '../game/highlights.js';
 import BrazilMap from './BrazilMap.jsx';
 import Caricature from './Caricature.jsx';
+import OrderDraw from './OrderDraw.jsx';
 import { CampaignLog, EventBanner, PlayerChip, RegionsPanel, RollPanel, SpeechBubble, useGameSounds } from './BoardParts.jsx';
 import SettingsButton from './SettingsPanel.jsx';
 import ShareSheet from './ShareSheet.jsx';
@@ -50,17 +51,22 @@ export default function SimulationScreen({ factions, onMenu, prefs }) {
   const [choose, setChoose] = useState(createLinePicker);
   const { game } = sim;
   useGameSounds(game);
+  // Order draw at the start of each simulation; the match waits for it.
+  const [drawFor, setDrawFor] = useState(game);
+  const drawOpen = drawFor === game && game.turn === 0;
   const heldEvent = useHeldEvent(game.log);
   const name = (f) => FACTIONS[f].name;
 
   useEffect(() => {
-    if (sim.paused || sim.stalled || game.phase === 'over') return undefined;
+    if (drawOpen || sim.paused || sim.stalled || game.phase === 'over') return undefined;
     const timer = setTimeout(() => setSim((s) => stepSimulation(s)), simulationDelay(sim));
     return () => clearTimeout(timer);
-  }, [sim, game.phase]);
+  }, [sim, game.phase, drawOpen]);
 
   const restart = () => {
-    setSim((s) => restartSimulation(s));
+    const next = restartSimulation(sim);
+    setSim(next);
+    setDrawFor(next.game);
     setChoose(() => createLinePicker());
   };
 
@@ -70,6 +76,7 @@ export default function SimulationScreen({ factions, onMenu, prefs }) {
 
   return (
     <div className="game sim">
+      {drawOpen && <OrderDraw order={game.factions} onDone={() => setDrawFor(null)} />}
       <header className="hud multi sim-hud">
         <div className="round">
           <span className="logo small">
@@ -78,7 +85,7 @@ export default function SimulationScreen({ factions, onMenu, prefs }) {
           <span>
             🎬 Simulação · Rodada {game.round} <SettingsButton {...prefs} />
           </span>
-          <span className="opener">abre: {name(roundOrder(game).find((f) => !game.eliminated.includes(f)))}</span>
+          <span className="opener">ordem: {roundOrder(game).filter((f) => !game.eliminated.includes(f)).map(name).join(' → ')}</span>
         </div>
         <div className="rivals">
           {game.factions.map((f) => (

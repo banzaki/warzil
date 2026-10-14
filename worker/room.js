@@ -97,7 +97,7 @@ export function startGame(room, playerId, rng, now) {
   if (factions.length < 2) return fail(room, 'need-two');
   const game = createGame(factions[0], rng, factions.slice(1), { spectator: true, armies: room.settings.armies });
   const controllers = Object.fromEntries([...room.players.map((p) => [p.faction, p.id]), ...ai.map((f) => [f, 'ai'])]);
-  return { room: touch({ ...room, status: 'playing', game, controllers, lastSeq: {}, lastMoveAt: now, matchNo: (room.matchNo ?? 0) + 1 }, now) };
+  return { room: touch({ ...room, status: 'playing', game, controllers, lastSeq: {}, lastMoveAt: now, startedAt: now, matchNo: (room.matchNo ?? 0) + 1 }, now) };
 }
 
 // Same line-up, new deal.
@@ -106,7 +106,7 @@ export function rematch(room, playerId, rng, now) {
   if (room.status !== 'over') return fail(room, 'not-over');
   const factions = room.game.factions;
   const game = createGame(factions[0], rng, factions.slice(1), { spectator: true, armies: room.settings.armies });
-  return { room: touch({ ...room, status: 'playing', game, lastSeq: {}, lastMoveAt: now, matchNo: (room.matchNo ?? 0) + 1 }, now) };
+  return { room: touch({ ...room, status: 'playing', game, lastSeq: {}, lastMoveAt: now, startedAt: now, matchNo: (room.matchNo ?? 0) + 1 }, now) };
 }
 
 export function backToLobby(room, playerId, now) {

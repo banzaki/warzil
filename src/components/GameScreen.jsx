@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import BrazilMap from './BrazilMap.jsx';
 import Caricature from './Caricature.jsx';
 import { CampaignLog, EventBanner, PlayerChip, RegionsPanel, RollPanel, SpeechBubble, useGameSounds } from './BoardParts.jsx';
@@ -6,6 +6,7 @@ import SettingsButton from './SettingsPanel.jsx';
 import ShareSheet from './ShareSheet.jsx';
 import { cardModel } from '../game/share.js';
 import QuantityPicker from './QuantityPicker.jsx';
+import OrderDraw from './OrderDraw.jsx';
 import { FACTIONS, STATES, STATE_IDS } from '../game/data.js';
 import {
   attackTargets,
@@ -49,6 +50,10 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate, 
     }
   };
 
+  // The turn-order draw is shown once, when a match starts (not after a reload mid-match).
+  const [drawOpen, setDrawOpen] = useState(() => game.round === 1 && game.turn === 0 && !(game.rallyPlacements?.length > 0));
+  const closeDraw = useCallback(() => setDrawOpen(false), []);
+
   // Online: after each server update, keep the origin/target the engine left
   // (so "Atacar" again works), and clear it when it is someone else's turn.
   const serverGame = online?.game;
@@ -84,15 +89,15 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate, 
   // happened (a conquest or an elimination gets a beat to be noticed).
   const seenLogId = useRef(game.log[0]?.id ?? 0);
   useEffect(() => {
-    // Online, the server plays the AI.
-    if (online || game.current === game.human || game.phase === 'over') return undefined;
+    // Online, the server plays the AI. Locally it waits for the order draw to close.
+    if (online || drawOpen || game.current === game.human || game.phase === 'over') return undefined;
     const delay = aiDelay(game, seenLogId.current, settings.aiSpeed);
     const timer = setTimeout(() => {
       seenLogId.current = game.log[0]?.id ?? 0;
       setLocalGame((g) => aiStep(g));
     }, delay);
     return () => clearTimeout(timer);
-  }, [game, settings.aiSpeed]);
+  }, [game, settings.aiSpeed, drawOpen]);
 
   // Each new rally starts from the configured mode, so a "Tudo" picked last
   // round never silently dumps every reinforcement on the next tap.
@@ -243,7 +248,7 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate, 
         )}
         <p className="hint small">
           {game.round === 1
-            ? `Rodada 1: todos fazem o comício antes de qualquer ataque. Sorteio: ${name(game.factions[game.opener ?? 0])} abre a partida.`
+            ? `Rodada 1: todos fazem o comício antes de qualquer ataque. Ordem sorteada: ${game.factions.map(name).join(' → ')}.`
             : 'Seu turno: comício, batalha e movimentação.'}
         </p>
       </div>
@@ -350,6 +355,7 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate, 
 
   return (
     <div className={`game theme-${human}`}>
+      {drawOpen && <OrderDraw order={game.factions} names={online ? online.names : {}} onDone={closeDraw} />}
       <header className={`hud ${rivals.length > 1 ? 'multi' : ''}`}>
         <PlayerChip game={game} faction={human} />
         <div className="round">
@@ -359,7 +365,7 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate, 
           <span>
             Rodada {game.round} <SettingsButton {...prefs} />
           </span>
-          <span className="opener">abre: {name(roundOrder(game).find((f) => !game.eliminated.includes(f)))}</span>
+          <span className="opener">ordem: {roundOrder(game).filter((f) => !game.eliminated.includes(f)).map(name).join(' → ')}</span>
         </div>
         {rivals.length === 1 ? (
           <PlayerChip game={game} faction={rivals[0]} />

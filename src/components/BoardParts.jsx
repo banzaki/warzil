@@ -43,9 +43,12 @@ export function PlayerChip({ game, faction, compact = false }) {
   if (latest?.type === 'conquer' && latest.loser === faction) mood = 'sad';
   const active = game.current === faction && game.phase !== 'over';
   const classes = `player-chip ${faction} ${active ? 'active' : ''} ${compact ? 'compact' : ''} ${out ? 'out' : ''}`;
+  // Position in the drawn turn order (fixed for the whole match).
+  const position = <span className="seat-badge" title="Posição na ordem sorteada">{game.factions.indexOf(faction) + 1}º</span>;
   if (compact) {
     return (
       <div className={classes} title={`${name(faction)}: ${lands.length} estados, ${troops} exércitos`}>
+        {position}
         <Caricature who={faction} mood={mood} size={36} />
         <div className="player-info">
           <strong>
@@ -59,6 +62,7 @@ export function PlayerChip({ game, faction, compact = false }) {
   }
   return (
     <div className={classes}>
+      {position}
       <Caricature who={faction} mood={mood} size={52} />
       <div className="player-info">
         <strong>

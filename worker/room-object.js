@@ -31,6 +31,8 @@ const rng = () => crypto.getRandomValues(new Uint32Array(1))[0] / 2 ** 32;
 const newId = () => crypto.randomUUID().slice(0, 8);
 
 const MAX_MESSAGE_BYTES = 4096;
+// Length of the order-draw animation on clients (4 cards).
+const DRAW_PAUSE_MS = 4000;
 const MAX_MESSAGES_PER_SECOND = 30;
 
 export class RoomObject extends DurableObject {
@@ -68,6 +70,8 @@ export class RoomObject extends DurableObject {
     if (room.status === 'playing') {
       if (needsServerMove(room, now)) {
         at = now + aiDelay(room.game, room.aiSeenLogId ?? 0, 'fast');
+        // Let everybody watch the order draw before the AI's first move.
+        if (room.game.turn === 0 && room.startedAt) at = Math.max(at, room.startedAt + DRAW_PAUSE_MS);
       } else {
         const ctrl = room.controllers[room.game.current];
         const player = room.players.find((p) => p.id === ctrl);

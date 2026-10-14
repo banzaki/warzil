@@ -2211,3 +2211,96 @@ html.reduce-motion .region-flash path {
   font-weight: 700;
   opacity: 0.75;
 }
+
+/* ---------- v0.7.1: order draw and seat badges ---------- */
+
+.draw-overlay {
+  z-index: 25;
+}
+
+.draw-card {
+  width: min(560px, 100%);
+  background: #fff;
+  color: var(--ink);
+  border-radius: 22px;
+  padding: 18px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.draw-card h2 {
+  margin: 0;
+  font-family: 'Bungee', 'Impact', sans-serif;
+  font-size: 1.4rem;
+}
+
+.draw-row {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.draw-pick {
+  position: relative;
+  width: 100px;
+  padding: 10px 6px 8px;
+  border-radius: 16px;
+  border: 3px solid var(--c);
+  background: var(--c-soft);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-weight: 900;
+}
+
+.draw-name small {
+  display: block;
+  font-weight: 700;
+  opacity: 0.75;
+}
+
+.draw-number {
+  font-family: 'Bungee', 'Impact', sans-serif;
+  font-size: 1.5rem;
+  color: var(--c-dark);
+  opacity: 0;
+  animation: draw-reveal 0.35s ease-out forwards;
+}
+
+@keyframes draw-reveal {
+  from {
+    opacity: 0;
+    transform: scale(0.3) rotate(-20deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.draw-final {
+  margin: 0;
+  font-weight: 900;
+  opacity: 0;
+  animation: draw-reveal 0.3s ease-out forwards;
+}
+
+html.reduce-motion .draw-number,
+html.reduce-motion .draw-final {
+  animation: none !important;
+  opacity: 1;
+}
+
+.seat-badge {
+  flex-shrink: 0;
+  font-family: 'Bungee', 'Impact', sans-serif;
+  font-size: 0.75rem;
+  color: var(--c-dark);
+  background: var(--c-soft);
+  border-radius: 999px;
+  padding: 2px 6px;
+}

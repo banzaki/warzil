@@ -105,7 +105,7 @@ export default function App() {
     <GameScreen
       key={matchId}
       initialGame={game}
-      onRematch={() => (game.daily ? startDaily(game.daily) : start(game.human, game.factions.slice(1)))}
+      onRematch={() => (game.daily ? startDaily(game.daily) : start(game.human, game.factions.filter((f) => f !== game.human)))}
       onMatchEnd={onMatchEnd}
       dailyRecord={game.daily ? dayRecord(dailyRecords, game.daily) : null}
       onChangeCandidate={toMenu}
