@@ -141,7 +141,9 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate, 
     const mine = game.owner[id] === human;
     switch (game.phase) {
       case 'reinforce':
-        if (!mine) break;
+        // Nothing left to place (e.g. the AI placed it while covering): no message
+        // to send, so the server never answers "Jogada não permitida".
+        if (!mine || game.reinforcements <= 0) break;
         if (placeAmount === 'picker') {
           setPlaceTarget(id);
           setPlaceCount(Math.min(placeCount, game.reinforcements) || 1);
