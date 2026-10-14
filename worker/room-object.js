@@ -3,6 +3,8 @@
 import { DurableObject } from 'cloudflare:workers';
 import {
   COVER_AFTER_MS,
+  IDLE_COVER_MS,
+  leaveRoom,
   ROOM_TTL_MS,
   backToLobby,
   createRoom,
@@ -70,6 +72,7 @@ export class RoomObject extends DurableObject {
         const ctrl = room.controllers[room.game.current];
         const player = room.players.find((p) => p.id === ctrl);
         if (player && !player.connected) at = Math.min(at, player.lastSeen + COVER_AFTER_MS + 50);
+        else at = Math.min(at, (room.lastMoveAt ?? now) + IDLE_COVER_MS + 50);
       }
     }
     await this.ctx.storage.setAlarm(at);
@@ -171,6 +174,17 @@ export class RoomObject extends DurableObject {
       case 'lobby':
         res = backToLobby(room, playerId, now);
         break;
+      case 'leave': {
+        res = leaveRoom(room, playerId, now);
+        ws.close(1000, 'Saiu da sala');
+        if (res.room === null) {
+          for (const other of this.ctx.getWebSockets()) other.close(1000, 'Sala encerrada');
+          await this.ctx.storage.deleteAll();
+          this.room = null;
+          return;
+        }
+        break;
+      }
       default:
         return;
     }

@@ -11,8 +11,10 @@ import { ARMY_MODES } from '../src/game/engine.js';
 
 export const MAX_PLAYERS = 4;
 export const FACTION_IDS = ['lula', 'flavio', 'cury', 'renan', 'caiado'];
-// A disconnected player's turn is played by the AI after this long.
+// A disconnected player's turn is played by the AI after this long...
 export const COVER_AFTER_MS = 60_000;
+// ...and so is the turn of a connected player who stops playing.
+export const IDLE_COVER_MS = 120_000;
 // Rooms with no activity for this long are deleted.
 export const ROOM_TTL_MS = 2 * 60 * 60 * 1000;
 const NICK_MAX = 16;
@@ -40,6 +42,7 @@ export function createRoom({ code, nick, token, playerId, now }) {
     game: null,
     controllers: {},
     lastSeq: {},
+    lastMoveAt: now,
     createdAt: now,
     updatedAt: now,
   };
@@ -94,7 +97,7 @@ export function startGame(room, playerId, rng, now) {
   if (factions.length < 2) return fail(room, 'need-two');
   const game = createGame(factions[0], rng, factions.slice(1), { spectator: true, armies: room.settings.armies });
   const controllers = Object.fromEntries([...room.players.map((p) => [p.faction, p.id]), ...ai.map((f) => [f, 'ai'])]);
-  return { room: touch({ ...room, status: 'playing', game, controllers, lastSeq: {}, matchNo: (room.matchNo ?? 0) + 1 }, now) };
+  return { room: touch({ ...room, status: 'playing', game, controllers, lastSeq: {}, lastMoveAt: now, matchNo: (room.matchNo ?? 0) + 1 }, now) };
 }
 
 // Same line-up, new deal.
@@ -103,7 +106,7 @@ export function rematch(room, playerId, rng, now) {
   if (room.status !== 'over') return fail(room, 'not-over');
   const factions = room.game.factions;
   const game = createGame(factions[0], rng, factions.slice(1), { spectator: true, armies: room.settings.armies });
-  return { room: touch({ ...room, status: 'playing', game, lastSeq: {}, matchNo: (room.matchNo ?? 0) + 1 }, now) };
+  return { room: touch({ ...room, status: 'playing', game, lastSeq: {}, lastMoveAt: now, matchNo: (room.matchNo ?? 0) + 1 }, now) };
 }
 
 export function backToLobby(room, playerId, now) {
@@ -123,7 +126,19 @@ export function playerAction(room, playerId, action, seq, rng, now) {
   const game = applyAction(room.game, action, rng);
   const lastSeq = { ...room.lastSeq, [playerId]: seq };
   if (game === room.game) return fail({ ...room, lastSeq }, 'illegal');
-  return { room: finishIfOver(touch({ ...room, game, lastSeq }, now)) };
+  return { room: finishIfOver(touch({ ...room, game, lastSeq, lastMoveAt: now }, now)) };
+}
+
+// "Sair da sala". In the lobby the player (and the seat) is freed; the host role
+// passes on; an empty room is closed. During a match the candidate stays and the
+// AI covers that player's turns (they can come back with the same link).
+export function leaveRoom(room, playerId, now) {
+  if (room.status !== 'lobby') return setConnected(room, playerId, false, now - COVER_AFTER_MS);
+  const players = room.players.filter((p) => p.id !== playerId);
+  if (!players.length) return { room: null };
+  const hostId = room.hostId === playerId ? players[0].id : room.hostId;
+  const settings = { ...room.settings, aiCount: Math.min(room.settings.aiCount, MAX_PLAYERS - players.length) };
+  return { room: touch({ ...room, players, hostId, settings }, now) };
 }
 
 // Who plays the current turn on the server: the AI, or a disconnected player covered by it.
@@ -132,12 +147,14 @@ export function needsServerMove(room, now) {
   const ctrl = room.controllers[room.game.current];
   if (ctrl === 'ai') return true;
   const player = room.players.find((p) => p.id === ctrl);
-  return !player || (!player.connected && now - player.lastSeen >= COVER_AFTER_MS);
+  if (!player) return true;
+  if (!player.connected) return now - player.lastSeen >= COVER_AFTER_MS;
+  return now - (room.lastMoveAt ?? now) >= IDLE_COVER_MS;
 }
 
 export function serverMove(room, rng, now) {
   if (!needsServerMove(room, now)) return fail(room, 'no-move');
-  return { room: finishIfOver(touch({ ...room, game: aiStep(room.game, rng) }, now)) };
+  return { room: finishIfOver(touch({ ...room, game: aiStep(room.game, rng), lastMoveAt: now }, now)) };
 }
 
 export const isExpired = (room, now) => now - room.updatedAt >= ROOM_TTL_MS;

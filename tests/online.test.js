@@ -5,6 +5,8 @@ import { attackTargets, movableTroops, territoriesOf } from '../src/game/engine.
 import { seededRng } from '../src/game/daily.js';
 import {
   COVER_AFTER_MS,
+  IDLE_COVER_MS,
+  leaveRoom,
   ROOM_TTL_MS,
   backToLobby,
   createRoom,
@@ -191,4 +193,32 @@ test('movement through the server keeps the no-chaining rule', () => {
   assert.equal(moved.game.troops.mg, 6);
   assert.equal(movableTroops(moved.game, 'sp'), 0);
   assert.equal(playerAction(moved, pid, { kind: 'fortify', from: 'sp', to: 'rj', amount: 1 }, 2, seededRng(1), T0).error, 'illegal');
+});
+
+test('leaving the lobby frees the seat; the host role passes on; empty rooms close', () => {
+  let room = lobby(['Ana', 'Beto', 'Caio'], ['lula', 'flavio']);
+  room = leaveRoom(room, 'p2', T0).room; // Caio leaves without picking
+  assert.equal(room.players.length, 2);
+  assert.equal(startGame(room, 'p0', seededRng(1), T0).error, undefined, 'host can start again');
+  room = leaveRoom(room, 'p0', T0).room; // host leaves
+  assert.equal(room.hostId, 'p1');
+  assert.equal(leaveRoom(room, 'p1', T0).room, null, 'last player out closes the room');
+});
+
+test('leaving during a match keeps the candidate and hands the turn to the AI', () => {
+  let room = startGame(lobby(), 'p0', seededRng(11), T0).room;
+  const pid = room.controllers[room.game.current];
+  room = leaveRoom(room, pid, T0).room;
+  assert.equal(room.status, 'playing');
+  assert.equal(room.players.length, 2);
+  assert.equal(needsServerMove(room, T0), true, 'AI covers right away');
+});
+
+test('a connected but idle player is covered by the AI after a while', () => {
+  let room = startGame(lobby(), 'p0', seededRng(12), T0).room;
+  room = setConnected(setConnected(room, 'p0', true, T0).room, 'p1', true, T0).room;
+  assert.equal(needsServerMove(room, T0 + 30_000), false);
+  assert.equal(needsServerMove(room, T0 + IDLE_COVER_MS), true);
+  const moved = serverMove(room, seededRng(13), T0 + IDLE_COVER_MS).room;
+  assert.equal(needsServerMove(moved, T0 + IDLE_COVER_MS + 1), false, 'a move resets the idle clock');
 });

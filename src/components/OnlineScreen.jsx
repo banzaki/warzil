@@ -248,6 +248,7 @@ export default function OnlineScreen({ initialCode, prefs, onExit }) {
   }, [error]);
 
   const leave = () => {
+    send({ type: 'leave' });
     saveSession(null);
     setSession(null);
     onExit();

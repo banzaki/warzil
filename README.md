@@ -15,6 +15,19 @@ Other scripts:
 - `npm test` – rules and AI tests (Node's built-in test runner, includes 200 full AI-vs-AI games)
 - `npm run build` / `npm run preview` – production build
 
+## Public site and online rooms
+
+Live at **https://warzil.qbbruno.workers.dev** (Cloudflare Workers, free plan).
+
+- `npm run deploy` builds the game and deploys one Worker: static assets + the online API.
+- Online: "Jogar online" -> nickname -> create a room or join with the code / invite link
+  (`/?sala=CODE`). 2-4 players, empty seats can be filled by the AI. No accounts.
+- The server is authoritative (`worker/`): one Durable Object per room keeps the official game,
+  rolls the dice and validates every action with the same engine as the solo game
+  (`src/game/actions.js`). Rooms close after 2 hours without activity.
+- Local development of the online mode: `npx wrangler dev` (port 8787, serves `dist/` + API) and,
+  for hot reload, `npm run dev` (Vite proxies `/api` to port 8787).
+
 ## How to play
 
 1. **Rally** – place reinforcements (half your state count, min. 3, plus region bonuses).
