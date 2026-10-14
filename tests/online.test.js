@@ -101,7 +101,7 @@ test('the host starts only when everybody picked; tokens never leave the server'
   assert.equal(startGame(room, 'p1', seededRng(1), T0).error, 'host-only');
   room = startGame(room, 'p0', seededRng(1), T0).room;
   assert.equal(room.status, 'playing');
-  assert.deepEqual(room.game.factions, ['lula', 'renan']);
+  assert.deepEqual([...room.game.factions].sort(), ['lula', 'renan'], 'order drawn by the server');
   assert.equal(room.game.human, null, 'no single "human": everybody is a player');
   assert.deepEqual(room.controllers, { lula: 'p0', renan: 'p1' });
   const view = JSON.stringify(publicView(room, 'p1'));
@@ -138,7 +138,7 @@ test('two players play a whole match through the server, then rematch', () => {
   assert.equal(rematch(room, 'p1', rng, T0).error, 'host-only');
   const again = rematch(room, 'p0', rng, T0).room;
   assert.equal(again.status, 'playing');
-  assert.deepEqual(again.game.factions, room.game.factions, 'same line-up');
+  assert.deepEqual([...again.game.factions].sort(), [...room.game.factions].sort(), 'same line-up (new draw)');
   assert.equal(again.game.round, 1);
   assert.equal(backToLobby(again, 'p0', T0).room.status, 'lobby');
 });

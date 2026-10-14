@@ -43,7 +43,7 @@ const LINEUPS = [
 
 test('every faction rallies before anyone attacks (2, 3 and 4 factions)', () => {
   for (const [human, rivals] of LINEUPS) {
-    let g = createGame(human, seeded(1), rivals, { opener: 0 });
+    let g = createGame(human, seeded(1), rivals, { fixedOrder: true });
     const order = [human, ...rivals];
     const rallied = [];
     while (g.phase === 'reinforce') {
@@ -62,7 +62,7 @@ test('every faction rallies before anyone attacks (2, 3 and 4 factions)', () => 
 });
 
 test('battle turns follow the order, then later rounds are full turns', () => {
-  let g = createGame('lula', seeded(2), ['flavio', 'cury', 'renan'], { opener: 0 });
+  let g = createGame('lula', seeded(2), ['flavio', 'cury', 'renan'], { fixedOrder: true });
   while (g.phase === 'reinforce') g = rallyAll(g);
   const battles = [];
   while (g.phase !== 'reinforce') {
@@ -70,7 +70,7 @@ test('battle turns follow the order, then later rounds are full turns', () => {
     g = endTurn(g);
   }
   assert.deepEqual(battles, ['lula', 'flavio', 'cury', 'renan']);
-  assert.equal(g.current, 'flavio', 'round 2 opens with the second seat');
+  assert.equal(g.current, 'lula', 'round 2 opens with the first seat again (fixed order)');
   assert.equal(g.round, 2);
   assert.equal(endTurn(g), g, 'endTurn cannot skip the rally');
   // Round 2: each faction rallies and battles before the next one starts.
@@ -84,12 +84,12 @@ test('battle turns follow the order, then later rounds are full turns', () => {
       g = endTurn(g);
     }
   }
-  assert.deepEqual(turns, ['rally:flavio', 'battle:flavio', 'rally:cury', 'battle:cury', 'rally:renan', 'battle:renan', 'rally:lula', 'battle:lula']);
-  assert.equal(g.current, 'cury', 'round 3 opens with the third seat');
+  assert.deepEqual(turns, ['rally:lula', 'battle:lula', 'rally:flavio', 'battle:flavio', 'rally:cury', 'battle:cury', 'rally:renan', 'battle:renan']);
+  assert.equal(g.current, 'lula', 'round 3 opens with the first seat again');
 });
 
 test('rally cannot be confirmed with reinforcements left', () => {
-  let g = createGame('lula', seeded(3), undefined, { opener: 0 });
+  let g = createGame('lula', seeded(3), undefined, { fixedOrder: true });
   assert.ok(g.reinforcements > 1);
   g = placeTroops(g, territoriesOf(g, 'lula')[0], 1);
   assert.equal(finishRally(g), g);
@@ -97,7 +97,7 @@ test('rally cannot be confirmed with reinforcements left', () => {
 
 test('reinforcements are counted when each faction rallies, region bonuses included', () => {
   // Lula holds the whole South when the round starts.
-  let g = createGame('lula', seeded(4), ['flavio'], { opener: 0 });
+  let g = createGame('lula', seeded(4), ['flavio'], { fixedOrder: true });
   const owner = Object.fromEntries(STATE_IDS.map((id) => [id, STATES[id].region === 'south' ? 'lula' : 'flavio']));
   owner.am = 'lula';
   owner.pa = 'lula';
@@ -105,17 +105,14 @@ test('reinforcements are counted when each faction rallies, region bonuses inclu
   while (g.phase !== 'attack') g = rallyAll(g);
   g = endTurn(endTurn(g)); // both battle turns end -> round 2 rally
   assert.equal(g.phase, 'reinforce');
-  assert.equal(g.current, 'flavio', 'round 2 opens with the second seat');
-  g = endTurn(rallyAll(g)); // Flávio's full turn
-  assert.equal(g.current, 'lula');
-  assert.equal(g.phase, 'reinforce');
+  assert.equal(g.current, 'lula', 'round 2 opens with the first seat again (fixed order)');
   const expected = Math.max(3, Math.floor(5 / 2)) + REGIONS.south.bonus;
   assert.equal(g.reinforcements, expected);
   assert.equal(g.reinforcements, calcReinforcements(g, 'lula').total);
 });
 
 test('eliminated factions skip both the rally and the battle', () => {
-  let g = createGame('lula', seeded(5), ['flavio', 'cury'], { opener: 0 });
+  let g = createGame('lula', seeded(5), ['flavio', 'cury'], { fixedOrder: true });
   while (g.phase === 'reinforce') g = rallyAll(g);
   // Lula wipes Flávio out during the battle stage.
   const owner = Object.fromEntries(STATE_IDS.map((id) => [id, 'cury']));
@@ -131,12 +128,12 @@ test('eliminated factions skip both the rally and the battle', () => {
     turns.push(g.current);
     g = endTurn(rallyAll(g));
   }
-  // Round 2 order is Flávio, Cury, Lula; Flávio is out.
-  assert.deepEqual(turns, ['cury', 'lula'], 'Flávio has no turn either');
+  // Round 2 keeps the order Lula, Flávio, Cury; Flávio is out.
+  assert.deepEqual(turns, ['lula', 'cury'], 'Flávio has no turn either');
 });
 
 test('undo and reset give back exactly what was placed, never more', () => {
-  let g = createGame('lula', seeded(6), undefined, { opener: 0 });
+  let g = createGame('lula', seeded(6), undefined, { fixedOrder: true });
   const start = { troops: { ...g.troops }, reinforcements: g.reinforcements, sum: total(g) };
   const [a, b] = territoriesOf(g, 'lula');
   g = placeTroops(g, a, 2);
@@ -159,7 +156,7 @@ test('undo and reset give back exactly what was placed, never more', () => {
 });
 
 test('undo is impossible once the rally is confirmed', () => {
-  let g = createGame('lula', seeded(7), undefined, { opener: 0 });
+  let g = createGame('lula', seeded(7), undefined, { fixedOrder: true });
   g = placeTroops(g, territoriesOf(g, 'lula')[0], g.reinforcements);
   const sum = total(g);
   g = finishRally(g);
@@ -171,7 +168,7 @@ test('undo is impossible once the rally is confirmed', () => {
 
 test('AI rallies on its own and confirms', () => {
   const rng = seeded(8);
-  let g = createGame('lula', rng, ['flavio', 'cury'], { opener: 0 });
+  let g = createGame('lula', rng, ['flavio', 'cury'], { fixedOrder: true });
   g = rallyAll(g);
   let steps = 0;
   while (g.phase === 'reinforce' && steps++ < 50) g = aiStep(g, rng);
@@ -183,7 +180,7 @@ test('AI rallies on its own and confirms', () => {
 test('first attack of the match happens only after all reinforcements are on the map', () => {
   for (const [human, rivals] of LINEUPS) {
     const rng = seeded(9);
-    let g = createGame(human, rng, rivals, { spectator: true, opener: 0 });
+    let g = createGame(human, rng, rivals, { spectator: true, fixedOrder: true });
     const deal = total(g);
     const due = g.factions.reduce((s, f) => s + calcReinforcements(g, f).total + g.openingBonus[f], 0);
     while (!g.lastRoll && g.phase !== 'over') {
@@ -195,7 +192,7 @@ test('first attack of the match happens only after all reinforcements are on the
 });
 
 test('attacks still work normally in the battle stage', () => {
-  let g = createGame('lula', seeded(10), undefined, { opener: 0 });
+  let g = createGame('lula', seeded(10), undefined, { fixedOrder: true });
   while (g.phase === 'reinforce') g = rallyAll(g);
   const from = territoriesOf(g, 'lula').find((id) => g.troops[id] >= 2 && STATE_IDS.some((t) => canAttack(g, id, t)));
   const to = STATE_IDS.find((t) => canAttack(g, from, t));
@@ -214,7 +211,7 @@ test('AI decisions do not depend on which candidate is which', () => {
     openingBonus: Object.fromEntries(Object.entries(g.openingBonus).map(([f, b]) => [rename[f], b])),
   });
   for (let seed = 1; seed <= 20; seed++) {
-    let a = createGame('lula', seeded(seed), ['flavio', 'cury'], { spectator: true, opener: 0 });
+    let a = createGame('lula', seeded(seed), ['flavio', 'cury'], { spectator: true, fixedOrder: true });
     let b = swap(a);
     for (let step = 0; step < 150 && a.phase !== 'over'; step++) {
       const r1 = seeded(seed * 1000 + step);
@@ -228,7 +225,7 @@ test('AI decisions do not depend on which candidate is which', () => {
 });
 
 test('rally marks show where each faction reinforced, until its turn ends', () => {
-  let g = createGame('lula', seeded(11), ['flavio'], { opener: 0 });
+  let g = createGame('lula', seeded(11), ['flavio'], { fixedOrder: true });
   const [a, b] = territoriesOf(g, 'lula');
   g = placeTroops(placeTroops(placeTroops(g, a, 2), b, 1), a, 1);
   assert.deepEqual(g.rallyMarks[a], { faction: 'lula', n: 3 });
@@ -239,7 +236,7 @@ test('rally marks show where each faction reinforced, until its turn ends', () =
   assert.equal(g.rallyMarks[a], undefined);
   g = rallyAll(g); // Lula confirms; Flávio rallies
   const lulaMarks = Object.values(g.rallyMarks).filter((m) => m.faction === 'lula');
-  assert.equal(lulaMarks.reduce((s, m) => s + m.n, 0), calcReinforcements(createGame('lula', seeded(11), ['flavio'], { opener: 0 }), 'lula').total + g.openingBonus.lula);
+  assert.equal(lulaMarks.reduce((s, m) => s + m.n, 0), calcReinforcements(createGame('lula', seeded(11), ['flavio'], { fixedOrder: true }), 'lula').total + g.openingBonus.lula);
   g = rallyAll(g); // Flávio done -> battle
   assert.ok(Object.values(g.rallyMarks).some((m) => m.faction === 'flavio'), "Flávio's marks visible during Lula's battle");
   // Marks go away when their owner's turn ends.

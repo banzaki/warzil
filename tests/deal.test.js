@@ -25,7 +25,8 @@ test('polarized deal: same sizes as random, themed, fair start rules', () => {
     const human = seed % 2 ? 'lula' : 'flavio';
     const g = createGame(human, seeded(seed), [human === 'lula' ? 'flavio' : 'lula'], { deal: 'polarized' });
     assert.equal(g.deal, 'polarized');
-    assert.equal(territoriesOf(g, human).length, 13);
+    // The drawn order decides who holds 13 (first seat) and 14 (second seat).
+    assert.equal(territoriesOf(g, g.factions[0]).length, 13);
     assert.equal(territoriesOf(g, g.factions[1]).length, 14);
     for (const f of ['lula', 'flavio']) {
       assert.equal(calcReinforcements(g, f).bonus, 0, 'nobody starts with a whole region');

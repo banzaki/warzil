@@ -49,7 +49,7 @@ function assertInvariants(state) {
 
 // A hand-built board: Lula owns everything except the listed Flávio states.
 function board({ flavio = [], troops = {}, phase = 'attack' } = {}) {
-  const g = createGame('lula', seeded(1));
+  const g = createGame('lula', seeded(1), undefined, { fixedOrder: true });
   const owner = Object.fromEntries(STATE_IDS.map((id) => [id, flavio.includes(id) ? 'flavio' : 'lula']));
   const t = Object.fromEntries(STATE_IDS.map((id) => [id, 1]));
   return { ...g, owner, troops: { ...t, ...troops }, phase, current: 'lula', reinforcements: 0, movedOut: {}, received: {} };
@@ -329,7 +329,7 @@ test('movement limits reset next turn', () => {
 
 test('reinforce -> attack -> occupy -> move -> AI turn', () => {
   const rng = seeded(7);
-  let g = createGame('flavio', rng);
+  let g = createGame('flavio', rng, undefined, { fixedOrder: true });
   const mine = territoriesOf(g, 'flavio');
   const from = mine.find((id) => ADJACENCY[id].some((n) => g.owner[n] === 'lula'));
   const to = ADJACENCY[from].find((n) => g.owner[n] === 'lula');
@@ -367,7 +367,7 @@ test('reinforce -> attack -> occupy -> move -> AI turn', () => {
   while (g.phase !== 'reinforce' && g.phase !== 'over' && steps++ < 1000) g = aiStep(g, rng);
   assert.ok(steps < 1000, 'AI turn did not finish');
   if (g.phase !== 'over') {
-    assert.equal(g.current, 'lula', 'round 2 opens with the second seat');
+    assert.equal(g.current, 'flavio', 'round 2 opens with the first seat again (fixed order)');
     assert.equal(g.phase, 'reinforce', 'new round starts with the rally');
     assert.equal(g.round, 2);
   }
@@ -420,14 +420,14 @@ test('AI vs AI games always reach a winner', () => {
 const total = (g, f) => territoriesOf(g, f).reduce((s, id) => s + g.troops[id], 0);
 
 test('deal for 3 and 4 factions: territories and armies', () => {
-  const g3 = createGame('flavio', seeded(2), ['lula', 'cury']);
+  const g3 = createGame('flavio', seeded(2), ['lula', 'cury'], { fixedOrder: true });
   assert.deepEqual(g3.factions, ['flavio', 'lula', 'cury']);
   for (const f of g3.factions) {
     assert.equal(territoriesOf(g3, f).length, 9);
     assert.equal(total(g3, f), 9, '1 army per state');
     assert.equal(g3.openingBonus[f], 0, 'even split: no compensation');
   }
-  const g4 = createGame('lula', seeded(3), ['flavio', 'renan', 'caiado']);
+  const g4 = createGame('lula', seeded(3), ['flavio', 'renan', 'caiado'], { fixedOrder: true });
   assert.deepEqual(g4.factions.map((f) => territoriesOf(g4, f).length), [7, 7, 7, 6]);
   for (const f of g4.factions) assert.equal(total(g4, f), territoriesOf(g4, f).length);
   // The 6-state seat gets +1 so that armies + first reinforcements match (7+3 vs 6+3).
@@ -447,7 +447,7 @@ function advance(g) {
 }
 
 test('turn order cycles through factions and counts rounds', () => {
-  let g = createGame('lula', seeded(4), ['flavio', 'cury'], { opener: 0 });
+  let g = createGame('lula', seeded(4), ['flavio', 'cury'], { fixedOrder: true });
   const seen = [];
   for (let i = 0; i < 12; i++) {
     seen.push([g.phase === 'reinforce' ? 'rally' : 'battle', g.current, g.round]);
@@ -457,10 +457,10 @@ test('turn order cycles through factions and counts rounds', () => {
     // Round 1: collective preparation, then battles.
     ['rally', 'lula', 1], ['rally', 'flavio', 1], ['rally', 'cury', 1],
     ['battle', 'lula', 1], ['battle', 'flavio', 1], ['battle', 'cury', 1],
-    // Round 2 (v0.6): full turns, opened by the 2nd seat (rotation).
+    // Round 2: full turns in the same fixed order (v0.7.1: no rotation).
+    ['rally', 'lula', 2], ['battle', 'lula', 2],
     ['rally', 'flavio', 2], ['battle', 'flavio', 2],
     ['rally', 'cury', 2], ['battle', 'cury', 2],
-    ['rally', 'lula', 2], ['battle', 'lula', 2],
   ]);
 });
 
@@ -474,8 +474,8 @@ test('eliminated factions are skipped; the match goes on', () => {
   g = endTurn(occupy(g, 1));
   assert.equal(g.current, 'cury', 'flavio is skipped');
   g = endTurn(g);
-  // Round 2 would open with Flávio (rotation); he is out, so Cury opens.
-  assert.equal(g.current, 'cury');
+  // Round 2 opens with the first seat again (fixed order): Lula.
+  assert.equal(g.current, 'lula');
   assert.equal(g.phase, 'reinforce');
   assert.equal(g.round, 2);
 });
@@ -531,17 +531,35 @@ test('AI-only matches with 3 and 4 factions always finish', () => {
   }
 });
 
-test('the seat opening the match is drawn, then rotates every round', () => {
-  const openers = new Set();
-  for (let seed = 1; seed <= 60; seed++) {
-    const g = createGame('lula', seeded(seed), ['flavio', 'cury', 'renan']);
-    openers.add(g.opener);
-    assert.equal(g.current, g.factions[g.opener], 'round 1 rally starts with the drawn seat');
+test('the turn order is drawn once: unbiased, unique positions, independent of the player', () => {
+  const counts = {};
+  const N = 8000;
+  const rng = seeded(99);
+  for (let k = 0; k < N; k++) {
+    const g = createGame('lula', rng, ['flavio', 'cury', 'renan']);
+    assert.deepEqual([...g.factions].sort(), ['cury', 'flavio', 'lula', 'renan'], 'every participant exactly once');
+    g.factions.forEach((f, pos) => {
+      counts[`${f}@${pos}`] = (counts[`${f}@${pos}`] ?? 0) + 1;
+    });
+    assert.equal(g.current, g.factions[0], 'the first drawn opens the opening rally');
   }
-  assert.deepEqual([...openers].sort(), [0, 1, 2, 3], 'every seat can open');
-  // Fixed opener: round r opens with seat (opener + r - 1).
-  let g = createGame('lula', seeded(1), ['flavio', 'cury'], { opener: 2 });
-  assert.equal(g.current, 'cury');
-  while (g.round === 1) g = advance(g);
-  assert.equal(g.current, 'lula', 'round 2 opens with the next seat after the opener');
+  // Each candidate lands in each position ~1/4 of the time (the player too).
+  for (const f of ['lula', 'flavio', 'cury', 'renan']) {
+    for (let pos = 0; pos < 4; pos++) {
+      const share = counts[`${f}@${pos}`] / N;
+      assert.ok(Math.abs(share - 0.25) < 0.025, `${f} in position ${pos + 1}: ${(share * 100).toFixed(1)}%`);
+    }
+  }
+});
+
+test('the drawn order stays fixed for the whole match', () => {
+  let g = createGame('renan', seeded(4), ['lula', 'caiado', 'flavio']);
+  const order = [...g.factions];
+  const turns = [];
+  while (g.round <= 3) {
+    if (g.phase !== 'reinforce') turns.push(g.current);
+    g = advance(g);
+  }
+  assert.deepEqual(g.factions, order, 'order never changes');
+  assert.deepEqual(turns, [...order, ...order, ...order], 'every round follows the same order');
 });

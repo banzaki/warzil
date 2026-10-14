@@ -49,18 +49,24 @@ export function calcReinforcements(state, faction) {
 // Then each faction battles and moves, then endTurn().
 // From round 2 on, each faction plays a full turn: rally, battle, movement.
 //
-// The faction that opens the round rotates every round, starting from a seat
-// drawn at the start of the match. Without rotation the first seat won 76% of
-// duels; with rotation but a fixed opener the seat battling second in round 1
-// (first "double turn" at the round 1 -> 2 boundary) won ~59%. Drawing the
-// opener spreads that edge evenly: 49.1% / 50.9% (scripts/balance.mjs).
+// Turn order (v0.7.1, Product Owner decision): drawn once at the start of the
+// match and fixed for the whole match. `state.factions` IS that order. Eliminated
+// factions are skipped. The old per-round rotation made the last faction of a
+// round open the next one, i.e. battle twice in a row.
 
 const isAlive = (state, faction) => !state.eliminated.includes(faction);
 
-// Turn order for the current round (eliminated factions included; callers skip them).
-export function roundOrder(state) {
-  const k = (state.round - 1 + (state.opener ?? 0)) % state.factions.length;
-  return [...state.factions.slice(k), ...state.factions.slice(0, k)];
+// Turn order (eliminated factions included; callers skip them). Same every round.
+export const roundOrder = (state) => [...state.factions];
+
+// Unbiased shuffle (Fisher-Yates) of the participants: the drawn turn order.
+export function drawOrder(factions, rng) {
+  const order = [...factions];
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+  return order;
 }
 
 // Next surviving faction after `faction` this round; null once the round's order is done.
@@ -200,14 +206,15 @@ function withPoleBonus(bonus, polarized, mode) {
 // spectator: every faction is CPU-controlled (AI-vs-AI simulation); there is no human.
 // deal: 'random' (default) or 'polarized' (Lula vs. Flávio duels only; otherwise random).
 // armies: starting armies per state, one of ARMY_MODES (default 1).
-// opener: index of the seat that opens round 1 (default: drawn with rng).
+// fixedOrder: keep [human, ...rivals] as the turn order instead of drawing it (tests).
 export function createGame(
   humanFaction,
   rng = Math.random,
   rivals = [opponentOf(humanFaction)],
-  { spectator = false, deal = 'random', armies = 1, opener } = {},
+  { spectator = false, deal = 'random', armies = 1, fixedOrder = false } = {},
 ) {
-  const factions = [humanFaction, ...rivals];
+  // The turn order is drawn first, independently of who the player chose.
+  const factions = fixedOrder ? [humanFaction, ...rivals] : drawOrder([humanFaction, ...rivals], rng);
   // Deal round-robin. Duel: the AI (moving second) gets the 14th state, as in v0.2.
   // 4 factions: the last seat gets the short hand (7/7/7/6); simulations showed the
   // first seat holding 6 states was knocked out first a third of the time.
@@ -233,7 +240,6 @@ export function createGame(
   const troops = startingArmies(owner, factions, armyMode, rng);
 
   const state = {
-    opener: Number.isInteger(opener) ? opener : Math.floor(rng() * factions.length),
     deal: polarized ? 'polarized' : 'random',
     armies: armyMode,
     openingBonus: withPoleBonus(openingBonus(owner, troops, factions), polarized, armyMode),

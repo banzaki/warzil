@@ -40,7 +40,7 @@ function runToEnd(sim, rng) {
 test('spectator games have no human and are fully automatic', () => {
   const sim = createSimulation(['lula', 'flavio', 'cury'], seeded(1));
   assert.equal(sim.game.human, null);
-  assert.deepEqual(sim.game.factions, ['lula', 'flavio', 'cury']);
+  assert.deepEqual([...sim.game.factions].sort(), ['cury', 'flavio', 'lula'], 'same participants, drawn order');
   assert.equal(territoriesOf(sim.game, 'lula').length + territoriesOf(sim.game, 'flavio').length + territoriesOf(sim.game, 'cury').length, 27);
 });
 

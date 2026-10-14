@@ -60,7 +60,7 @@ test('opening compensation: everybody has the same total after the opening rally
 });
 
 test('compensation is paid only in the opening rally', () => {
-  let g = createGame('lula', seeded(3), undefined, { opener: 0 });
+  let g = createGame('lula', seeded(3), undefined, { fixedOrder: true });
   assert.ok(g.openingBonus.lula > 0, 'the 13-state side is compensated');
   assert.equal(g.reinforcements, calcReinforcements(g, 'lula').total + g.openingBonus.lula);
   // Play round 1 (everything on the first state, no attacks) until Lula's round-2 rally.

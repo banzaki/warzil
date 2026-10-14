@@ -39,7 +39,7 @@ test('same day -> identical line-up, order and starting deal', () => {
   assert.deepEqual(a.troops, b.troops);
   assert.equal(a.daily, '2026-10-13');
   assert.equal(a.armies, b.armies, 'same starting-army mode');
-  assert.equal(a.opener, b.opener, 'same seat opens');
+  assert.deepEqual(a.factions, b.factions, 'same drawn turn order');
   assert.equal(a.armies, dailyChallenge('2026-10-13').armies);
   assert.equal(a.human, a.factions[0]);
 });
