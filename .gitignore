@@ -9,6 +9,7 @@ dist-ssr/
 !.env.example
 # Public build settings only (no secrets): the game's public address.
 !.env.production
+!.env.staging
 *.pem
 *.key
 

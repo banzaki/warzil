@@ -17,5 +17,25 @@
     ]
   },
   // Free plan: SQLite-backed Durable Objects.
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["RoomObject", "Limiter"] }]
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["RoomObject", "Limiter"] }],
+  // Staging (npm run deploy:preview): a separate Worker, warzil-preview, with its
+  // own Durable Objects and storage; it never shares rooms or data with production.
+  "env": {
+    "preview": {
+      "name": "warzil-preview",
+      "assets": {
+        "directory": "./dist",
+        "binding": "ASSETS",
+        "not_found_handling": "single-page-application",
+        "run_worker_first": ["/api/*"]
+      },
+      "durable_objects": {
+        "bindings": [
+          { "name": "ROOMS", "class_name": "RoomObject" },
+          { "name": "LIMITER", "class_name": "Limiter" }
+        ]
+      },
+      "migrations": [{ "tag": "v1", "new_sqlite_classes": ["RoomObject", "Limiter"] }]
+    }
+  }
 }
