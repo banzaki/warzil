@@ -2,6 +2,7 @@
 // over WebSockets (hibernation API) and plays AI turns on alarms.
 import { DurableObject } from 'cloudflare:workers';
 import { countEvent } from './metrics-object.js';
+import { roomEvents, sendEvents } from './analytics.js';
 import {
   COVER_AFTER_MS,
   coverAt,
@@ -51,7 +52,9 @@ export class RoomObject extends DurableObject {
   }
 
   async save(room) {
-    const before = this.room;
+    const before = this.room ?? null;
+    // Each new match gets a random id (analytics; never the room code).
+    if (room && (room.matchNo ?? 0) > (before?.matchNo ?? 0)) room = { ...room, matchRef: crypto.randomUUID() };
     this.room = room;
     await this.ctx.storage.put('room', room);
     // Usage counters, from state changes only (reconnects and reloads never count).
@@ -59,6 +62,9 @@ export class RoomObject extends DurableObject {
       if ((room.matchNo ?? 0) > (before.matchNo ?? 0)) this.ctx.waitUntil(countEvent(this.env, before.status === 'over' ? 'online_rematch' : 'online_start'));
       if (before.status !== 'over' && room.status === 'over') this.ctx.waitUntil(countEvent(this.env, 'online_end'));
     }
+    const events = roomEvents(before, room, Date.now());
+    if (events.length) this.ctx.waitUntil(sendEvents(this.env, events));
+    return room;
   }
 
   broadcast(room) {
@@ -94,8 +100,8 @@ export class RoomObject extends DurableObject {
     await this.ctx.storage.setAlarm(at);
   }
 
-  async commit(room) {
-    await this.save(room);
+  async commit(next) {
+    const room = await this.save(next);
     this.broadcast(room);
     await this.schedule(room);
   }
@@ -106,10 +112,10 @@ export class RoomObject extends DurableObject {
 
     if (url.pathname === '/create') {
       if (await this.load()) return json({ error: 'exists' }, 409);
-      const { code, nick } = await request.json();
+      const { code, nick, aid } = await request.json();
       const token = crypto.randomUUID();
       const playerId = newId();
-      const { room, error } = createRoom({ code, nick, token, playerId, now });
+      const { room, error } = createRoom({ code, nick, token, playerId, now, aid });
       if (error) return json({ error }, 400);
       await this.save(room);
       await this.schedule(room);
@@ -121,10 +127,10 @@ export class RoomObject extends DurableObject {
     if (!room) return json({ error: 'no-room' }, 404);
 
     if (url.pathname === '/join') {
-      const { nick } = await request.json().catch(() => ({}));
+      const { nick, aid } = await request.json().catch(() => ({}));
       const token = crypto.randomUUID();
       const playerId = newId();
-      const res = joinRoom(room, { nick, token, playerId, now });
+      const res = joinRoom(room, { nick, token, playerId, now, aid });
       if (res.error) return json({ error: res.error }, 400);
       await this.commit(res.room);
       return json({ code: room.code, token, playerId });

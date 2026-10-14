@@ -20,7 +20,7 @@ const players = [];
 for (let i = 0; i < picks.length; i++) {
   const mobile = i === 1;
   const ctx = await browser.newContext({ viewport: mobile ? { width: 390, height: 844 } : { width: 1280, height: 800 }, isMobile: mobile, hasTouch: mobile });
-  await ctx.addInitScript(() => localStorage.setItem('warzil-settings', JSON.stringify({ aiSpeed: 'veryFast' })));
+  await ctx.addInitScript(() => localStorage.setItem('warzil-settings', JSON.stringify({ aiSpeed: 'veryFast', analytics: false })));
   const page = await ctx.newPage();
   page.on('pageerror', (e) => errors.push(`${NICKS[i]} pageerror: ${e.message}`));
   page.on('console', (m) => m.type() === 'error' && !/WebSocket/.test(m.text()) && errors.push(`${NICKS[i]} console: ${m.text()}`));

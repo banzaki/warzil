@@ -2,6 +2,7 @@
 // WebSocket connection (with automatic reconnection).
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { trackConnError } from '../game/metrics.js';
+import { analyticsId } from '../game/analytics.js';
 
 const SESSION_KEY = 'warzil-online';
 const NICK_KEY = 'warzil-nick';
@@ -78,8 +79,9 @@ async function post(path, body) {
   }
 }
 
-export const createRoom = (nick) => post('/api/rooms', { nick });
-export const joinRoom = (code, nick) => post(`/api/rooms/${code}/join`, { nick });
+// aid: anonymous analytics id, only when analytics is on (see analytics.js).
+export const createRoom = (nick) => post('/api/rooms', { nick, aid: analyticsId() ?? undefined });
+export const joinRoom = (code, nick) => post(`/api/rooms/${code}/join`, { nick, aid: analyticsId() ?? undefined });
 
 // Live room view from the server. `status`: connecting | open | closed | gone.
 export function useRoom(session) {

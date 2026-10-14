@@ -25,16 +25,57 @@ import { REINFORCE_AMOUNT } from '../game/settings.js';
 import { aiDelay } from '../game/pace.js';
 import { formatDailyKey } from '../game/daily.js';
 import { needsHandoff, viewerOf } from '../game/hotseat.js';
+import { abandonMatch, capture, completeMatch, noteProgress } from '../game/analytics.js';
+import { newClock, tick } from '../game/matchClock.js';
 import Handoff from './Handoff.jsx';
 import { DISCLAIMER, PHASE_HELP, PHASE_NAMES, VICTORY_TITLES, createLinePicker, defeatLine, describeEvent, fill } from '../game/texts.js';
 
 const EMPTY = new Set();
 
+// Time split of the running match (see matchClock.js), sampled once a second.
+function useMatchClock(running, myTurn, round) {
+  const clock = useRef(newClock());
+  const lastInput = useRef(Date.now());
+  const state = useRef({ myTurn, round });
+  state.current = { myTurn, round };
+  useEffect(() => {
+    const onInput = () => {
+      lastInput.current = Date.now();
+    };
+    const kinds = ['pointerdown', 'keydown', 'wheel', 'touchstart'];
+    kinds.forEach((k) => window.addEventListener(k, onInput, { passive: true }));
+    return () => kinds.forEach((k) => window.removeEventListener(k, onInput));
+  }, []);
+  useEffect(() => {
+    if (!running) return undefined;
+    const timer = setInterval(() => {
+      clock.current = tick(clock.current, { visible: document.visibilityState === 'visible', myTurn: state.current.myTurn, now: Date.now(), lastInputAt: lastInput.current });
+      noteProgress(state.current.round, clock.current);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [running]);
+  return clock;
+}
+
+// Online: this player's time split, sent once per match (the room reports the result).
+function sendOnlineTime(matchRef, round, clock, reason) {
+  if (!matchRef) return;
+  const key = `warzil-time-${matchRef}`;
+  try {
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, '1');
+  } catch {
+    // ignore
+  }
+  capture('online_match_time', { mode: 'online', match_id: matchRef, reason, round_reached: round, active_s: clock.active, waiting_s: clock.waiting, idle_s: clock.idle, hidden_s: clock.hidden });
+}
+
 // online (optional): { game, me, names, isHost, dispatch, onRematch, onLeave } for a
 // server-run room. Without it the match is local (solo, daily, vs. AI).
 // hotseat (optional): { humans, names } when friends share this device; the board
 // is shown from the point of view of whoever is playing (or played last).
-export default function GameScreen({ initialGame, onRematch, onChangeCandidate, prefs, onMatchEnd, dailyRecord, online, hotseat }) {
+// match: analytics record of a local match (solo, daily, hotseat); online rooms report their own.
+export default function GameScreen({ initialGame, onRematch, onChangeCandidate, prefs, onMatchEnd, dailyRecord, online, hotseat, match }) {
   const [localGame, setLocalGame] = useState(initialGame);
   // Online: which state is selected/targeted is local to this screen.
   const [localSel, setLocalSel] = useState({ selected: null, target: null });
@@ -93,6 +134,30 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate, 
   const isHumanTurn = game.current === game.human && game.phase !== 'over';
   const human = game.human;
   const rivals = game.factions.filter((f) => f !== human);
+
+  // Analytics: completed once, or abandoned when leaving before the end.
+  const clock = useMatchClock(game.phase !== 'over', isHumanTurn && !drawOpen, game.round);
+  const latest = useRef(game);
+  latest.current = game;
+  const matchRef = online?.matchRef;
+  useEffect(() => {
+    if (game.phase !== 'over') return;
+    if (online) {
+      sendOnlineTime(matchRef, game.round, clock.current, 'over');
+    } else if (match) {
+      const result = hotseat
+        ? hotseat.humans.includes(game.winner) ? 'human_won' : 'cpu_won'
+        : game.winner === game.human ? 'win' : 'loss';
+      completeMatch(match, { result, winner: game.winner, rounds: game.round }, clock.current);
+    }
+  }, [game.phase]);
+  useEffect(
+    () => () => {
+      if (online) sendOnlineTime(matchRef, latest.current.round, clock.current, 'left');
+      else abandonMatch(match, latest.current.round, clock.current, 'menu');
+    },
+    [],
+  );
 
   // The AI plays one visible step at a time; the wait grows with what just
   // happened (a conquest or an elimination gets a beat to be noticed).

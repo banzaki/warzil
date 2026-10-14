@@ -37,6 +37,15 @@ const ROWS = [
       ['picker', 'Escolher'],
     ],
   },
+  {
+    key: 'analytics',
+    label: 'Estatísticas anônimas',
+    hint: 'Ajudam a melhorar o jogo: modos, partidas e tempo de jogo. Sem nome, apelido ou contato.',
+    options: [
+      [true, 'Ativadas'],
+      [false, 'Desativadas'],
+    ],
+  },
 ];
 
 // Gear button + small settings sheet. `settings`/`onChange` come from App.

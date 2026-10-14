@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { abandonMatch, completeMatch } from '../game/analytics.js';
 import { nextHeldEvent } from '../game/highlights.js';
 import BrazilMap from './BrazilMap.jsx';
 import Caricature from './Caricature.jsx';
@@ -46,7 +47,8 @@ function useHeldEvent(log) {
 }
 
 // "Simular guerra": every candidate is played by the computer; the viewer only watches.
-export default function SimulationScreen({ factions, onMenu, prefs }) {
+// match: analytics record of this simulation (see analytics.js).
+export default function SimulationScreen({ factions, onMenu, prefs, match }) {
   const [sim, setSim] = useState(() => createSimulation(factions, Math.random, 1, prefs.settings.armies));
   const [choose, setChoose] = useState(createLinePicker);
   const { game } = sim;
@@ -72,6 +74,14 @@ export default function SimulationScreen({ factions, onMenu, prefs }) {
 
   const leader = leaderOf(game);
   const over = game.phase === 'over';
+
+  // Analytics: the first simulation either finishes or is left mid-way.
+  const roundRef = useRef(game.round);
+  roundRef.current = game.round;
+  useEffect(() => {
+    if (over) completeMatch(match, { winner: game.winner, rounds: game.round });
+  }, [over]);
+  useEffect(() => () => abandonMatch(match, roundRef.current, null, 'menu'), [match]);
   const victory = over ? game.log.find((e) => e.type === 'victory') : null;
 
   return (

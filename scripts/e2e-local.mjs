@@ -20,11 +20,12 @@ const log = (...a) => console.log(...a);
 const errors = [];
 
 const browser = await chromium.launch({ channel: 'chrome', headless: true, args: ['--disable-gpu', '--renderer-process-limit=1'] });
-const settings = () => localStorage.setItem('warzil-settings', JSON.stringify({ aiSpeed: 'veryFast' }));
+const settings = () => localStorage.setItem('warzil-settings', JSON.stringify({ aiSpeed: 'veryFast', analytics: false }));
 
 // ---------- Home on a phone ----------
 {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  await ctx.addInitScript(settings);
   const page = await ctx.newPage();
   page.on('pageerror', (e) => errors.push(`mobile pageerror: ${e.message}`));
   await page.goto(BASE);

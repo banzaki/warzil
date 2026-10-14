@@ -8,6 +8,7 @@ import { createGame } from '../src/game/engine.js';
 import { aiStep } from '../src/game/ai.js';
 import { GAME_ACTIONS, applyAction } from '../src/game/actions.js';
 import { ARMY_MODES } from '../src/game/engine.js';
+import { isAid } from './analytics.js';
 
 export const MAX_PLAYERS = 4;
 export const FACTION_IDS = ['lula', 'flavio', 'cury', 'renan', 'caiado'];
@@ -32,14 +33,15 @@ export function cleanNick(nick) {
   return clean || null;
 }
 
-export function createRoom({ code, nick, token, playerId, now }) {
+// aid: the browser's anonymous analytics id (or nothing); used only for analytics.
+export function createRoom({ code, nick, token, playerId, now, aid }) {
   const name = cleanNick(nick);
   if (!name) return fail(null, 'nick');
   const room = {
     code,
     status: 'lobby',
     hostId: playerId,
-    players: [{ id: playerId, token, nick: name, faction: null, connected: false, lastSeen: now }],
+    players: [{ id: playerId, token, nick: name, faction: null, connected: false, lastSeen: now, aid: isAid(aid) ? aid : null }],
     settings: { armies: 1, aiCount: 0 },
     game: null,
     controllers: {},
@@ -51,13 +53,13 @@ export function createRoom({ code, nick, token, playerId, now }) {
   return { room };
 }
 
-export function joinRoom(room, { nick, token, playerId, now }) {
+export function joinRoom(room, { nick, token, playerId, now, aid }) {
   const name = cleanNick(nick);
   if (!name) return fail(room, 'nick');
   if (room.status !== 'lobby') return fail(room, 'started');
   if (room.players.length + room.settings.aiCount >= MAX_PLAYERS) return fail(room, 'full');
   if (room.players.some((p) => p.nick.toLowerCase() === name.toLowerCase())) return fail(room, 'nick-taken');
-  const players = [...room.players, { id: playerId, token, nick: name, faction: null, connected: false, lastSeen: now }];
+  const players = [...room.players, { id: playerId, token, nick: name, faction: null, connected: false, lastSeen: now, aid: isAid(aid) ? aid : null }];
   return { room: touch({ ...room, players }, now) };
 }
 
@@ -234,6 +236,8 @@ export function publicView(room, playerId, now = Date.now()) {
     settings: room.settings,
     controllers: room.controllers,
     matchNo: room.matchNo ?? 0,
+    // Random id of the current match (shared with analytics; not the room code).
+    matchRef: room.matchRef ?? null,
     // Cover countdown: the faction the AI covers now, or when it will start covering
     // (server clock; `serverNow` lets clients correct for their own clock).
     covering: room.status === 'playing' ? (room.covering ?? null) : null,

@@ -363,6 +363,7 @@ export default function OnlineScreen({ initialCode, prefs, onExit }) {
         prefs={prefs}
         online={{
           game: view.game,
+          matchRef: view.matchRef,
           me: me?.faction,
           names,
           isHost: view.hostId === view.you,

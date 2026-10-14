@@ -44,7 +44,7 @@ test('old saves move to the new speed default; explicit choices are kept', () =>
 
 test('settings persist and restore', () => {
   const storage = memoryStorage();
-  const chosen = { sound: true, animations: 'reduced', aiSpeed: 'veryFast', reinforce: 'picker', armies: 'mixed', aiSpeedChosen: true };
+  const chosen = { sound: true, animations: 'reduced', aiSpeed: 'veryFast', reinforce: 'picker', armies: 'mixed', analytics: false, aiSpeedChosen: true };
   saveSettings(chosen, storage);
   assert.deepEqual(loadSettings(storage), chosen);
   assert.deepEqual(resetSettings(storage), { ...DEFAULT_SETTINGS, aiSpeedChosen: false });

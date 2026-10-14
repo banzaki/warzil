@@ -86,7 +86,7 @@ export default {
         const code = randomCode();
         const res = await roomStub(env, code).fetch('https://room/create', {
           method: 'POST',
-          body: JSON.stringify({ code, nick: body.nick }),
+          body: JSON.stringify({ code, nick: body.nick, aid: body.aid }),
         });
         if (res.status !== 409) return res;
       }
@@ -98,7 +98,7 @@ export default {
       // Too many wrong codes from this connection: stop answering for a while.
       if (!(await limiter(env, request, 'join', MAX_FAILED_JOINS, false))) return json({ error: 'join-limited' }, 429);
       const body = match && (await readBody(request));
-      const res = body ? await roomStub(env, match[1]).fetch('https://room/join', { method: 'POST', body: JSON.stringify({ nick: body.nick }) }) : null;
+      const res = body ? await roomStub(env, match[1]).fetch('https://room/join', { method: 'POST', body: JSON.stringify({ nick: body.nick, aid: body.aid }) }) : null;
       if (!res || res.status === 404) {
         await limiter(env, request, 'join', MAX_FAILED_JOINS, true);
         return res ?? json({ error: 'no-room' }, 404);

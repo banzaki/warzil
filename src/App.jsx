@@ -8,6 +8,7 @@ import { normalizeCode } from '../worker/codes.js';
 import { createGame } from './game/engine.js';
 import { createLocalGame, localPlayers } from './game/hotseat.js';
 import { track } from './game/metrics.js';
+import { capturePageview, setAnalyticsEnabled, startMatch } from './game/analytics.js';
 import { loadSettings, resetSettings, saveSettings } from './game/settings.js';
 import { setMuted } from './game/sound.js';
 import {
@@ -45,6 +46,13 @@ export default function App() {
     { faction: 'flavio', human: true, nick: '' },
   ]);
   const [hotseat, setHotseat] = useState(null);
+  // Analytics record of the running match (see analytics.js).
+  const [match, setMatch] = useState(null);
+
+  useEffect(() => {
+    setAnalyticsEnabled(settings.analytics);
+    capturePageview();
+  }, [settings.analytics]);
 
   useEffect(() => {
     setMuted(!settings.sound);
@@ -61,21 +69,39 @@ export default function App() {
   const start = (human, opponents, matchDeal = deal, rematch = false) => {
     track(rematch ? 'solo_rematch' : 'solo_start');
     setHotseat(null);
-    setGame(createGame(human, Math.random, opponents, { deal: matchDeal, armies: settings.armies }));
+    const next = createGame(human, Math.random, opponents, { deal: matchDeal, armies: settings.armies });
+    setGame(next);
+    setMatch(startMatch({ mode: 'solo', candidate: human, participants: next.factions.length, humans: 1, ai: opponents.length, armies: String(next.armies), deal: next.deal, rematch }));
     setMatchId((n) => n + 1);
   };
   // Rematches keep the same seats; the engine draws a new order.
   const startLocal = (seats, matchDeal, rematch = false) => {
     track(rematch ? 'local_rematch' : 'local_start');
     setHotseat({ ...localPlayers(seats), seats, deal: matchDeal });
-    setGame(createLocalGame(seats, Math.random, { deal: matchDeal, armies: settings.armies }));
+    const next = createLocalGame(seats, Math.random, { deal: matchDeal, armies: settings.armies });
+    setGame(next);
+    const people = seats.filter((s) => s.human);
+    setMatch(
+      startMatch({
+        mode: 'local',
+        candidates: people.map((s) => s.faction).join(','),
+        participants: seats.length,
+        humans: people.length,
+        ai: seats.length - people.length,
+        armies: String(next.armies),
+        deal: next.deal,
+        rematch,
+      }),
+    );
     setMatchId((n) => n + 1);
   };
   // Daily challenge: same line-up and deal for everybody on that day (key = date).
   const startDaily = (key = dailyKey(), rematch = false) => {
     track(rematch ? 'solo_rematch' : 'solo_start');
     setDailyRecords((r) => saveDailyRecords(recordAttempt(r, key)));
-    setGame(createDailyGame(dailyChallenge(key)));
+    const next = createDailyGame(dailyChallenge(key));
+    setGame(next);
+    setMatch(startMatch({ mode: 'daily', candidate: next.human, participants: next.factions.length, humans: 1, ai: next.factions.length - 1, armies: String(next.armies), deal: next.deal, rematch }));
     setMatchId((n) => n + 1);
   };
   const onMatchEnd = (finished) => {
@@ -104,7 +130,7 @@ export default function App() {
     );
   }
 
-  if (simFactions) return <SimulationScreen key={matchId} factions={simFactions} onMenu={toMenu} prefs={prefs} />;
+  if (simFactions) return <SimulationScreen key={matchId} factions={simFactions} onMenu={toMenu} prefs={prefs} match={match} />;
 
   if (!game) {
     return (
@@ -122,6 +148,7 @@ export default function App() {
         onLocal={startLocal}
         daily={{ challenge: dailyChallenge(), record: dayRecord(dailyRecords, dailyKey()), onPlay: () => startDaily() }}
         onSimulate={(factions) => {
+          setMatch(startMatch({ mode: 'simulation', participants: factions.length, humans: 0, ai: factions.length, armies: String(settings.armies) }));
           setSimFactions(factions);
           setMatchId((n) => n + 1);
         }}
@@ -134,6 +161,7 @@ export default function App() {
       key={matchId}
       initialGame={game}
       hotseat={hotseat}
+      match={match}
       onRematch={() =>
         hotseat
           ? startLocal(hotseat.seats, hotseat.deal, true)

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { PIX, SUPPORT_ENABLED, copyText } from '../game/support.js';
+import { capture } from '../game/analytics.js';
 
 // "❤️ Apoie o WARZIL": a discreet button that opens the Pix modal.
 export default function SupportButton({ className = '' }) {
@@ -8,7 +9,13 @@ export default function SupportButton({ className = '' }) {
   if (!SUPPORT_ENABLED) return null;
   return (
     <>
-      <button className={`btn ghost support-open ${className}`} onClick={() => setOpen(true)}>
+      <button
+        className={`btn ghost support-open ${className}`}
+        onClick={() => {
+          capture('support_opened');
+          setOpen(true);
+        }}
+      >
         ❤️ Apoie o WARZIL
       </button>
       {/* Rendered on <body> so no animated or scrolling card around the button can clip it. */}
@@ -26,7 +33,12 @@ function SupportModal({ onClose }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  const copy = async (what) => setCopied((await copyText(what === 'key' ? PIX.key : PIX.payload)) ? what : 'failed');
+  // Copying is not a donation: the event only says the button was used.
+  const copy = async (what) => {
+    const ok = await copyText(what === 'key' ? PIX.key : PIX.payload);
+    capture(what === 'key' ? 'support_copy_key' : 'support_copy_payload', { copied: ok });
+    setCopied(ok ? what : 'failed');
+  };
 
   return (
     <div className="overlay support-overlay" role="dialog" aria-modal="true" aria-labelledby="support-title" onClick={(e) => e.target === e.currentTarget && onClose()}>

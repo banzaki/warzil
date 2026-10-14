@@ -3,6 +3,10 @@ import Caricature from './Caricature.jsx';
 import SettingsButton from './SettingsPanel.jsx';
 import SupportButton from './SupportButton.jsx';
 import { CONTACT_URL } from '../game/support.js';
+import { capture } from '../game/analytics.js';
+import PrivacyLink from './PrivacyLink.jsx';
+
+const pickMode = (mode) => capture('mode_selected', { mode });
 import { EXTRA_CANDIDATES, MAX_FACTIONS, PROTAGONISTS } from '../game/data.js';
 import { CANDIDATES, DISCLAIMER } from '../game/texts.js';
 import { formatDailyKey } from '../game/daily.js';
@@ -165,6 +169,7 @@ export default function StartScreen({
         </a>
         <small>Feedback, sugestões, parcerias e propostas comerciais.</small>
       </span>
+      <PrivacyLink />
     </footer>
   );
 
@@ -178,7 +183,13 @@ export default function StartScreen({
         {header(false)}
 
         <div className="mode-main">
-          <button className="mode-big solo" onClick={() => setStep('candidate')}>
+          <button
+            className="mode-big solo"
+            onClick={() => {
+              pickMode('solo');
+              setStep('candidate');
+            }}
+          >
             <span className="mode-faces">
               <Caricature who="lula" mood="happy" size={64} />
               <Caricature who="flavio" mood="happy" size={64} />
@@ -187,7 +198,13 @@ export default function StartScreen({
             <small>Contra a CPU, com 2 a 4 candidatos</small>
           </button>
           {onLocal && (
-            <button className="mode-big local" onClick={() => setStep('local')}>
+            <button
+              className="mode-big local"
+              onClick={() => {
+                pickMode('local');
+                setStep('local');
+              }}
+            >
               <span className="mode-icon" aria-hidden="true">
                 👥
               </span>
@@ -196,7 +213,13 @@ export default function StartScreen({
             </button>
           )}
           {onOnline && (
-            <button className="mode-big online" onClick={onOnline}>
+            <button
+              className="mode-big online"
+              onClick={() => {
+                pickMode('online');
+                onOnline();
+              }}
+            >
               <span className="mode-icon" aria-hidden="true">
                 🌐
               </span>
@@ -225,7 +248,13 @@ export default function StartScreen({
                 {daily.record.bestRounds ? ` · melhor: ${daily.record.bestRounds} rodadas` : ''}
               </small>
             )}
-            <button className="btn primary mode-play daily-play" onClick={daily.onPlay}>
+            <button
+              className="btn primary mode-play daily-play"
+              onClick={() => {
+                pickMode('daily');
+                daily.onPlay();
+              }}
+            >
               {daily.record.attempts ? 'Tentar de novo' : 'Jogar o desafio'}
             </button>
           </section>
@@ -233,7 +262,13 @@ export default function StartScreen({
           <section className="mode-card sim-card">
             <strong>🎬 Simular guerra — IA x IA</strong>
             <small>Escolha de 2 a {MAX_FACTIONS} candidatos e assista o computador jogar.</small>
-            <button className="btn primary mode-play" onClick={() => setStep('sim')}>
+            <button
+              className="btn primary mode-play"
+              onClick={() => {
+                pickMode('simulation');
+                setStep('sim');
+              }}
+            >
               Montar a simulação
             </button>
           </section>

@@ -10,6 +10,8 @@ export const SETTING_OPTIONS = {
   reinforce: ['one', 'five', 'all', 'picker'],
   // Starting armies per state, chosen when setting up a match.
   armies: [1, 2, 3, 'mixed'],
+  // Anonymous usage statistics (see analytics.js); the player can turn them off.
+  analytics: [true, false],
 };
 
 export const DEFAULT_SETTINGS = {
@@ -19,6 +21,7 @@ export const DEFAULT_SETTINGS = {
   aiSpeed: 'fast',
   reinforce: 'one',
   armies: 1,
+  analytics: true,
 };
 
 // Multiplies the delay between AI actions in player matches (see pace.js).

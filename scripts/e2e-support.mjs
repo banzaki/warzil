@@ -18,6 +18,7 @@ for (const [label, opts] of [
   ['mobile', { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true }],
 ]) {
   const ctx = await browser.newContext(opts);
+  await ctx.addInitScript(() => localStorage.setItem('warzil-settings', JSON.stringify({ analytics: false })));
   await ctx.grantPermissions(['clipboard-read', 'clipboard-write'], { origin });
   const page = await ctx.newPage();
   await page.goto(BASE);
@@ -57,6 +58,7 @@ for (const [label, opts] of [
 {
   const ctx = await browser.newContext();
   await ctx.addInitScript(() => {
+    localStorage.setItem('warzil-settings', JSON.stringify({ analytics: false }));
     Object.defineProperty(navigator, 'clipboard', { value: undefined });
     window.__copied = null;
     const exec = document.execCommand.bind(document);
