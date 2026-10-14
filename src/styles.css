@@ -1482,6 +1482,11 @@ html.reduce-motion *::after {
   font-size: 0.72rem;
   font-weight: 700;
   opacity: 0.8;
+  /* The full drawn order can be long (4 names): wrap instead of overflowing. */
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: center;
+  max-width: 100%;
 }
 
 /* ---------- v0.5: settings ---------- */
@@ -2534,4 +2539,43 @@ html.reduce-motion .draw-final {
 
 .draw-pick.you {
   box-shadow: 0 0 0 3px var(--yellow);
+}
+
+/* Small phones: the turn-position badge sits on the caricature's corner so the
+   chips keep their width, and long texts shrink instead of widening the page. */
+@media (max-width: 560px) {
+  .player-chip {
+    position: relative;
+  }
+
+  .player-chip .seat-badge {
+    position: absolute;
+    top: -5px;
+    left: -3px;
+    z-index: 1;
+    font-size: 0.62rem;
+    padding: 1px 4px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  }
+
+  .hud.multi .player-chip.compact .player-info {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .hud.multi .player-chip.compact .player-info strong,
+  .hud.multi .player-chip.compact .player-info span {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .round {
+    min-width: 0;
+  }
+
+  .round .opener {
+    max-width: 46vw;
+  }
 }
