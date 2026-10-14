@@ -800,6 +800,8 @@ b.caiado {
 
 .end-card {
   width: min(460px, 100%);
+  max-height: 94dvh;
+  overflow-y: auto;
   background: #fff;
   border-radius: 24px;
   border: 5px solid var(--c);
@@ -1695,7 +1697,7 @@ html.reduce-motion .region-flash path {
 .share-card {
   width: min(480px, 100%);
   max-height: 94dvh;
-  overflow: auto;
+  overflow-y: auto;
   background: #fff;
   color: var(--ink);
   border-radius: 20px;
@@ -1707,8 +1709,16 @@ html.reduce-motion .region-flash path {
   --c-dark: var(--blue-dark);
 }
 
+.share-card > * {
+  flex-shrink: 0;
+}
+
 .share-preview {
-  width: 100%;
+  display: block;
+  width: auto;
+  max-width: 100%;
+  max-height: min(52dvh, 480px);
+  margin: 0 auto;
   border-radius: 12px;
   aspect-ratio: 1080 / 1350;
   object-fit: contain;
@@ -1728,13 +1738,17 @@ html.reduce-motion .region-flash path {
 }
 
 .share-text {
+  margin: 0;
   width: 100%;
-  font: inherit;
   font-size: 0.85rem;
+  line-height: 1.35;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
   border-radius: 10px;
   border: 1px solid #d6d9e3;
-  padding: 8px;
-  resize: none;
+  background: #f7f8fb;
+  padding: 8px 10px;
+  user-select: all;
 }
 
 .share-status {
@@ -1804,5 +1818,193 @@ html.reduce-motion .region-flash path {
   from {
     opacity: 0;
     transform: scale(0.4);
+  }
+}
+
+/* ---------- launch: start screen layout ---------- */
+
+.more-candidates {
+  margin: 16px auto 0;
+  max-width: 700px;
+}
+
+.more-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 12px 18px;
+  border-radius: 20px;
+  border: 3px solid var(--yellow);
+  background: rgba(255, 202, 40, 0.12);
+  color: #fff;
+  font-weight: 900;
+  font-size: 1.15rem;
+  box-shadow: 0 5px 0 rgba(199, 145, 0, 0.6);
+  transition: transform 0.1s;
+}
+
+.more-toggle:hover {
+  transform: translateY(-2px);
+}
+
+.more-toggle.open {
+  background: rgba(255, 202, 40, 0.22);
+}
+
+.more-faces {
+  display: flex;
+}
+
+.more-faces .caricature + .caricature {
+  margin-left: -10px;
+}
+
+.more-label {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+}
+
+.more-label small {
+  font-weight: 700;
+  font-size: 0.8rem;
+  opacity: 0.85;
+}
+
+.more-candidates .extras {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.more-candidates .extra {
+  flex-direction: column;
+  text-align: center;
+  padding: 12px 10px;
+}
+
+.more-candidates .extra-text {
+  align-items: center;
+}
+
+.extra-pitch {
+  font-size: 0.78rem;
+  opacity: 0.8;
+  margin-top: 2px;
+}
+
+.more-candidates .extra-actions {
+  justify-content: center;
+}
+
+.match-setup {
+  margin: 18px auto 0;
+  max-width: 700px;
+  padding: 12px 14px 14px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.match-setup h3 {
+  margin: 0 0 4px;
+  font-size: 1rem;
+}
+
+.match-setup .deal-choice {
+  margin-top: 10px;
+}
+
+.deal-choice .chip:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.other-modes {
+  margin-top: 26px;
+}
+
+.modes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+  max-width: 900px;
+  margin: 0 auto;
+  align-items: start;
+}
+
+.mode-card {
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: 18px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+}
+
+.mode-card > strong {
+  font-size: 1.1rem;
+}
+
+.mode-card > small {
+  opacity: 0.85;
+}
+
+.modes .daily-card {
+  max-width: none;
+}
+
+.sim-card {
+  background: linear-gradient(135deg, rgba(171, 71, 188, 0.28), rgba(30, 136, 229, 0.18));
+  border: 2px solid rgba(206, 147, 216, 0.75);
+}
+
+.sim-card > strong {
+  color: #f3e5f5;
+}
+
+.online-card {
+  background: linear-gradient(135deg, rgba(67, 160, 71, 0.3), rgba(30, 136, 229, 0.18));
+  border: 2px solid rgba(129, 199, 132, 0.8);
+}
+
+.btn.mode-play {
+  min-width: 220px;
+  margin-top: 4px;
+}
+
+.sim-card .btn.mode-play {
+  background: #8e24aa;
+  box-shadow: 0 4px 0 #4a148c;
+}
+
+.online-card .btn.mode-play {
+  background: #2e7d32;
+  box-shadow: 0 4px 0 #1b5e20;
+}
+
+@media (max-width: 560px) {
+  .more-candidates .extras {
+    grid-template-columns: 1fr;
+  }
+
+  .more-candidates .extra {
+    flex-direction: row;
+    text-align: left;
+  }
+
+  .more-candidates .extra-text {
+    align-items: flex-start;
+  }
+
+  .more-toggle {
+    font-size: 1.02rem;
+    gap: 10px;
+    padding: 10px 12px;
   }
 }

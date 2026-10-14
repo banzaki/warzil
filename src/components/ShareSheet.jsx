@@ -205,7 +205,9 @@ export default function ShareSheet({ model, faceSelector = '.winner-face' }) {
                 📋 Copiar texto
               </button>
             </div>
-            <textarea className="share-text" readOnly value={text} rows={4} aria-label="Texto para compartilhar" />
+            <p className="share-text" aria-label="Texto para compartilhar">
+              {text}
+            </p>
             {status && <p className="share-status">{status}</p>}
             <button className="btn ghost" onClick={() => setOpen(false)}>
               Fechar
