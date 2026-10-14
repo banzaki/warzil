@@ -4,6 +4,7 @@ import GameScreen from './GameScreen.jsx';
 import { FACTIONS } from '../game/data.js';
 import { CANDIDATES, DISCLAIMER } from '../game/texts.js';
 import { createRoom, errorText, inviteLink, joinRoom, loadNick, loadSession, saveNick, saveSession, useRoom } from '../online/client.js';
+import { CODE_LENGTH, LEGACY_CODE_LENGTH, formatCode, normalizeCode } from '../../worker/codes.js';
 
 const FACTION_IDS = Object.keys(FACTIONS);
 const MAX_PLAYERS = 4;
@@ -27,7 +28,7 @@ function Entry({ initialCode, onSession, onExit }) {
     setBusy(true);
     setError(null);
     saveNick(clean);
-    const res = kind === 'create' ? await createRoom(clean) : await joinRoom(code.trim().toUpperCase(), clean);
+    const res = kind === 'create' ? await createRoom(clean) : await joinRoom(normalizeCode(code), clean);
     setBusy(false);
     if (res.error) return setError(errorText(res.error));
     onSession({ code: res.code, token: res.token, playerId: res.playerId, nick: clean });
@@ -49,7 +50,7 @@ function Entry({ initialCode, onSession, onExit }) {
         </label>
         {initialCode ? (
           <button className="btn primary big" disabled={busy} onClick={() => go('join')}>
-            Entrar na sala {initialCode}
+            Entrar na sala {formatCode(initialCode)}
           </button>
         ) : (
           <>
@@ -60,13 +61,13 @@ function Entry({ initialCode, onSession, onExit }) {
             <div className="join-row">
               <input
                 value={code}
-                maxLength={5}
+                maxLength={12}
                 onChange={(e) => setCode(e.target.value.toUpperCase())}
-                placeholder="CÓDIGO"
+                placeholder="ABCD-EFGH"
                 aria-label="Código da sala"
                 className="code-input"
               />
-              <button className="btn primary" disabled={busy || code.trim().length !== 5} onClick={() => go('join')}>
+              <button className="btn primary" disabled={busy || ![CODE_LENGTH, LEGACY_CODE_LENGTH].includes(normalizeCode(code).length)} onClick={() => go('join')}>
                 Entrar
               </button>
             </div>
@@ -117,7 +118,7 @@ function Lobby({ view, send, onLeave }) {
         <h1 className="logo small-logo">
           WAR<span className="logo-zil">ZIL</span>
         </h1>
-        <p className="subtitle">Sala {view.code}</p>
+        <p className="subtitle">Sala {formatCode(view.code)}</p>
       </header>
 
       <section className="online-card-box">
@@ -231,6 +232,49 @@ function Lobby({ view, send, onLeave }) {
   );
 }
 
+// Shown in the last COVER_WARNING_SECONDS before the AI covers the current player,
+// and while it covers them. The server clock decides; `serverNow` corrects for a
+// client clock that is off.
+const COVER_WARNING_SECONDS = 30;
+
+function CoverBanner({ view, names, onResume }) {
+  const [, tick] = useState(0);
+  const [receivedAt, setReceivedAt] = useState(() => Date.now());
+  useEffect(() => setReceivedAt(Date.now()), [view]);
+  useEffect(() => {
+    const timer = setInterval(() => tick((n) => n + 1), 1000);
+    return () => clearInterval(timer);
+  }, []);
+  if (view.status !== 'playing') return null;
+  const faction = view.game.current;
+  const mine = view.controllers[faction] === view.you;
+  const who = names[faction] ?? FACTIONS[faction].name;
+  if (view.covering === faction) {
+    return (
+      <div className="cover-banner covering" role="status">
+        {mine ? (
+          <>
+            🤖 A IA está jogando por você.
+            <button className="btn primary" onClick={onResume}>
+              Retomar
+            </button>
+          </>
+        ) : (
+          <>🤖 A IA está jogando por {who}.</>
+        )}
+      </div>
+    );
+  }
+  if (!view.coverAt) return null;
+  const left = Math.ceil((view.coverAt - view.serverNow - (Date.now() - receivedAt)) / 1000);
+  if (left > COVER_WARNING_SECONDS || left < 0) return null;
+  return (
+    <div className="cover-banner" role="status">
+      {mine ? `⏳ Sua vez! Em ${left}s a IA joga por você.` : `⏳ ${who}: em ${left}s a IA assume a vez.`}
+    </div>
+  );
+}
+
 // Online flow: entry -> lobby -> match, all in one place. `initialCode` comes from ?sala=CODE.
 export default function OnlineScreen({ initialCode, prefs, onExit }) {
   const [session, setSession] = useState(() => {
@@ -239,6 +283,18 @@ export default function OnlineScreen({ initialCode, prefs, onExit }) {
   });
   const { view, status, error, send, sendAction } = useRoom(session);
   const [toast, setToast] = useState(null);
+  const [wasHost, setWasHost] = useState(null);
+
+  // The host role can pass on (the host left or dropped); tell the new host.
+  const isHost = view ? view.hostId === view.you : null;
+  useEffect(() => {
+    if (isHost === null) return undefined;
+    setWasHost(isHost);
+    if (wasHost !== false || !isHost) return undefined;
+    setToast('Agora você é o anfitrião da sala.');
+    const timer = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(timer);
+  }, [isHost]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!error) return undefined;
@@ -300,6 +356,7 @@ export default function OnlineScreen({ initialCode, prefs, onExit }) {
     <>
       {banner}
       {toast && <div className="online-toast">{toast}</div>}
+      <CoverBanner view={view} names={names} onResume={() => send({ type: 'resume' })} />
       <GameScreen
         key={`${view.code}-${view.matchNo}`}
         initialGame={view.game}

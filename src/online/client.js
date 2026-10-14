@@ -55,6 +55,8 @@ export const ERRORS = {
   started: 'A partida dessa sala já começou.',
   'no-room': 'Sala não encontrada. Confira o código.',
   'rate-limited': 'Muitas salas criadas a partir desta conexão. Tente de novo em alguns minutos.',
+  'join-limited': 'Muitas tentativas com códigos errados. Espere alguns minutos e confira o código ou use o link do convite.',
+  covered: 'A IA está jogando por você. Toque em "Retomar" para voltar a jogar.',
   'faction-taken': 'Esse candidato já foi escolhido por outra pessoa.',
   'pick-first': 'Todos precisam escolher um candidato.',
   'need-two': 'São precisos pelo menos 2 participantes.',
@@ -94,7 +96,8 @@ export function useRoom(session) {
     let timer;
     const connect = () => {
       const scheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
-      const ws = new WebSocket(`${scheme}://${window.location.host}/api/rooms/${session.code}/ws?token=${encodeURIComponent(session.token)}`);
+      // The token goes as a subprotocol, so it never appears in a URL.
+      const ws = new WebSocket(`${scheme}://${window.location.host}/api/rooms/${session.code}/ws`, ['warzil', session.token]);
       wsRef.current = ws;
       setStatus('connecting');
       ws.onopen = () => {

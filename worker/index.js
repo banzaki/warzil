@@ -1,21 +1,21 @@
 // WARZIL Worker: serves the built game (static assets) and the online API.
 //   POST /api/rooms                 create a room   { nick } -> { code, token, playerId }
 //   POST /api/rooms/:code/join      join a room     { nick } -> { code, token, playerId }
-//   GET  /api/rooms/:code/ws?token  WebSocket for an existing player
+//   GET  /api/rooms/:code/ws        WebSocket for an existing player; the token travels
+//                                   in the Sec-WebSocket-Protocol header, not in the URL
 export { RoomObject, Limiter } from './room-object.js';
+import { CODE_CHARS, CODE_LENGTH, LEGACY_CODE_LENGTH, randomCode } from './codes.js';
 
-// No look-alike characters (0/O, 1/I/L).
-const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-const CODE_LENGTH = 5;
 const MAX_BODY = 1024;
+// Failed joins (unknown room) allowed per IP per 10 minutes: a typo costs one,
+// guessing codes stops quickly.
+const MAX_FAILED_JOINS = 20;
+// Room creations per IP per 10 minutes. Generous on purpose: mobile carriers put
+// many people behind one IP.
+const MAX_ROOMS = 30;
 
 const json = (data, status = 200) =>
   new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json', 'cache-control': 'no-store' } });
-
-function randomCode() {
-  const bytes = crypto.getRandomValues(new Uint8Array(CODE_LENGTH));
-  return [...bytes].map((b) => CODE_CHARS[b % CODE_CHARS.length]).join('');
-}
 
 async function readBody(request) {
   const text = await request.text();
@@ -29,16 +29,23 @@ async function readBody(request) {
 
 const roomStub = (env, code) => env.ROOMS.get(env.ROOMS.idFromName(code));
 
+// Per-IP counters (one Limiter object per IP and purpose). `count` records a hit.
+async function limiter(env, request, purpose, max, count) {
+  const ip = request.headers.get('cf-connecting-ip') ?? 'local';
+  const stub = env.LIMITER.get(env.LIMITER.idFromName(`${purpose}:${ip}`));
+  const res = await stub.fetch(`https://limiter/${count ? 'hit' : 'check'}?max=${max}`, { method: 'POST' });
+  return (await res.json()).allowed;
+}
+
+const CODE_PATTERN = new RegExp(`^/api/rooms/([${CODE_CHARS}]{${LEGACY_CODE_LENGTH}}|[${CODE_CHARS}]{${CODE_LENGTH}})/(join|ws)$`);
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     if (!url.pathname.startsWith('/api/')) return env.ASSETS.fetch(request);
 
     if (url.pathname === '/api/rooms' && request.method === 'POST') {
-      const ip = request.headers.get('cf-connecting-ip') ?? 'local';
-      const limiter = env.LIMITER.get(env.LIMITER.idFromName(ip));
-      const { allowed } = await (await limiter.fetch('https://limiter/hit', { method: 'POST' })).json();
-      if (!allowed) return json({ error: 'rate-limited' }, 429);
+      if (!(await limiter(env, request, 'create', MAX_ROOMS, true))) return json({ error: 'rate-limited' }, 429);
       const body = await readBody(request);
       if (!body) return json({ error: 'body' }, 400);
       for (let attempt = 0; attempt < 5; attempt++) {
@@ -52,14 +59,20 @@ export default {
       return json({ error: 'busy' }, 503);
     }
 
-    const match = url.pathname.match(/^\/api\/rooms\/([A-Z0-9]{5})\/(join|ws)$/);
+    const match = url.pathname.match(CODE_PATTERN);
+    if (url.pathname.match(/^\/api\/rooms\/[^/]+\/join$/) && request.method === 'POST') {
+      // Too many wrong codes from this connection: stop answering for a while.
+      if (!(await limiter(env, request, 'join', MAX_FAILED_JOINS, false))) return json({ error: 'join-limited' }, 429);
+      const body = match && (await readBody(request));
+      const res = body ? await roomStub(env, match[1]).fetch('https://room/join', { method: 'POST', body: JSON.stringify({ nick: body.nick }) }) : null;
+      if (!res || res.status === 404) {
+        await limiter(env, request, 'join', MAX_FAILED_JOINS, true);
+        return res ?? json({ error: 'no-room' }, 404);
+      }
+      return res;
+    }
     if (match) {
       const [, code, route] = match;
-      if (route === 'join' && request.method === 'POST') {
-        const body = await readBody(request);
-        if (!body) return json({ error: 'body' }, 400);
-        return roomStub(env, code).fetch('https://room/join', { method: 'POST', body: JSON.stringify({ nick: body.nick }) });
-      }
       if (route === 'ws') {
         if (request.headers.get('Upgrade') !== 'websocket') return json({ error: 'upgrade' }, 426);
         return roomStub(env, code).fetch(request);

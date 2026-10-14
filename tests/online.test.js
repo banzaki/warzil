@@ -6,6 +6,9 @@ import { seededRng } from '../src/game/daily.js';
 import {
   COVER_AFTER_MS,
   IDLE_COVER_MS,
+  coverAt,
+  ensureHost,
+  resumeControl,
   leaveRoom,
   ROOM_TTL_MS,
   backToLobby,
@@ -214,11 +217,102 @@ test('leaving during a match keeps the candidate and hands the turn to the AI', 
   assert.equal(needsServerMove(room, T0), true, 'AI covers right away');
 });
 
-test('a connected but idle player is covered by the AI after a while', () => {
+// The current human seat of a started room, and the id of whoever controls it.
+const seatOf = (room) => ({ faction: room.game.current, id: room.controllers[room.game.current] });
+
+test('a connected but idle player is covered by the AI until the turn passes, with a countdown first', () => {
   let room = startGame(lobby(), 'p0', seededRng(12), T0).room;
   room = setConnected(setConnected(room, 'p0', true, T0).room, 'p1', true, T0).room;
+  const { faction } = seatOf(room);
+  assert.equal(coverAt(room), T0 + IDLE_COVER_MS, 'everybody can show the countdown');
+  assert.equal(publicView(room, 'p0', T0).coverAt, T0 + IDLE_COVER_MS);
   assert.equal(needsServerMove(room, T0 + 30_000), false);
   assert.equal(needsServerMove(room, T0 + IDLE_COVER_MS), true);
-  const moved = serverMove(room, seededRng(13), T0 + IDLE_COVER_MS).room;
-  assert.equal(needsServerMove(moved, T0 + IDLE_COVER_MS + 1), false, 'a move resets the idle clock');
+  let t = T0 + IDLE_COVER_MS;
+  let steps = 0;
+  while (room.game.current === faction && room.status === 'playing') {
+    assert.equal(needsServerMove(room, t), true, 'the cover keeps going until the turn passes');
+    room = serverMove(room, seededRng(13 + steps), t).room;
+    t += 500;
+    steps++;
+    if (room.game.current === faction) assert.equal(publicView(room, 'p0', t).covering, faction);
+  }
+  assert.ok(steps > 1, 'the AI played the whole turn, not a single step');
+  assert.equal(room.covering, null, 'the cover ends with that turn');
+  assert.equal(needsServerMove(room, t), false, 'the next player gets the full time');
+});
+
+test('a covered player takes the turn back without duplicated moves', () => {
+  let room = startGame(lobby(), 'p0', seededRng(14), T0).room;
+  room = setConnected(setConnected(room, 'p0', true, T0).room, 'p1', true, T0).room;
+  const { id, faction } = seatOf(room);
+  const t = T0 + IDLE_COVER_MS;
+  room = serverMove(room, seededRng(15), t).room;
+  assert.equal(room.covering, faction);
+  const blocked = playerAction(room, id, { kind: 'endTurn' }, 1, seededRng(1), t + 10);
+  assert.equal(blocked.error, 'covered', 'no move while the AI holds the turn');
+  assert.equal(blocked.room.game, room.game);
+  assert.equal(resumeControl(room, id === 'p0' ? 'p1' : 'p0', t).error, 'not-covered', 'only that player can resume');
+  room = resumeControl(room, id, t + 20).room;
+  assert.equal(room.covering, null);
+  assert.equal(needsServerMove(room, t + 21), false, 'the AI stops');
+  assert.equal(coverAt(room), t + 20 + IDLE_COVER_MS, 'a fresh countdown');
+  // A resent "resume" or an old action number is harmless.
+  assert.equal(resumeControl(room, id, t + 30).error, 'not-covered');
+  assert.equal(playerAction(room, id, { kind: 'endTurn' }, 0, seededRng(1), t + 40).error, 'duplicate');
+});
+
+test('reconnecting ends the cover of a disconnected player', () => {
+  let room = startGame(lobby(), 'p0', seededRng(16), T0).room;
+  const { id, faction } = seatOf(room);
+  room = setConnected(room, id, false, T0).room;
+  assert.equal(coverAt(room), T0 + COVER_AFTER_MS);
+  room = serverMove(room, seededRng(17), T0 + COVER_AFTER_MS).room;
+  if (room.game.current === faction) {
+    assert.equal(room.covering, faction);
+    room = setConnected(room, id, true, T0 + COVER_AFTER_MS + 5).room;
+    assert.equal(room.covering, null, 'back in control');
+    assert.equal(needsServerMove(room, T0 + COVER_AFTER_MS + 10), false);
+  }
+});
+
+test('the host role passes to another person when the host leaves, during or after a match', () => {
+  const three = () => {
+    let room = lobby(['Ana', 'Beto', 'Caio'], ['lula', 'flavio', 'cury']);
+    room = setSettings(room, 'p0', { aiCount: 1 }, T0).room;
+    room = startGame(room, 'p0', seededRng(18), T0).room;
+    for (const p of ['p0', 'p1', 'p2']) room = setConnected(room, p, true, T0).room;
+    return room;
+  };
+  // During the match.
+  let room = leaveRoom(three(), 'p0', T0 + 1).room;
+  assert.ok(['p1', 'p2'].includes(room.hostId), 'a person, never the AI');
+  assert.equal(room.players.find((p) => p.id === 'p0').left, true);
+  assert.equal(publicView(room, 'p1', T0).players.find((p) => p.id === 'p0').left, true);
+  // After the match: the new host can start the rematch.
+  room = leaveRoom({ ...three(), status: 'over' }, 'p0', T0 + 1).room;
+  const newHost = room.hostId;
+  assert.notEqual(newHost, 'p0');
+  assert.equal(rematch(room, 'p0', seededRng(1), T0 + 2).error, 'host-only');
+  const again = rematch(room, newHost, seededRng(1), T0 + 2).room;
+  assert.equal(again.status, 'playing', 'the rematch is still available');
+  assert.ok(Object.values(again.controllers).includes('p0'), 'the player who left is covered by the AI');
+  // Back to the lobby frees the seat of who left.
+  const back = backToLobby(again, newHost, T0 + 3).room;
+  assert.deepEqual(back.players.map((p) => p.id).sort(), ['p1', 'p2']);
+  // Everybody leaves: the room closes.
+  let solo = leaveRoom(three(), 'p0', T0).room;
+  solo = leaveRoom(solo, 'p1', T0).room;
+  assert.equal(leaveRoom(solo, 'p2', T0).room, null);
+});
+
+test('a host who stays disconnected is replaced; a short reload is not', () => {
+  let room = startGame(lobby(), 'p0', seededRng(19), T0).room;
+  room = setConnected(room, 'p1', true, T0).room;
+  room = setConnected(room, 'p0', false, T0).room;
+  assert.equal(ensureHost(room, T0 + 5_000).hostId, 'p0', 'a reload keeps the host');
+  assert.equal(ensureHost(room, T0 + COVER_AFTER_MS).hostId, 'p1');
+  // Nobody else connected: no change.
+  const alone = setConnected(room, 'p1', false, T0).room;
+  assert.equal(ensureHost(alone, T0 + COVER_AFTER_MS).hostId, 'p0');
 });

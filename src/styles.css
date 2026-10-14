@@ -2304,3 +2304,31 @@ html.reduce-motion .draw-final {
   border-radius: 999px;
   padding: 2px 6px;
 }
+
+.cover-banner {
+  position: fixed;
+  top: 52px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100% - 32px);
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-weight: 800;
+  background: var(--yellow);
+  color: var(--ink);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+}
+
+.cover-banner.covering {
+  background: #1d1d27;
+  color: #fff;
+}
+
+.cover-banner .btn {
+  padding: 4px 14px;
+  font-size: 0.9rem;
+}

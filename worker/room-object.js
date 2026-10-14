@@ -3,8 +3,10 @@
 import { DurableObject } from 'cloudflare:workers';
 import {
   COVER_AFTER_MS,
-  IDLE_COVER_MS,
+  coverAt,
+  ensureHost,
   leaveRoom,
+  resumeControl,
   ROOM_TTL_MS,
   backToLobby,
   createRoom,
@@ -56,7 +58,7 @@ export class RoomObject extends DurableObject {
     for (const ws of this.ctx.getWebSockets()) {
       const [playerId] = this.ctx.getTags(ws);
       try {
-        ws.send(JSON.stringify({ type: 'state', room: publicView(room, playerId) }));
+        ws.send(JSON.stringify({ type: 'state', room: publicView(room, playerId, Date.now()) }));
       } catch {
         // Socket already gone; webSocketClose will clean up.
       }
@@ -73,11 +75,14 @@ export class RoomObject extends DurableObject {
         // Let everybody watch the order draw before the AI's first move.
         if (room.game.turn === 0 && room.startedAt) at = Math.max(at, room.startedAt + DRAW_PAUSE_MS);
       } else {
-        const ctrl = room.controllers[room.game.current];
-        const player = room.players.find((p) => p.id === ctrl);
-        if (player && !player.connected) at = Math.min(at, player.lastSeen + COVER_AFTER_MS + 50);
-        else at = Math.min(at, (room.lastMoveAt ?? now) + IDLE_COVER_MS + 50);
+        const cover = coverAt(room);
+        if (cover) at = Math.min(at, cover + 50);
       }
+    }
+    // A disconnected host is replaced once their absence counts as gone.
+    const host = room.players.find((p) => p.id === room.hostId);
+    if (host && !host.connected && !host.left && room.players.some((p) => p.id !== host.id && p.connected)) {
+      at = Math.min(at, Math.max(now + 50, host.lastSeen + COVER_AFTER_MS + 50));
     }
     await this.ctx.storage.setAlarm(at);
   }
@@ -117,14 +122,18 @@ export class RoomObject extends DurableObject {
       return json({ code: room.code, token, playerId });
     }
 
-    // WebSocket: the temporary token (never the nickname) identifies the player.
+    // WebSocket: the temporary token (never the nickname) identifies the player. It
+    // comes as a WebSocket subprotocol ("warzil", token) so it stays out of URLs and logs.
     if (request.headers.get('Upgrade') === 'websocket') {
-      const player = playerByToken(room, url.searchParams.get('token'));
+      const protocols = (request.headers.get('Sec-WebSocket-Protocol') ?? '').split(',').map((s) => s.trim());
+      const token = protocols[0] === 'warzil' ? protocols[1] : url.searchParams.get('token');
+      const player = playerByToken(room, token);
       if (!player) return json({ error: 'token' }, 403);
       const [client, server] = Object.values(new WebSocketPair());
       this.ctx.acceptWebSocket(server, [player.id]);
       await this.commit(setConnected(room, player.id, true, now).room);
-      return new Response(null, { status: 101, webSocket: client });
+      const headers = protocols[0] === 'warzil' ? { 'Sec-WebSocket-Protocol': 'warzil' } : {};
+      return new Response(null, { status: 101, webSocket: client, headers });
     }
 
     return json({ error: 'not-found' }, 404);
@@ -155,11 +164,15 @@ export class RoomObject extends DurableObject {
       ws.send(JSON.stringify({ type: 'pong' }));
       return;
     }
-    const room = await this.load();
-    if (!room) return;
+    const loaded = await this.load();
+    if (!loaded) return;
     const now = Date.now();
+    const room = ensureHost(loaded, now);
     let res;
     switch (msg.type) {
+      case 'resume':
+        res = resumeControl(room, playerId, now);
+        break;
       case 'pick':
         res = pickFaction(room, playerId, msg.faction ?? null, now);
         break;
@@ -194,8 +207,10 @@ export class RoomObject extends DurableObject {
     }
     if (res.error) {
       ws.send(JSON.stringify({ type: 'error', error: res.error, seq: msg.seq ?? null }));
-      // Even a rejected action may advance the duplicate guard; keep it.
-      if (res.room !== room) await this.save(res.room);
+      // Even a rejected action may advance the duplicate guard; keep it. A host
+      // change found on the way is shown to everybody.
+      if (room !== loaded) await this.commit(res.room);
+      else if (res.room !== room) await this.save(res.room);
       return;
     }
     await this.commit(res.room);
@@ -214,9 +229,10 @@ export class RoomObject extends DurableObject {
   }
 
   async alarm() {
-    const room = await this.load();
-    if (!room) return;
+    const loaded = await this.load();
+    if (!loaded) return;
     const now = Date.now();
+    const room = ensureHost(loaded, now);
     if (isExpired(room, now)) {
       for (const ws of this.ctx.getWebSockets()) ws.close(1000, 'Sala encerrada por inatividade');
       await this.ctx.storage.deleteAll();
@@ -228,20 +244,23 @@ export class RoomObject extends DurableObject {
       await this.commit({ ...next, aiSeenLogId: room.game.log[0]?.id ?? 0 });
       return;
     }
-    await this.schedule(room);
+    if (room !== loaded) await this.commit(room);
+    else await this.schedule(room);
   }
 }
 
-// Rate limit for room creation, one object per client IP.
+// Per-IP rate limits (room creation, failed joins), one object per IP and purpose.
+// /hit records an attempt if still allowed; /check only looks.
 const WINDOW_MS = 10 * 60 * 1000;
-// Generous on purpose: mobile carriers put many people behind one IP.
-const MAX_ROOMS_PER_WINDOW = 30;
 
 export class Limiter extends DurableObject {
-  async fetch() {
+  async fetch(request) {
+    const url = new URL(request.url);
+    const max = Math.max(1, Number(url.searchParams.get('max')) || 30);
     const now = Date.now();
     const hits = ((await this.ctx.storage.get('hits')) ?? []).filter((t) => now - t < WINDOW_MS);
-    const allowed = hits.length < MAX_ROOMS_PER_WINDOW;
+    const allowed = hits.length < max;
+    if (url.pathname === '/check') return json({ allowed });
     if (allowed) hits.push(now);
     await this.ctx.storage.put('hits', hits);
     await this.ctx.storage.setAlarm(now + WINDOW_MS);

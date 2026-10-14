@@ -4,6 +4,7 @@ import GameScreen from './components/GameScreen.jsx';
 import SimulationScreen from './components/SimulationScreen.jsx';
 import OnlineScreen from './components/OnlineScreen.jsx';
 import { loadSession } from './online/client.js';
+import { normalizeCode } from '../worker/codes.js';
 import { createGame } from './game/engine.js';
 import { loadSettings, resetSettings, saveSettings } from './game/settings.js';
 import { setMuted } from './game/sound.js';
@@ -28,7 +29,7 @@ export default function App() {
   const [matchId, setMatchId] = useState(0);
   const [settings, setSettings] = useState(loadSettings);
   // Online rooms: opened from the menu or directly by an invite link (?sala=CODE).
-  const [inviteCode] = useState(() => new URLSearchParams(window.location.search).get('sala')?.toUpperCase() ?? null);
+  const [inviteCode] = useState(() => normalizeCode(new URLSearchParams(window.location.search).get('sala')) || null);
   // A saved session (reload during a match) reopens the room automatically.
   const [online, setOnline] = useState(() => Boolean(inviteCode) || Boolean(loadSession()));
   // Start-of-match deal for Lula vs. Flávio duels: 'random' (default) or 'polarized'.
