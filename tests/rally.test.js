@@ -182,7 +182,7 @@ test('first attack of the match happens only after all reinforcements are on the
     const rng = seeded(9);
     let g = createGame(human, rng, rivals, { spectator: true, fixedOrder: true });
     const deal = total(g);
-    const due = g.factions.reduce((s, f) => s + calcReinforcements(g, f).total + g.openingBonus[f], 0);
+    const due = g.factions.reduce((s, f) => s + calcReinforcements(g, f).total + g.openingBonus[f] + g.positionBonus[f], 0);
     while (!g.lastRoll && g.phase !== 'over') {
       const before = g;
       g = aiStep(g, rng);
@@ -209,6 +209,7 @@ test('AI decisions do not depend on which candidate is which', () => {
     current: rename[g.current],
     human: null,
     openingBonus: Object.fromEntries(Object.entries(g.openingBonus).map(([f, b]) => [rename[f], b])),
+    positionBonus: Object.fromEntries(Object.entries(g.positionBonus).map(([f, b]) => [rename[f], b])),
   });
   for (let seed = 1; seed <= 20; seed++) {
     let a = createGame('lula', seeded(seed), ['flavio', 'cury'], { spectator: true, fixedOrder: true });

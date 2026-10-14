@@ -373,7 +373,8 @@ export default function StartScreen({ step: initialStep = 'mode', rivals, onRiva
           </li>
         </ol>
         <p>
-          A ordem dos turnos é sorteada no início da partida e fica a mesma até o fim. Da 2ª rodada em diante, cada candidato faz o turno completo: comício,
+          A ordem dos turnos é sorteada no início da partida e fica a mesma até o fim. Como quem ataca primeiro tem vantagem, quem vem depois recebe
+          alguns reforços extras no primeiro comício (o número aparece no sorteio). Da 2ª rodada em diante, cada candidato faz o turno completo: comício,
           batalha e movimentação. Domine uma região inteira para ganhar bônus. Seja o último candidato no mapa para vencer.
         </p>
       </section>

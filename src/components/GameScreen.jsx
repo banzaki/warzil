@@ -246,6 +246,11 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate, 
         {game.round === 1 && game.openingBonus?.[human] > 0 && (
           <p className="hint small">Inclui +{game.openingBonus[human]} de compensação de abertura (você começou com menos).</p>
         )}
+        {game.round === 1 && game.positionBonus?.[human] > 0 && (
+          <p className="hint small">
+            Inclui +{game.positionBonus[human]} por jogar em {game.factions.indexOf(human) + 1}º (quem ataca depois recebe reforço extra no 1º comício).
+          </p>
+        )}
         <p className="hint small">
           {game.round === 1
             ? `Rodada 1: todos fazem o comício antes de qualquer ataque. Ordem sorteada: ${game.factions.map(name).join(' → ')}.`
@@ -355,7 +360,7 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate, 
 
   return (
     <div className={`game theme-${human}`}>
-      {drawOpen && <OrderDraw order={game.factions} names={online ? online.names : {}} you={online ? online.me : game.human} onDone={closeDraw} />}
+      {drawOpen && <OrderDraw order={game.factions} names={online ? online.names : {}} you={online ? online.me : game.human} bonus={game.positionBonus} onDone={closeDraw} />}
       <header className={`hud ${rivals.length > 1 ? 'multi' : ''}`}>
         <PlayerChip game={game} faction={human} />
         <div className="round">

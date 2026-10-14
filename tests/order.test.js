@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createGame } from '../src/game/engine.js';
+import { ARMY_MODES, POLARIZED_POSITION_BONUS, POSITION_BONUS, calcReinforcements, createGame } from '../src/game/engine.js';
 import { aiStep } from '../src/game/ai.js';
 import { seededRng } from '../src/game/daily.js';
 import { createRoom, joinRoom, pickFaction, publicView, rematch, startGame } from '../worker/room.js';
@@ -59,4 +59,28 @@ test('online: the server draws the order once; every client receives the same; r
   const over = { ...room, status: 'over', game: { ...room.game, phase: 'over' } };
   const again = new Set(Array.from({ length: 20 }, () => rematch(over, 'p0', rng, T0).room.game.factions.join()));
   assert.ok(again.size > 1, 'a rematch draws a new order');
+});
+
+test('turn-position compensation: opening rally only, by position, never for the first', () => {
+  for (const size of [2, 3, 4]) {
+    for (const armies of ARMY_MODES) {
+      const row = POSITION_BONUS[size][armies];
+      assert.equal(row.length, size);
+      assert.equal(row[0], 0, 'the first never gets it');
+      assert.ok(row.every((n, i) => i === 0 || n >= row[i - 1]), 'later positions never get less');
+    }
+  }
+  for (const armies of ARMY_MODES) assert.equal(POLARIZED_POSITION_BONUS[armies][0], 0);
+  const rivals = ['flavio', 'cury'];
+  let g = createGame('lula', seededRng(5), rivals, { armies: 2 });
+  assert.deepEqual(
+    g.factions.map((f) => g.positionBonus[f]),
+    POSITION_BONUS[3][2],
+    'each candidate gets the row value of its drawn position',
+  );
+  // The first rally includes it; later rallies do not.
+  const first = g.factions[0];
+  assert.equal(g.reinforcements, calcReinforcements(g, first).total + g.openingBonus[first] + g.positionBonus[first]);
+  g = createGame('lula', seededRng(6), ['flavio'], { deal: 'polarized' });
+  assert.deepEqual(g.factions.map((f) => g.positionBonus[f]), POLARIZED_POSITION_BONUS[1]);
 });

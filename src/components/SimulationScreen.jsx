@@ -76,7 +76,7 @@ export default function SimulationScreen({ factions, onMenu, prefs }) {
 
   return (
     <div className="game sim">
-      {drawOpen && <OrderDraw order={game.factions} onDone={() => setDrawFor(null)} />}
+      {drawOpen && <OrderDraw order={game.factions} bonus={game.positionBonus} onDone={() => setDrawFor(null)} />}
       <header className="hud multi sim-hud">
         <div className="round">
           <span className="logo small">

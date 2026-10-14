@@ -2579,3 +2579,23 @@ html.reduce-motion .draw-final {
     max-width: 46vw;
   }
 }
+
+.draw-bonus {
+  font-weight: 800;
+  font-size: 0.72rem;
+  color: var(--c-dark);
+  opacity: 0;
+  animation: draw-reveal 0.35s ease-out forwards;
+}
+
+html.reduce-motion .draw-bonus {
+  animation: none !important;
+  opacity: 1;
+}
+
+.draw-note {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  opacity: 0.75;
+}

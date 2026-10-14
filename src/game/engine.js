@@ -84,7 +84,7 @@ const withoutMarksOf = (marks = {}, faction) =>
 
 function beginRally(state, faction) {
   // The opening rally also pays the opening compensation (see openingBonus).
-  const bonus = state.round === 1 ? (state.openingBonus?.[faction] ?? 0) : 0;
+  const bonus = state.round === 1 ? (state.openingBonus?.[faction] ?? 0) + (state.positionBonus?.[faction] ?? 0) : 0;
   return {
     ...state,
     rallyMarks: withoutMarksOf(state.rallyMarks, faction),
@@ -197,6 +197,33 @@ function openingBonus(owner, troops, factions) {
   return Object.fromEntries(factions.map((f) => [f, top - totals[f]]));
 }
 
+// Turn-position compensation (v0.7.1). The order is drawn once and fixed, and
+// whoever battles first after the collective opening rally has an edge (AI duels:
+// 1st position won ~76% with no compensation). Each later position gets a fixed
+// number of extra reinforcements in the opening rally only, shown to everybody.
+// Index = position in the drawn order; key = match size, then army mode.
+// Calibrated with scripts/calibrate-order.mjs and confirmed with 6000-8000 AI
+// matches each; win rate by position (%), target gap between positions <= 5:
+//   2: 1 army 49.6/50.4 · 2: 49.9/50.1 · 3: 50.2/49.8 · mixed 50.3/49.7
+//   3: 1 army 35.7/32.1/32.2 · 2: 35.1/33.3/31.5 · 3: 32.7/33.3/34.0 · mixed 31.7/33.3/35.0
+//   4: 1 army 24.1/26.0/25.7/24.2 · 2: 23.1/24.5/26.6/25.9 · 3: 26.3/25.0/24.0/24.7
+//      mixed 25.6/24.7/24.0/25.8 (no compensation needed)
+// Without it (fixed order, 1 army): 75.8/24.2 · 46.7/28.1/25.2 · 31.1/25.9/22.9/20.1.
+export const POSITION_BONUS = {
+  2: { 1: [0, 5], 2: [0, 5], 3: [0, 4], mixed: [0, 4] },
+  3: { 1: [0, 1, 2], 2: [0, 1, 2], 3: [0, 1, 2], mixed: [0, 1, 2] },
+  4: { 1: [0, 1, 2, 2], 2: [0, 1, 2, 3], 3: [0, 0, 0, 2], mixed: [0, 0, 0, 0] },
+};
+// The polarized duel has its own row (its pole bonus already shifts the balance).
+// 12000 matches (1 army, mixed) / 6000 (2, 3 armies); North/Northeast side ~49-52%:
+//   1 army 52.0/48.0 · 2: 50.2/49.8 · 3: 50.7/49.3 · mixed 50.9/49.1
+export const POLARIZED_POSITION_BONUS = { 1: [0, 4], 2: [0, 5], 3: [0, 4], mixed: [0, 4] };
+
+function positionBonusOf(factions, mode, polarized, override) {
+  const table = override ?? (polarized ? POLARIZED_POSITION_BONUS[mode] : POSITION_BONUS[factions.length]?.[mode]) ?? [];
+  return Object.fromEntries(factions.map((f, i) => [f, table[i] ?? 0]));
+}
+
 function withPoleBonus(bonus, polarized, mode) {
   if (!polarized) return bonus;
   return { ...bonus, [POLE_BONUS_SIDE]: bonus[POLE_BONUS_SIDE] + POLE_OPENING_BONUS[mode] };
@@ -207,11 +234,12 @@ function withPoleBonus(bonus, polarized, mode) {
 // deal: 'random' (default) or 'polarized' (Lula vs. Flávio duels only; otherwise random).
 // armies: starting armies per state, one of ARMY_MODES (default 1).
 // fixedOrder: keep [human, ...rivals] as the turn order instead of drawing it (tests).
+// positionBonus: replaces the POSITION_BONUS row (calibration scripts only).
 export function createGame(
   humanFaction,
   rng = Math.random,
   rivals = [opponentOf(humanFaction)],
-  { spectator = false, deal = 'random', armies = 1, fixedOrder = false } = {},
+  { spectator = false, deal = 'random', armies = 1, fixedOrder = false, positionBonus } = {},
 ) {
   // The turn order is drawn first, independently of who the player chose.
   const factions = fixedOrder ? [humanFaction, ...rivals] : drawOrder([humanFaction, ...rivals], rng);
@@ -243,6 +271,8 @@ export function createGame(
     deal: polarized ? 'polarized' : 'random',
     armies: armyMode,
     openingBonus: withPoleBonus(openingBonus(owner, troops, factions), polarized, armyMode),
+    // Part of the opening rally paid for the turn position (shown separately).
+    positionBonus: positionBonusOf(factions, armyMode, polarized, positionBonus),
     human: spectator ? null : humanFaction,
     factions,
     eliminated: [],
