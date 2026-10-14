@@ -2332,3 +2332,86 @@ html.reduce-motion .draw-final {
   padding: 4px 14px;
   font-size: 0.9rem;
 }
+
+/* ---------- v0.7.1: map-only zoom ---------- */
+
+/* Pinches on the map zoom the map, not the page; one finger still scrolls the page
+   until the map is zoomed in, then it drags the map. */
+.map {
+  touch-action: pan-x pan-y;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.map.zoomed {
+  touch-action: none;
+  cursor: grab;
+}
+
+.badge .hit {
+  fill: transparent;
+  stroke: none;
+}
+
+.map-zoom {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 2;
+}
+
+.map-zoom button {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: 0;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--ink);
+  font-size: 1.3rem;
+  font-weight: 900;
+  line-height: 1;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+}
+
+.map-zoom button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* Phone held sideways: the sticky action panel used to cover the whole (short)
+   screen and hide the map. Map on the left, panels in their own scroll column. */
+@media (orientation: landscape) and (max-height: 520px) {
+  .board {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 44%);
+    align-items: start;
+  }
+
+  .sidebar {
+    display: flex;
+    position: sticky;
+    top: 6px;
+    max-height: calc(100dvh - 12px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .sidebar > * {
+    order: 0;
+  }
+
+  /* The action panel comes first in its column. */
+  .sidebar > .panel:first-child {
+    position: static;
+    order: -1;
+    box-shadow: none;
+  }
+
+  .map {
+    max-height: calc(100dvh - 20px);
+  }
+}
