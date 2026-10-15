@@ -26,7 +26,7 @@ export default function PrivacyLink() {
               <h2 id="privacy-title">Privacidade</h2>
               <p>
                 O WARZIL não tem cadastro. Para saber como o jogo é usado e melhorá-lo, ele envia <b>estatísticas anônimas</b>: modo escolhido, candidato,
-                duração e resultado das partidas, tipo de aparelho, país e de onde veio a visita (por exemplo, TikTok).
+                duração e resultado das partidas, falhas técnicas do jogo, tipo de aparelho, país e de onde veio a visita (por exemplo, TikTok).
               </p>
               <p>
                 Cada navegador recebe um código aleatório, guardado só nele. <b>Não coletamos</b> nome, apelido, e-mail, telefone, códigos de sala nem dados

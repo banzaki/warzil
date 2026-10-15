@@ -4,6 +4,7 @@
 // Needs Chrome installed. Usage:
 //   node scripts/e2e-online.mjs <screenshotDir> <baseUrl> <candidates comma list> [aiCount]
 //   e.g. node scripts/e2e-online.mjs ./shots https://warzil.qbbruno.workers.dev/ lula,flavio 0
+// Anonymous statistics are off unless ANALYTICS=on (only for checking staging ingestion).
 import { chromium } from 'playwright-core';
 
 const { ADJACENCY, FACTIONS } = await import(new URL('../src/game/data.js', import.meta.url));
@@ -17,10 +18,13 @@ const tag = `on${picks.length}h${aiCount}ai`;
 const browser = await chromium.launch({ channel: 'chrome', headless: true, args: ['--disable-gpu', '--renderer-process-limit=1'] });
 const errors = [];
 const players = [];
+const analytics = process.env.ANALYTICS === 'on';
+const sent = [];
 for (let i = 0; i < picks.length; i++) {
   const mobile = i === 1;
   const ctx = await browser.newContext({ viewport: mobile ? { width: 390, height: 844 } : { width: 1280, height: 800 }, isMobile: mobile, hasTouch: mobile });
-  await ctx.addInitScript(() => localStorage.setItem('warzil-settings', JSON.stringify({ aiSpeed: 'veryFast', analytics: false })));
+  await ctx.addInitScript((on) => localStorage.setItem('warzil-settings', JSON.stringify({ aiSpeed: 'veryFast', analytics: on })), analytics);
+  ctx.on('response', (r) => /posthog\.com/.test(r.url()) && sent.push(`${NICKS[i]} ${r.status()}`));
   const page = await ctx.newPage();
   page.on('pageerror', (e) => errors.push(`${NICKS[i]} pageerror: ${e.message}`));
   page.on('console', (m) => m.type() === 'error' && !/WebSocket/.test(m.text()) && errors.push(`${NICKS[i]} console: ${m.text()}`));
@@ -213,5 +217,9 @@ const guestWaits = await players[1].page.$('text=Aguardando o anfitrião');
 await host.page.getByRole('button', { name: /Revanche na sala/ }).click();
 for (const p of players) await p.page.waitForFunction(() => !document.querySelector('.overlay .end-card') && /Rodada 1/.test(document.querySelector('.round')?.textContent ?? ''), null, { timeout: 15000 });
 log('rematch: guest saw waiting message:', Boolean(guestWaits), '| all back to round 1, in sync:', await inSync());
+if (analytics) {
+  await host.page.waitForTimeout(3000);
+  log('analytics batches (player status):', JSON.stringify(sent));
+}
 log('ERRORS:', errors.length ? errors : 'none');
 await browser.close();

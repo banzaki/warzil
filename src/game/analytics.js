@@ -234,3 +234,16 @@ if (typeof window !== 'undefined') {
     if (document.visibilityState === 'hidden') flush(true);
   });
 }
+
+// Script errors, so a broken release shows up on the dashboard: only the error
+// type and the start of its message, at most 3 per page load.
+let errorsSent = 0;
+function captureError(kind, err) {
+  if (!enabled || errorsSent >= 3) return;
+  errorsSent++;
+  capture('app_error', { kind, name: String(err?.name ?? 'Error').slice(0, 40), message: String(err?.message ?? err ?? '').slice(0, 80) });
+}
+if (typeof window !== 'undefined') {
+  window.addEventListener('error', (e) => captureError('error', e.error ?? { message: e.message }));
+  window.addEventListener('unhandledrejection', (e) => captureError('rejection', e.reason));
+}

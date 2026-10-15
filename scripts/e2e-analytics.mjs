@@ -1,8 +1,10 @@
-// Product analytics check in a real browser, with PostHog replaced by an
-// intercepted fake host: every event the page sends is captured and inspected.
-// Build first with a fake key/host, then serve it:
+// Product analytics check in a real browser: every event the page sends is
+// read from its requests and inspected.
+// Offline, with PostHog replaced by an intercepted fake host:
 //   VITE_POSTHOG_KEY=phc_test VITE_POSTHOG_HOST=https://ph.test npx vite build --mode staging && npx vite preview --port 4173
 //   node scripts/e2e-analytics.mjs http://localhost:4173/
+// Or against staging, which really sends to PostHog (env = staging):
+//   node scripts/e2e-analytics.mjs https://warzil-preview.qbbruno.workers.dev/
 import { chromium } from 'playwright-core';
 
 const { ADJACENCY, FACTIONS } = await import(new URL('../src/game/data.js', import.meta.url));
@@ -18,16 +20,19 @@ await ctx.addInitScript(() => {
 });
 const events = [];
 const raw = [];
-await ctx.route('https://ph.test/**', async (route) => {
-  const body = route.request().postData() ?? '';
+const statuses = [];
+ctx.on('request', (req) => {
+  if (!/\/batch\/$/.test(req.url())) return;
+  const body = req.postData() ?? '';
   raw.push(body);
   try {
     for (const e of JSON.parse(body).batch ?? []) events.push(e);
   } catch {
     // ignore
   }
-  await route.fulfill({ status: 200, body: '{"status":1}' });
 });
+ctx.on('response', (res) => /\/batch\/$/.test(res.url()) && statuses.push(res.status()));
+await ctx.route('https://ph.test/**', (route) => route.fulfill({ status: 200, body: '{"status":1}' }));
 const page = await ctx.newPage();
 const named = (n) => events.filter((e) => e.event === n);
 const settle = () => page.waitForTimeout(2600); // the page flushes every 2 s
@@ -147,6 +152,14 @@ const all = JSON.stringify(events);
 check('same anonymous id and UUIDv7 session on every event', new Set(events.map((e) => e.distinct_id)).size === 1 && events.every((e) => /^[0-9a-f]{8}-[0-9a-f]{4}-7/.test(e.properties.$session_id)));
 check('no nicknames, Pix data or person profiles', !/"Ana"|"Beto"|a5da07d0|br\.gov\.bcb/.test(all) && events.every((e) => e.properties.$process_person_profile === false));
 
+// ---------- Script errors ----------
+await page.evaluate(() => {
+  for (let i = 0; i < 5; i++) setTimeout(() => { throw new TypeError(`test failure ${i}`); });
+});
+await settle();
+const errs = named('app_error');
+check('script errors reported once each, at most 3 per page', errs.length === 3 && errs[0].properties.name === 'TypeError' && errs[0].properties.kind === 'error', JSON.stringify(errs[0]?.properties.message));
+
 // ---------- Opt-out ----------
 const before = events.length;
 await page.locator('.start-gear .gear').click();
@@ -162,5 +175,6 @@ await settle();
 check('…and it stays off after a reload', events.length === before);
 
 console.log(results.join('\n'));
+console.log('batches answered:', JSON.stringify(statuses));
 console.log('events captured:', events.length, '| by name:', JSON.stringify(Object.fromEntries([...new Set(events.map((e) => e.event))].map((n) => [n, named(n).length]))));
 await browser.close();

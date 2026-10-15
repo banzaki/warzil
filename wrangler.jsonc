@@ -10,7 +10,7 @@
   "routes": [{ "pattern": "warzil.com.br", "custom_domain": true }],
   // Product analytics (PostHog, EU). The project key is public (it is also in the
   // page); empty = analytics off. See worker/analytics.js.
-  "vars": { "POSTHOG_HOST": "https://eu.i.posthog.com", "POSTHOG_KEY": "", "ANALYTICS_ENV": "production" },
+  "vars": { "POSTHOG_HOST": "https://eu.i.posthog.com", "POSTHOG_KEY": "phc_yAPsCTimsNEuMUFgo9hsJeTH2ZFueRMScRKiqUQ8zF8C", "ANALYTICS_ENV": "production" },
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",
@@ -37,7 +37,7 @@
       // Staging stays on workers.dev only (routes would otherwise be inherited).
       "workers_dev": true,
       "routes": [],
-      "vars": { "POSTHOG_HOST": "https://eu.i.posthog.com", "POSTHOG_KEY": "", "ANALYTICS_ENV": "staging" },
+      "vars": { "POSTHOG_HOST": "https://eu.i.posthog.com", "POSTHOG_KEY": "phc_yAPsCTimsNEuMUFgo9hsJeTH2ZFueRMScRKiqUQ8zF8C", "ANALYTICS_ENV": "staging" },
       "assets": {
         "directory": "./dist",
         "binding": "ASSETS",
