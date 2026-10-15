@@ -69,7 +69,9 @@ log('match started on all clients');
 // ---------- Board helpers ----------
 const board = (p) =>
   p.page.$$eval('path.state', (els, ids) => Object.fromEntries(els.map((e) => [e.dataset.id, { owner: ids.find((id) => e.classList.contains(id)), n: Number(e.getAttribute('aria-label').split(': ')[1].split(' ')[0]) }])), IDS);
-const snap = async (p) => JSON.stringify(await board(p)) + (await p.page.textContent('.round'));
+// Board, round and the official dice of the last exchange must match on every client.
+const snap = async (p) =>
+  JSON.stringify(await board(p)) + (await p.page.textContent('.round')) + ((await p.page.getAttribute('.panel.roll', 'aria-label', { timeout: 200 }).catch(() => '')) ?? '');
 async function inSync(timeout = 6000) {
   const t0 = Date.now();
   while (Date.now() - t0 < timeout) {
@@ -137,6 +139,26 @@ async function playTurn(p) {
   if (await over(p)) return 'over';
   await p.page.getByRole('button', { name: /Ir para movimentação/ }).click();
   await p.page.waitForFunction(() => /Encerrar turno/.test(document.body.innerText), null, { timeout: 8000 });
+  // v0.8: one state splits its armies between two of its neighbours.
+  b = await board(p);
+  const src = Object.keys(b).find((id) => b[id].owner === me && b[id].n >= 3 && ADJACENCY[id].filter((x) => b[x].owner === me).length >= 2);
+  if (src) {
+    const [a1, a2] = ADJACENCY[src].filter((x) => b[x].owner === me);
+    for (const [to, one] of [[a1, true], [a2, false]]) {
+      const srcPath = await p.page.getAttribute(`path.state[data-id="${src}"]`, 'd');
+      const selected = await p.page.evaluate((d) => document.querySelector('.outline.selected')?.getAttribute('d') === d, srcPath);
+      if (!selected) await tap(p, src);
+      await tap(p, to);
+      await p.page.waitForSelector('button:has-text("Mover")', { timeout: 5000 });
+      if (one) await p.page.getByRole('radio', { name: '1', exact: true }).click();
+      const before = await screenState(p);
+      await p.page.getByRole('button', { name: /^Mover/ }).click();
+      await afterServer(p, before);
+      await p.page.waitForTimeout(150);
+    }
+    const c = await board(p);
+    splitMoves.push(c[src].n >= 1 && c[a1].n > b[a1].n && c[a2].n > b[a2].n && c[src].n + c[a1].n + c[a2].n === b[src].n + b[a1].n + b[a2].n);
+  }
   const beforeEnd = await screenState(p);
   await p.page.getByRole('button', { name: /Encerrar turno/ }).click();
   await afterServer(p, beforeEnd);
@@ -144,6 +166,7 @@ async function playTurn(p) {
 }
 
 // ---------- Match ----------
+const splitMoves = [];
 let syncChecks = 0;
 let syncFails = 0;
 let turns = 0;
@@ -208,7 +231,8 @@ const titles = await Promise.all(players.map((p) => p.page.textContent('#end-tit
 const stats = await Promise.all(players.map((p) => p.page.textContent('.end-stats')));
 log('end titles:', titles.map((t, i) => `${players[i].nick}: ${t.trim()}`).join(' | '));
 log('same result on every client:', new Set(stats.map((s) => s.trim())).size === 1, '|', stats[0].trim());
-log(`turns ${turns}, sync checks ${syncChecks}, out of sync ${syncFails}`);
+log(`turns ${turns}, sync checks ${syncChecks} (board + official dice), out of sync ${syncFails}`);
+log(`one state split between two neighbours: ${splitMoves.filter(Boolean).length} of ${splitMoves.length} correct`);
 await host.page.screenshot({ path: `${OUT}/${tag}-end-host.png` });
 await players[1].page.screenshot({ path: `${OUT}/${tag}-end-guest.png` });
 
