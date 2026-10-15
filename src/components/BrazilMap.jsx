@@ -1,5 +1,5 @@
 import brazil from '@svg-maps/brazil';
-import { STATES, STATE_IDS } from '../game/data.js';
+import { FACTIONS, STATES, STATE_IDS } from '../game/data.js';
 import { useMapZoom } from './useMapZoom.js';
 
 const PATHS = Object.fromEntries(brazil.locations.map((l) => [l.id, l.path]));
@@ -84,9 +84,9 @@ export default function BrazilMap({ game, clickable, highlighted, spent, onSelec
                 onClick={() => onSelect(id)}
                 tabIndex={clickable.has(id) ? 0 : -1}
                 onKeyDown={(e) => handleKey(e, id)}
-                aria-label={`${STATES[id].name}: ${troops[id]} exércitos${spent.has(id) ? ', já movimentou' : ''}`}
+                aria-label={`${STATES[id].name}: ${troops[id]} exércitos de ${FACTIONS[owner[id]]?.name}${spent.has(id) ? ', já movimentou' : ''}`}
               >
-                <title>{`${STATES[id].name} (${troops[id]})`}</title>
+                <title>{`${STATES[id].name}: ${troops[id]} exércitos de ${FACTIONS[owner[id]]?.name}`}</title>
               </path>
             );
           })}

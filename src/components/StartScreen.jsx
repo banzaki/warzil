@@ -11,6 +11,7 @@ import { EXTRA_CANDIDATES, MAX_FACTIONS, PROTAGONISTS } from '../game/data.js';
 import { CANDIDATES, DISCLAIMER } from '../game/texts.js';
 import { formatDailyKey } from '../game/daily.js';
 import { MIN_LOCAL_HUMANS, NICK_MAX, validSeats } from '../game/hotseat.js';
+import { resetTutorial } from '../game/tutorial.js';
 
 const ARMY_LABELS = [
   [1, '1 por estado'],
@@ -52,6 +53,7 @@ export default function StartScreen({
   const [human, setHuman] = useState(null);
   const [showMore, setShowMore] = useState(false);
   const [simPicks, setSimPicks] = useState(PROTAGONISTS);
+  const [tipsAgain, setTipsAgain] = useState(false);
 
   const chooseCandidate = (id) => {
     setHuman(id);
@@ -552,15 +554,21 @@ export default function StartScreen({
       {header(true)}
       <section className="how">
         <h3>Como jogar</h3>
+        <p>
+          <b>Objetivo:</b> tomar todos os estados dos adversários. Cada turno tem três fases:
+        </p>
         <ol>
           <li>
-            <b>Comício:</b> coloque seus reforços. Errou? Dá para desfazer. Na 1ª rodada, todos fazem o comício antes de qualquer ataque.
+            <b>Comício:</b> toque nos seus estados para colocar reforços. Errou? Dá para desfazer. Na 1ª rodada, todos fazem o comício antes de qualquer
+            ataque.
           </li>
           <li>
-            <b>Batalha:</b> ataque vizinhos quantas vezes quiser, com até 3 dados. Empate é da defesa.
+            <b>Batalha:</b> toque num estado seu com 2 ou mais exércitos e depois num inimigo vizinho. Os dados decidem: o ataque rola até 3 (sempre deixa 1
+            em casa), a defesa até 3; compara-se maior com maior e cada dado perdido custa 1 exército. <b>Empate é da defesa.</b>
           </li>
           <li>
-            <b>Movimentação:</b> cada estado envia exércitos uma vez por turno. Quem chega não sai de novo.
+            <b>Movimentação:</b> passe tropas para estados seus vizinhos, para um ou vários. Cada exército se move uma vez por turno: quem acabou de chegar
+            fica, e 1 exército sempre fica em casa. Depois, encerre o turno.
           </li>
         </ol>
         <p>
@@ -568,6 +576,21 @@ export default function StartScreen({
           alguns reforços extras no primeiro comício (o número aparece no sorteio). Da 2ª rodada em diante, cada candidato faz o turno completo: comício,
           batalha e movimentação. Domine uma região inteira para ganhar bônus. Seja o último candidato no mapa para vencer.
         </p>
+        <div className="how-tips">
+          {tipsAgain ? (
+            <p className="hint">Pronto: as dicas aparecem de novo na sua próxima partida.</p>
+          ) : (
+            <button
+              className="btn ghost"
+              onClick={() => {
+                resetTutorial();
+                setTipsAgain(true);
+              }}
+            >
+              💡 Ver as dicas na próxima partida
+            </button>
+          )}
+        </div>
       </section>
       <div className="step-nav">{back('mode')}</div>
       {footer}

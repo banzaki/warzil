@@ -6,30 +6,105 @@ import { calcReinforcements, controlledRegions, territoriesOf } from '../game/en
 import { describeEvent, eliminatorLine, fill, loseLine } from '../game/texts.js';
 import { play } from '../game/sound.js';
 import { DIARY_TYPES, isHighlight } from '../game/highlights.js';
+import { pairResults, rollSummary } from '../game/dice.js';
 
 const name = (f) => FACTIONS[f].name;
 const stateName = (id) => STATES[id].name;
 // "a Bahia", "o Ceará", "São Paulo"
 const withArticle = (id) => fill('{o_state}', { state: id });
 
-// result[i]: 'win' | 'lose' | 'idle' (a die without a pair)
-function Dice({ values, side, result }) {
+// result[i]: 'win' | 'lose' | 'tie' | 'idle' (a die without a pair). hidden: still rolling.
+function Dice({ values, side, result, hidden = false }) {
   return (
     <span className="dice-row">
       {values.map((v, i) => (
-        <span key={i} className={`die ${side} ${result[i]}`}>
-          {v}
+        <span key={i} className={`die ${side} ${hidden ? 'rolling' : result[i]}`} aria-hidden={hidden}>
+          {hidden ? '?' : v}
         </span>
       ))}
     </span>
   );
 }
 
-function pairResults(roll) {
-  const pairs = Math.min(roll.attackerDice.length, roll.defenderDice.length);
-  const att = roll.attackerDice.map((v, i) => (i >= pairs ? 'idle' : v > roll.defenderDice[i] ? 'win' : 'lose'));
-  const def = roll.defenderDice.map((v, i) => (i >= pairs ? 'idle' : att[i] === 'win' ? 'lose' : 'win'));
-  return { att, def };
+const reducedMotion = () =>
+  document.documentElement.classList.contains('reduce-motion') || (typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+// The engine's own dice for one exchange, attack over defense so each compared
+// pair sits in the same column.
+function RollBody({ roll, hidden = false }) {
+  const { att, def } = pairResults(roll);
+  const s = rollSummary(roll);
+  return (
+    <>
+      <div className="roll-line">
+        <span className="roll-side">
+          ⚔️ ATAQUE <small>{stateName(roll.from)}</small>
+        </span>
+        <Dice values={roll.attackerDice} side={roll.attacker} result={att} hidden={hidden} />
+      </div>
+      <div className="roll-line">
+        <span className="roll-side">
+          🛡️ DEFESA <small>{stateName(roll.to)}</small>
+        </span>
+        <Dice values={roll.defenderDice} side={roll.defender} result={def} hidden={hidden} />
+      </div>
+      {hidden ? (
+        <p className="roll-result">Rolando os dados…</p>
+      ) : (
+        <>
+          <p className="roll-result">
+            {s.result}
+            {roll.conquered && <b className="roll-win"> 🎉 {name(roll.attacker)} conquistou {withArticle(roll.to)}!</b>}
+          </p>
+          {s.series && <p className="roll-series">{s.series}</p>}
+          <p className="roll-tie">{s.tie}</p>
+        </>
+      )}
+    </>
+  );
+}
+
+// Last exchange, kept in the side panel.
+export function RollPanel({ game }) {
+  const roll = game.lastRoll;
+  if (!roll) return null;
+  return (
+    <div className="panel roll" key={roll.id} aria-label={rollSummary(roll).dice}>
+      <RollBody roll={roll} />
+    </div>
+  );
+}
+
+const TRAY_ROLL_MS = 450;
+const TRAY_SHOW_MS = 3200;
+
+// Every new exchange pops up over the map for a few seconds: a short roll, then
+// the real dice. HTML over the map, so map zoom never shrinks it. Taps go
+// through to the map; ✕ closes it early.
+// at: 'map' (wide screens) or 'panel' (phones); CSS shows the one that fits.
+export function DiceTray({ game, at }) {
+  const roll = game.lastRoll;
+  const [stage, setStage] = useState('hidden');
+  useEffect(() => {
+    if (!roll) return setStage('hidden');
+    const quick = reducedMotion();
+    setStage(quick ? 'shown' : 'rolling');
+    const reveal = quick ? null : setTimeout(() => setStage('shown'), TRAY_ROLL_MS);
+    const hide = setTimeout(() => setStage('hidden'), (quick ? 0 : TRAY_ROLL_MS) + TRAY_SHOW_MS);
+    return () => {
+      clearTimeout(reveal);
+      clearTimeout(hide);
+    };
+  }, [roll?.id]);
+  if (!roll || stage === 'hidden') return null;
+  return (
+    <div className={`dice-tray at-${at} ${stage}`} role="status" aria-live="polite">
+      <button className="tray-close" onClick={() => setStage('hidden')} aria-label="Fechar os dados">
+        ✕
+      </button>
+      <RollBody roll={roll} hidden={stage === 'rolling'} />
+    </div>
+  );
 }
 
 // compact: smaller chip used for CPU rivals in 3-4 faction matches and in simulations.
@@ -94,41 +169,16 @@ export function SpeechBubble({ game, choose, event = game.log[0] }) {
   );
 }
 
-export function RollPanel({ game }) {
-  const roll = game.lastRoll;
-  if (!roll) return null;
-  const { att, def } = pairResults(roll);
-  return (
-    <div className="panel roll" key={roll.id}>
-      <div className="roll-line">
-        <span>⚔️ {stateName(roll.from)}</span>
-        <Dice values={roll.attackerDice} side={roll.attacker} result={att} />
-      </div>
-      <div className="roll-line">
-        <span>🛡️ {stateName(roll.to)}</span>
-        <Dice values={roll.defenderDice} side={roll.defender} result={def} />
-      </div>
-      <p className="roll-result">
-        {roll.conquered ? (
-          <b className="roll-win">🎉 {name(roll.attacker)} conquistou {withArticle(roll.to)}!</b>
-        ) : (
-          <>
-            <span className={roll.attackerLoss ? 'loss' : ''}>Ataque −{roll.attackerLoss}</span>
-            {' · '}
-            <span className={roll.defenderLoss ? 'loss' : ''}>Defesa −{roll.defenderLoss}</span>
-          </>
-        )}
-        {' · empate é da defesa'}
-      </p>
-    </div>
-  );
-}
-
+// Secondary information: collapsed by default, one line until opened.
 export function RegionsPanel({ game }) {
   const owners = Object.fromEntries(game.factions.map((f) => [f, controlledRegions(game, f)]));
+  const held = game.factions.reduce((n, f) => n + owners[f].length, 0);
   return (
-    <div className="panel regions">
-      <div className="panel-title">Bônus por região</div>
+    <details className="panel regions">
+      <summary className="panel-title">
+        Bônus por região
+        <small className="regions-count">{held ? `${held} dominada${held > 1 ? 's' : ''}` : 'nenhuma dominada'}</small>
+      </summary>
       <ul>
         {Object.entries(REGIONS).map(([key, r]) => {
           const holder = game.factions.find((f) => owners[f].includes(key));
@@ -140,7 +190,8 @@ export function RegionsPanel({ game }) {
           );
         })}
       </ul>
-    </div>
+      <p className="hint small">Quem domina uma região inteira ganha esses reforços a mais em todo comício.</p>
+    </details>
   );
 }
 

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import BrazilMap from './BrazilMap.jsx';
 import Caricature from './Caricature.jsx';
-import { CampaignLog, EventBanner, PlayerChip, RegionsPanel, RollPanel, SpeechBubble, useGameSounds } from './BoardParts.jsx';
+import Coach from './Coach.jsx';
+import { CampaignLog, DiceTray, EventBanner, PlayerChip, RegionsPanel, RollPanel, SpeechBubble, useGameSounds } from './BoardParts.jsx';
 import SettingsButton from './SettingsPanel.jsx';
 import ShareSheet from './ShareSheet.jsx';
 import SupportButton from './SupportButton.jsx';
@@ -416,7 +417,7 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate, 
         ) : (
           <p className="hint">
             {from
-              ? `${stateName(from)} pode enviar até ${movableTroops(game, from)}${game.received[from] ? ` (os ${game.received[from]} recebidos ficam)` : ''}. Escolha um estado vizinho seu.`
+              ? `${stateName(from)} pode enviar até ${movableTroops(game, from)}${game.received?.[from] ? ` (os ${game.received[from]} que chegaram ficam)` : ''}. Escolha um estado vizinho seu; o que sobrar pode ir para outro vizinho.`
               : PHASE_HELP.fortify}
           </p>
         )}
@@ -475,10 +476,11 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate, 
             game={game}
             clickable={clickable}
             highlighted={highlighted}
-            spent={game.phase === 'fortify' ? new Set(Object.keys(game.movedOut)) : EMPTY}
+            spent={game.phase === 'fortify' ? new Set(Object.keys(game.movedOut ?? {}).filter((id) => movableTroops(game, id) === 0)) : EMPTY}
             onSelect={onSelect}
           />
           <EventBanner game={game} choose={choose} />
+          <DiceTray game={game} at="map" />
           <SpeechBubble game={game} choose={choose} />
         </section>
 
@@ -490,12 +492,15 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate, 
               {game.phase !== 'over' && <span className="phase">{PHASE_NAMES[game.phase]}</span>}
             </div>
             {isHumanTurn && game.phase === 'reinforce' && <p className="hint">{PHASE_HELP.reinforce}</p>}
+            <Coach game={game} me={isHumanTurn && !handoff ? human : null} />
             {panel}
+            {/* Phones: the dice pop up right above the action panel, where the player is looking. */}
+            <DiceTray game={game} at="panel" />
           </div>
 
           <RollPanel game={game} />
-          <RegionsPanel game={game} />
           <CampaignLog game={game} choose={choose} />
+          <RegionsPanel game={game} />
 
           <button className="btn ghost quit" onClick={online ? online.onLeave : onChangeCandidate}>
             {online ? '⟲ Sair da sala' : '⟲ Voltar ao menu'}

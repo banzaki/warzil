@@ -147,8 +147,8 @@ export default function SimulationScreen({ factions, onMenu, prefs, match }) {
           </div>
 
           <RollPanel game={game} />
-          <RegionsPanel game={game} />
           <CampaignLog game={game} choose={choose} />
+          <RegionsPanel game={game} />
 
           <button className="btn ghost quit" onClick={onMenu}>
             ⟲ Voltar ao menu

@@ -34,7 +34,7 @@ export default function App() {
   const [matchId, setMatchId] = useState(0);
   const [settings, setSettings] = useState(loadSettings);
   // Online rooms: opened from the menu or directly by an invite link (?sala=CODE).
-  const [inviteCode] = useState(() => normalizeCode(new URLSearchParams(window.location.search).get('sala')) || null);
+  const [inviteCode, setInviteCode] = useState(() => normalizeCode(new URLSearchParams(window.location.search).get('sala')) || null);
   // A saved session (reload during a match) reopens the room automatically.
   const [online, setOnline] = useState(() => Boolean(inviteCode) || Boolean(loadSession()));
   // Start-of-match deal for Lula vs. Flávio duels: 'random' (default) or 'polarized'.
@@ -124,7 +124,9 @@ export default function App() {
         prefs={prefs}
         onExit={() => {
           setOnline(false);
+          // The invite was used (or declined): "Jogar online" opens the normal entry next time.
           if (inviteCode) window.history.replaceState(null, '', '/');
+          setInviteCode(null);
         }}
       />
     );

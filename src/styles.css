@@ -2952,3 +2952,271 @@ html.reduce-motion .draw-bonus {
   font-size: 0.92rem;
   line-height: 1.4;
 }
+
+/* ---------- v0.8: dice in the spotlight ---------- */
+
+/* Label column of fixed width, dice from the left: each compared pair (attack die
+   over defense die) sits in the same column. */
+.roll-line {
+  display: grid;
+  grid-template-columns: 7.4em 1fr;
+  justify-content: start;
+}
+
+.roll-side {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+}
+
+.roll-side small {
+  font-weight: 700;
+  letter-spacing: 0;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.die.tie {
+  opacity: 0.45;
+  box-shadow: none;
+  outline: 2px dashed var(--muted);
+  outline-offset: 1px;
+}
+
+/* A die without a pair is not compared: an empty outline, not a faded loser. */
+.die.idle {
+  background: transparent;
+  color: var(--c-dark);
+  border: 2px dashed var(--c);
+  box-shadow: none;
+}
+
+.die.rolling {
+  background: #c5cad6;
+  box-shadow: none;
+  animation: tumble 0.45s linear infinite;
+}
+
+@keyframes tumble {
+  50% {
+    transform: rotate(180deg) scale(0.8);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.roll-result {
+  color: var(--ink);
+  font-weight: 800;
+}
+
+.roll-series {
+  margin: 2px 0 0;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.roll-tie {
+  margin: 2px 0 0;
+  font-size: 0.76rem;
+  color: var(--muted);
+}
+
+/* Pop-up after every exchange: over the map's lower right corner on wide screens. */
+.dice-tray {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  z-index: 6;
+  width: min(300px, calc(100% - 28px));
+  padding: 10px 12px 8px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.97);
+  color: var(--ink);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  /* Taps reach the map underneath; only ✕ is a button. */
+  pointer-events: none;
+  animation: bubble 0.2s ease-out;
+}
+
+.dice-tray p {
+  margin-bottom: 0;
+}
+
+.tray-close {
+  pointer-events: auto;
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.dice-tray.at-panel {
+  display: none;
+}
+
+/* ---------- v0.8: region bonuses, collapsed ---------- */
+
+.regions summary {
+  cursor: pointer;
+  list-style: none;
+  font-size: 0.92rem;
+}
+
+.regions summary::-webkit-details-marker {
+  display: none;
+}
+
+.regions summary::before {
+  content: '▸';
+  color: var(--muted);
+}
+
+.regions[open] summary::before {
+  content: '▾';
+}
+
+.regions-count {
+  margin-left: auto;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.regions:not([open]) {
+  padding-top: 9px;
+  padding-bottom: 9px;
+}
+
+.regions .hint.small {
+  margin-top: 6px;
+}
+
+/* ---------- v0.8: first-match tips ---------- */
+
+.coach {
+  margin: 8px 0;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: #fff8e1;
+  border: 2px solid var(--yellow);
+  animation: bubble 0.25s ease-out;
+}
+
+.coach p {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.35;
+}
+
+.coach-step {
+  font-weight: 900;
+  color: #8a6d00;
+}
+
+.coach-buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.coach-buttons .btn {
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  min-height: 36px;
+}
+
+.how .how-tips {
+  margin-top: 10px;
+}
+
+/* Phones (map on top, action panel stuck to the bottom): the dice pop up right
+   above the action panel instead of under it. */
+@media (max-width: 860px) {
+  .dice-tray.at-map {
+    display: none;
+  }
+
+  .dice-tray.at-panel {
+    display: block;
+    left: 0;
+    right: 0;
+    bottom: calc(100% + 8px);
+    width: auto;
+  }
+
+  .die {
+    width: 28px;
+    height: 28px;
+  }
+}
+
+/* Phone held sideways: map and panels side by side, the map shows the dice. */
+@media (orientation: landscape) and (max-height: 520px) {
+  .dice-tray.at-map {
+    display: block;
+  }
+
+  .dice-tray.at-panel {
+    display: none;
+  }
+}
+
+/* ---------- v0.8: invite entry can switch rooms ---------- */
+
+.other-room {
+  font-size: 0.95rem;
+}
+
+.join-row .code-clear {
+  padding: 0 12px;
+  min-width: 44px;
+}
+
+.online-card-box .hint {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* ---------- v0.8: phones keep the zoom buttons off the northeast counts ---------- */
+
+/* On narrow screens the top-right buttons covered Rio Grande do Norte's count;
+   the top-left corner of the map is open sea. */
+@media (max-width: 560px) {
+  .map-zoom {
+    right: auto;
+    left: 8px;
+    top: 8px;
+  }
+}
+
+@media (max-width: 560px) {
+  /* Short tips on phones: the action panel stays low over the map. */
+  .coach {
+    margin: 6px 0;
+    padding: 6px 8px;
+  }
+
+  .coach p {
+    font-size: 0.8rem;
+  }
+
+  .coach-buttons .btn {
+    min-height: 32px;
+    padding: 4px 10px;
+    font-size: 0.8rem;
+  }
+
+  /* Room code next to the ✕ button: all 8 characters must fit. */
+  .join-row .code-input {
+    letter-spacing: 0.08em;
+    padding: 10px 6px;
+  }
+}

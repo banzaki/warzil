@@ -15,12 +15,15 @@ const ARMY_LABELS = [
   ['mixed', 'Misturado (1–5)'],
 ];
 
-// Entry: nickname, then create a room or join one by code / invite link.
+// Entry: nickname, then create a room or join one by code / invite link. An
+// invite fills in its room, but "Entrar em outra sala" opens the code field.
 function Entry({ initialCode, onSession, onExit }) {
   const [nick, setNick] = useState(loadNick);
   const [code, setCode] = useState(initialCode ?? '');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+  const [otherRoom, setOtherRoom] = useState(!initialCode);
+  const validCode = [CODE_LENGTH, LEGACY_CODE_LENGTH].includes(normalizeCode(code).length);
 
   const go = async (kind) => {
     const clean = nick.trim();
@@ -48,10 +51,22 @@ function Entry({ initialCode, onSession, onExit }) {
           <span>Seu apelido</span>
           <input value={nick} maxLength={16} onChange={(e) => setNick(e.target.value)} placeholder="Ex.: Bruno" autoFocus />
         </label>
-        {initialCode ? (
-          <button className="btn primary big" disabled={busy} onClick={() => go('join')}>
-            Entrar na sala {formatCode(initialCode)}
-          </button>
+        {!otherRoom ? (
+          <>
+            <button className="btn primary big" disabled={busy} onClick={() => go('join')}>
+              Entrar na sala {formatCode(initialCode)}
+            </button>
+            <button
+              className="btn ghost other-room"
+              disabled={busy}
+              onClick={() => {
+                setError(null);
+                setOtherRoom(true);
+              }}
+            >
+              Entrar em outra sala
+            </button>
+          </>
         ) : (
           <>
             <button className="btn primary big" disabled={busy} onClick={() => go('create')}>
@@ -63,14 +78,22 @@ function Entry({ initialCode, onSession, onExit }) {
                 value={code}
                 maxLength={12}
                 onChange={(e) => setCode(e.target.value.toUpperCase())}
+                onFocus={(e) => e.target.select()}
                 placeholder="ABCD-EFGH"
                 aria-label="Código da sala"
                 className="code-input"
+                autoFocus={Boolean(initialCode)}
               />
-              <button className="btn primary" disabled={busy || ![CODE_LENGTH, LEGACY_CODE_LENGTH].includes(normalizeCode(code).length)} onClick={() => go('join')}>
+              {code && (
+                <button className="btn ghost code-clear" onClick={() => setCode('')} aria-label="Apagar o código">
+                  ✕
+                </button>
+              )}
+              <button className="btn primary" disabled={busy || !validCode} onClick={() => go('join')}>
                 Entrar
               </button>
             </div>
+            {code && !validCode && <p className="hint small">O código tem 8 letras e números, como ABCD-EFGH.</p>}
           </>
         )}
         {error && <p className="online-error">{error}</p>}
@@ -318,6 +341,8 @@ export default function OnlineScreen({ initialCode, prefs, onExit }) {
         onSession={(s) => {
           saveSession(s);
           setSession(s);
+          // Joined a different room than the invite: drop ?sala= so a reload reconnects to this one.
+          if (initialCode && s.code !== initialCode) window.history.replaceState(null, '', '/');
         }}
       />
     );
