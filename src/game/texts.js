@@ -145,7 +145,7 @@ export const PHASE_HELP = {
   reinforce: 'Toque nos seus estados para colocar reforços.',
   attack: 'Toque num estado seu (2+ exércitos) e depois num inimigo brilhando para rolar os dados.',
   occupy: 'Estado conquistado! Escolha quantos exércitos entram.',
-  fortify: 'Toque num estado seu e depois num vizinho seu. Cada estado envia uma vez por turno; quem chega não sai de novo. Tracejado = já moveu.',
+  fortify: 'Toque num estado seu e depois num vizinho seu. Um estado pode mandar tropas para vários vizinhos, mas cada exército só se move uma vez: quem acabou de chegar fica. Tracejado = não tem mais o que enviar.',
 };
 
 export const PHASE_NAMES = {

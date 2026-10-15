@@ -481,12 +481,17 @@ export function attack(state, from, to, rng = Math.random) {
 }
 
 // Keep rolling until the target falls or the attacker runs out of dice.
+// lastRoll.series sums up every exchange, so the screen can show the whole fight.
 export function blitz(state, from, to, rng = Math.random) {
   let next = state;
+  const series = { rolls: 0, attackerLoss: 0, defenderLoss: 0 };
   while (canAttack(next, from, to)) {
     next = attack(next, from, to, rng);
+    series.rolls++;
+    series.attackerLoss += next.lastRoll.attackerLoss;
+    series.defenderLoss += next.lastRoll.defenderLoss;
   }
-  return next;
+  return series.rolls > 1 ? { ...next, lastRoll: { ...next.lastRoll, series } } : next;
 }
 
 // total: armies that end up in the conquered state, between min and max.
@@ -510,14 +515,18 @@ export function endAttack(state) {
 }
 
 // ---------- Movement ----------
-// Many moves per turn, but each state sends armies out only once, and armies
-// received this turn stay put (no chaining an army across the map).
+// Each army moves at most once per movement phase. A state may send armies to
+// several neighbours, in several transfers, as long as they are armies it had
+// before anything arrived this phase: armies received this phase stay put (no
+// chaining an army across the map), and 1 army always stays home.
+// Moving in after a conquest belongs to the battle and is not counted here.
+// movedOut[id]: armies sent from id this phase (older saved games: true = sent).
+// received[id]: armies that arrived in id this phase.
 
-// Only the state's own (pre-existing) armies may leave, and 1 army must stay.
 // Received armies can be the one that stays: 1 own + 5 received -> the own 1 may go.
 export function movableTroops(state, id) {
-  if (state.owner[id] !== state.current || state.movedOut[id]) return 0;
-  const own = state.troops[id] - (state.received[id] ?? 0);
+  if (state.owner[id] !== state.current) return 0;
+  const own = state.troops[id] - (state.received?.[id] ?? 0);
   return Math.max(0, Math.min(own, state.troops[id] - 1));
 }
 
@@ -531,17 +540,19 @@ export function canFortify(state, from, to) {
   );
 }
 
+// amount must be 1..movableTroops(from); anything else is refused (no clamping),
+// so a hand-made command can never move more than the rules allow.
 export function fortify(state, from, to, amount) {
-  if (!canFortify(state, from, to)) return state;
-  const n = Math.max(1, Math.min(amount, movableTroops(state, from)));
-  return {
+  if (!canFortify(state, from, to) || !Number.isInteger(amount) || amount < 1 || amount > movableTroops(state, from)) return state;
+  const next = {
     ...state,
-    troops: { ...state.troops, [from]: state.troops[from] - n, [to]: state.troops[to] + n },
-    movedOut: { ...state.movedOut, [from]: true },
-    received: { ...state.received, [to]: (state.received[to] ?? 0) + n },
-    selected: null,
+    troops: { ...state.troops, [from]: state.troops[from] - amount, [to]: state.troops[to] + amount },
+    movedOut: { ...state.movedOut, [from]: (Number(state.movedOut?.[from]) || 0) + amount },
+    received: { ...state.received, [to]: (state.received?.[to] ?? 0) + amount },
     target: null,
   };
+  // Keep the origin selected while it still has armies to send elsewhere.
+  return { ...next, selected: movableTroops(next, from) > 0 ? from : null };
 }
 
 // End this faction's battle turn. The next surviving faction battles; after the

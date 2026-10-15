@@ -138,14 +138,16 @@ function occupyAmount(state) {
 }
 
 // Movement: idle armies take one step towards the front; a quiet border state
-// may also feed a neighbour under heavier threat.
+// may also feed a neighbour under heavier threat. AI policy (not a rule): one
+// outgoing move per state, as in the matches the turn-position bonus was
+// calibrated on.
 function pickFortify(state) {
   const me = state.current;
   const dist = frontDistance(state, me);
   let best = null;
   for (const from of STATE_IDS) {
     const amount = movableTroops(state, from);
-    if (amount < 1) continue;
+    if (amount < 1 || state.movedOut?.[from]) continue;
     const here = dist[from];
     for (const to of ADJACENCY[from]) {
       if (!canFortify(state, from, to)) continue;
