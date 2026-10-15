@@ -407,21 +407,30 @@ b.caiado {
   cursor: pointer;
 }
 
+/* Troop counts: dark number on a white disc reads the same over every candidate's
+   color; the ring in the owner's dark shade still says whose state it is (also for
+   the small states whose count sits outside the map). */
 .badge .pin {
-  fill: var(--c-dark);
-  stroke: #fff;
-  stroke-width: 2;
+  fill: #fff;
+  stroke: var(--c-dark);
+  stroke-width: 2.5;
 }
 
 .badge text {
-  fill: #fff;
+  fill: #0b1a33;
   font-size: 11px;
   font-weight: 900;
   text-anchor: middle;
   pointer-events: none;
 }
 
+.badge text.wide {
+  font-size: 8.5px;
+  letter-spacing: -0.3px;
+}
+
 .badge text.abbr {
+  fill: #fff;
   text-anchor: start;
   font-size: 9px;
   opacity: 0.85;
@@ -977,6 +986,10 @@ b.caiado {
 
   .badge text {
     font-size: 15px;
+  }
+
+  .badge text.wide {
+    font-size: 11.5px;
   }
 
   .badge text.abbr {

@@ -107,7 +107,7 @@ export default function BrazilMap({ game, clickable, highlighted, spent, onSelec
                 {/* Larger invisible touch target (r 14 keeps the closest callouts, 28 apart, from overlapping). */}
                 <circle cx={x} cy={y} r="14" className="hit" />
                 <circle cx={x} cy={y} r="11" className="pin" />
-                <text x={x} y={y} dy="0.36em">
+                <text x={x} y={y} dy="0.36em" className={troops[id] >= 100 ? 'wide' : undefined}>
                   {troops[id]}
                 </text>
                 {callout && (
