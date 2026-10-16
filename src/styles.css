@@ -695,52 +695,6 @@ b.caiado {
   font-size: 1.5rem;
 }
 
-/* ---------- Dice ---------- */
-
-.roll {
-  animation: bubble 0.25s ease-out;
-}
-
-.roll-line {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  font-weight: 800;
-  font-size: 0.9rem;
-  margin-bottom: 6px;
-}
-
-.dice-row {
-  display: flex;
-  gap: 5px;
-}
-
-.die {
-  width: 30px;
-  height: 30px;
-  display: grid;
-  place-items: center;
-  border-radius: 8px;
-  background: var(--c);
-  color: #fff;
-  font-weight: 900;
-  box-shadow: 0 3px 0 var(--c-dark);
-  animation: roll 0.35s ease-out;
-}
-
-@keyframes roll {
-  from {
-    transform: rotate(-200deg) scale(0.4);
-  }
-}
-
-.roll-result {
-  margin: 4px 0 0;
-  font-size: 0.82rem;
-  color: var(--muted);
-}
-
 /* ---------- Regions & log ---------- */
 
 .regions ul,
@@ -897,10 +851,6 @@ b.caiado {
     padding: 4px;
   }
 
-  .roll {
-    order: 2;
-  }
-
   .regions,
   .log,
   .quit,
@@ -1016,28 +966,7 @@ html.reduce-motion *::after {
   }
 }
 
-/* ---------- v0.2: dice outcomes & movement marks ---------- */
-
-.die.lose {
-  opacity: 0.4;
-  text-decoration: line-through;
-  box-shadow: none;
-}
-
-.die.win {
-  outline: 3px solid var(--yellow);
-  outline-offset: 1px;
-}
-
-.die.idle {
-  opacity: 0.25;
-}
-
-.dice-info {
-  font-size: 0.88rem;
-  font-weight: 700;
-  color: var(--muted);
-}
+/* ---------- v0.2: movement marks ---------- */
 
 .state.spent {
   stroke: var(--yellow);
@@ -1455,15 +1384,6 @@ html.reduce-motion *::after {
     opacity: 0;
     transform: translate(-50%, -6px) scale(1);
   }
-}
-
-.roll-result .loss {
-  color: #c62828;
-  font-weight: 900;
-}
-
-.roll-win {
-  color: #2e7d32;
 }
 
 @media (max-width: 860px) {
@@ -2953,116 +2873,6 @@ html.reduce-motion .draw-bonus {
   line-height: 1.4;
 }
 
-/* ---------- v0.8: dice in the spotlight ---------- */
-
-/* Label column of fixed width, dice from the left: each compared pair (attack die
-   over defense die) sits in the same column. */
-.roll-line {
-  display: grid;
-  grid-template-columns: 7.4em 1fr;
-  justify-content: start;
-}
-
-.roll-side {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.15;
-  font-size: 0.78rem;
-  letter-spacing: 0.04em;
-}
-
-.roll-side small {
-  font-weight: 700;
-  letter-spacing: 0;
-  color: var(--muted);
-  overflow-wrap: anywhere;
-}
-
-.die.tie {
-  opacity: 0.45;
-  box-shadow: none;
-  outline: 2px dashed var(--muted);
-  outline-offset: 1px;
-}
-
-/* A die without a pair is not compared: an empty outline, not a faded loser. */
-.die.idle {
-  background: transparent;
-  color: var(--c-dark);
-  border: 2px dashed var(--c);
-  box-shadow: none;
-}
-
-.die.rolling {
-  background: #c5cad6;
-  box-shadow: none;
-  animation: tumble 0.45s linear infinite;
-}
-
-@keyframes tumble {
-  50% {
-    transform: rotate(180deg) scale(0.8);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.roll-result {
-  color: var(--ink);
-  font-weight: 800;
-}
-
-.roll-series {
-  margin: 2px 0 0;
-  font-size: 0.8rem;
-  font-weight: 800;
-}
-
-.roll-tie {
-  margin: 2px 0 0;
-  font-size: 0.76rem;
-  color: var(--muted);
-}
-
-/* Pop-up after every exchange: over the map's lower right corner on wide screens. */
-.dice-tray {
-  position: absolute;
-  right: 14px;
-  bottom: 14px;
-  z-index: 6;
-  width: min(300px, calc(100% - 28px));
-  padding: 10px 12px 8px;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.97);
-  color: var(--ink);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-  /* Taps reach the map underneath; only ✕ is a button. */
-  pointer-events: none;
-  animation: bubble 0.2s ease-out;
-}
-
-.dice-tray p {
-  margin-bottom: 0;
-}
-
-.tray-close {
-  pointer-events: auto;
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  width: 32px;
-  height: 32px;
-  border: 0;
-  background: transparent;
-  color: var(--muted);
-  font-size: 0.95rem;
-}
-
-.dice-tray.at-panel {
-  display: none;
-}
-
 /* ---------- v0.8: region bonuses, collapsed ---------- */
 
 .regions summary {
@@ -3099,74 +2909,8 @@ html.reduce-motion .draw-bonus {
   margin-top: 6px;
 }
 
-/* ---------- v0.8: first-match tips ---------- */
-
-.coach {
-  margin: 8px 0;
-  padding: 8px 10px;
-  border-radius: 12px;
-  background: #fff8e1;
-  border: 2px solid var(--yellow);
-  animation: bubble 0.25s ease-out;
-}
-
-.coach p {
-  margin: 0;
-  font-size: 0.88rem;
-  line-height: 1.35;
-}
-
-.coach-step {
-  font-weight: 900;
-  color: #8a6d00;
-}
-
-.coach-buttons {
-  display: flex;
-  gap: 8px;
-  margin-top: 6px;
-}
-
-.coach-buttons .btn {
-  padding: 6px 12px;
-  font-size: 0.85rem;
-  min-height: 36px;
-}
-
 .how .how-tips {
   margin-top: 10px;
-}
-
-/* Phones (map on top, action panel stuck to the bottom): the dice pop up right
-   above the action panel instead of under it. */
-@media (max-width: 860px) {
-  .dice-tray.at-map {
-    display: none;
-  }
-
-  .dice-tray.at-panel {
-    display: block;
-    left: 0;
-    right: 0;
-    bottom: calc(100% + 8px);
-    width: auto;
-  }
-
-  .die {
-    width: 28px;
-    height: 28px;
-  }
-}
-
-/* Phone held sideways: map and panels side by side, the map shows the dice. */
-@media (orientation: landscape) and (max-height: 520px) {
-  .dice-tray.at-map {
-    display: block;
-  }
-
-  .dice-tray.at-panel {
-    display: none;
-  }
 }
 
 /* ---------- v0.8: invite entry can switch rooms ---------- */
@@ -3198,25 +2942,486 @@ html.reduce-motion .draw-bonus {
 }
 
 @media (max-width: 560px) {
-  /* Short tips on phones: the action panel stays low over the map. */
+  /* Room code next to the ✕ button: all 8 characters must fit. */
+  .join-row .code-input {
+    letter-spacing: 0.08em;
+    padding: 10px 6px;
+  }
+}
+
+/* ---------- v0.8.1: dice pop-up with pips, over the map ---------- */
+
+.dice-hud {
+  position: absolute;
+  z-index: 6;
+  display: grid;
+  gap: 4px;
+  padding: 8px 10px 7px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.96);
+  color: var(--ink);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+  max-width: min(250px, calc(100% - 16px));
+  cursor: pointer;
+  animation: hud-in 0.18s ease-out;
+}
+
+@keyframes hud-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+}
+
+.hud-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hud-label {
+  display: flex;
+  flex-direction: column;
+  width: 4.7em;
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  line-height: 1.15;
+}
+
+.hud-label small {
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hud-dice {
+  display: flex;
+  gap: 6px;
+}
+
+.die6 {
+  display: block;
+  width: 30px;
+  height: 30px;
+  overflow: visible;
+  transition: opacity 0.15s, transform 0.15s;
+}
+
+.die6 .die-body {
+  fill: var(--c);
+  stroke: var(--c-dark);
+  stroke-width: 5;
+}
+
+.die6 .pip {
+  fill: #fff;
+}
+
+/* The die that won its pair: yellow rim. Lost (or lost on a tie): faded. */
+.die6.win {
+  transform: scale(1.08);
+}
+
+.die6.win .die-body {
+  stroke: var(--yellow);
+  stroke-width: 9;
+}
+
+.die6.lose,
+.die6.tie {
+  opacity: 0.35;
+}
+
+.die6.tie .die-body {
+  stroke-dasharray: 12 7;
+}
+
+/* A die without a pair is not compared: outline only. */
+.die6.idle .die-body {
+  fill: #fff;
+  stroke: var(--c);
+  stroke-dasharray: 12 7;
+}
+
+.die6.idle .pip {
+  fill: var(--c);
+}
+
+.die6.rolling {
+  animation: die-roll 0.5s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+.hud-dice .die6.rolling:nth-child(2) {
+  animation-delay: 0.04s;
+}
+
+.hud-dice .die6.rolling:nth-child(3) {
+  animation-delay: 0.08s;
+}
+
+@keyframes die-roll {
+  0% {
+    opacity: 0.2;
+    filter: blur(1.5px);
+    transform: translateY(-12px) rotate(-240deg) scale(0.6);
+  }
+  60% {
+    opacity: 1;
+    filter: blur(0.6px);
+    transform: translateY(2px) rotate(16deg) scale(1.05);
+  }
+  80% {
+    filter: none;
+    transform: rotate(-6deg);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+.hud-result {
+  display: flex;
+  flex-direction: column;
+  margin-top: 2px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.hud-result small {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.hud-conquest {
+  color: #2e7d32;
+}
+
+.review-roll {
+  width: 34px;
+  height: 34px;
+  margin: -6px -6px -6px 4px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
+.review-roll:hover,
+.review-roll:focus-visible {
+  background: #eef0f6;
+}
+
+/* ---------- v0.8.1: compact action panel ---------- */
+
+.panel-body .one-line {
+  margin: 4px 0 2px;
+  font-size: 0.92rem;
+}
+
+.big-number {
+  margin: 2px 0 6px;
+}
+
+.chips.compact {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.chips.compact .chip {
+  min-height: 40px;
+  padding: 6px 4px;
+}
+
+.action-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.action-row .main {
+  flex: 1;
+}
+
+.btn.icon {
+  flex: 0 0 46px;
+  padding: 0;
+  font-size: 1.25rem;
+}
+
+.btn.wide {
+  width: 100%;
+  margin-top: 6px;
+}
+
+.btn.next-step {
+  width: 100%;
+  margin-top: 8px;
+  padding: 9px 14px;
+}
+
+.matchup .dice-count {
+  margin-left: auto;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.picker-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.stepper {
+  margin: 6px 0 2px;
+}
+
+.stepper .step-edge {
+  width: auto;
+  padding: 0 10px;
+  font-size: 0.85rem;
+}
+
+.stepper .step-value {
+  min-width: 2.2ch;
+  text-align: center;
+  font-family: 'Bungee', 'Impact', sans-serif;
+  font-size: 1.5rem;
+}
+
+.panel-details {
+  margin-top: 6px;
+}
+
+.panel-details summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.panel-details .hint.small {
+  margin-top: 4px;
+}
+
+/* ---------- v0.8.1: one-line tips that point at the real thing ---------- */
+
+.coach {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 10px;
+  margin: 6px 0;
+  padding: 6px 8px 6px 10px;
+  border-radius: 12px;
+  background: #fff8e1;
+  border: 2px solid var(--yellow);
+  animation: bubble 0.25s ease-out;
+}
+
+.coach p {
+  flex: 1 1 200px;
+  margin: 0;
+  font-size: 0.86rem;
+  line-height: 1.3;
+}
+
+.coach-step {
+  font-weight: 900;
+  color: #8a6d00;
+}
+
+.coach-buttons {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.coach-ok,
+.coach-skip {
+  min-height: 32px;
+  padding: 4px 10px;
+  border: 0;
+  border-radius: 9px;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.coach-ok {
+  background: var(--c, var(--blue));
+  color: #fff;
+}
+
+.coach-skip {
+  background: transparent;
+  color: var(--muted);
+  text-decoration: underline;
+}
+
+/* What the tip is about blinks on the map (a cheap stroke animation, no filters). */
+@keyframes coach-edge {
+  to {
+    stroke: var(--yellow);
+    stroke-width: 2.6;
+  }
+}
+
+.coach-rally .state.clickable,
+.coach-attack .state.clickable:not(.highlighted),
+.coach-move .state.clickable:not(.highlighted) {
+  animation: pop 0.45s ease-out, coach-edge 0.7s ease-in-out 0.45s infinite alternate;
+}
+
+.coach-dice .dice-hud,
+.coach-dice .review-roll {
+  box-shadow: 0 0 0 3px var(--yellow), 0 6px 18px rgba(0, 0, 0, 0.4);
+}
+
+/* ---------- v0.8.1: phones ---------- */
+
+.speech.at-panel {
+  display: none;
+}
+
+@media (max-width: 860px) {
+  /* Phones: the speech line sits right above the action panel (where the visible
+     map ends) instead of adding height under the map or hiding behind the panel. */
+  .speech.at-map {
+    display: none;
+  }
+
+  .speech.at-panel {
+    display: flex;
+    position: absolute;
+    left: 4px;
+    right: 4px;
+    bottom: calc(100% + 6px);
+    max-width: none;
+    margin: 0;
+    padding: 5px 10px 5px 6px;
+    z-index: 5;
+  }
+
+  .speech p {
+    font-size: 0.84rem;
+    line-height: 1.3;
+  }
+
+  .speech .caricature {
+    width: 34px;
+    height: 34px;
+  }
+
+  .panel-title {
+    font-size: 1rem;
+  }
+
+  .big-number span {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .die6 {
+    width: 26px;
+    height: 26px;
+  }
+
+  .hud-label {
+    width: 4.3em;
+  }
+
+  .btn {
+    padding: 10px 12px;
+  }
+}
+
+/* Overlays taller than a small phone (order draw, end of match) scroll instead of
+   losing their top and their buttons; they stay centred when they fit. */
+.overlay {
+  place-items: start center;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.overlay > * {
+  margin-block: auto;
+}
+
+/* Phone held sideways: map and panels side by side, the speech stays on the map. */
+@media (orientation: landscape) and (max-height: 520px) {
+  .speech.at-map {
+    display: flex;
+  }
+
+  .speech.at-panel {
+    display: none;
+  }
+}
+
+/* Phones held upright: the dice pop-up becomes a slim strip across the map (dice
+   on the left, result on the right), at the top or bottom of the visible map,
+   whichever is away from the fight. */
+@media (max-width: 560px) and (orientation: portrait) {
+  .dice-hud {
+    grid-template-columns: auto minmax(0, 1fr);
+    column-gap: 10px;
+    row-gap: 3px;
+    width: calc(100% - 16px);
+    max-width: none;
+    padding: 6px 10px;
+  }
+
+  .dice-hud .hud-row {
+    grid-column: 1;
+  }
+
+  .dice-hud .hud-result {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-self: center;
+    margin: 0;
+  }
+
+  .dice-hud .hud-label {
+    width: 3.9em;
+    font-size: 0.62rem;
+  }
+
+  .dice-hud .hud-label small {
+    display: none;
+  }
+
+  .dice-hud .die6 {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+@media (max-width: 380px) {
   .coach {
-    margin: 6px 0;
-    padding: 6px 8px;
+    padding: 4px 8px;
   }
 
   .coach p {
     font-size: 0.8rem;
   }
 
-  .coach-buttons .btn {
-    min-height: 32px;
-    padding: 4px 10px;
-    font-size: 0.8rem;
-  }
-
-  /* Room code next to the ✕ button: all 8 characters must fit. */
-  .join-row .code-input {
-    letter-spacing: 0.08em;
-    padding: 10px 6px;
+  .coach-ok,
+  .coach-skip {
+    min-height: 30px;
+    padding: 3px 8px;
   }
 }

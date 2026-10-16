@@ -1,16 +1,17 @@
-// First-match tips: four short hints, one at a time, each shown next to the real
-// controls when its moment comes up in the player's own turn. Nothing pauses:
+// First-match tips: four one-line hints, one at a time, each shown on top of the
+// action panel when its moment comes up in the player's own turn. Nothing pauses:
 // the match (and an online room) goes on while the tip is on screen.
 // Kept only in this browser; "Como jogar" can turn them back on.
 const KEY = 'warzil-tutorial';
 
 export const TIP_ORDER = ['rally', 'attack', 'dice', 'move'];
 
+// One short instruction each; the screen also highlights what the tip is about.
 export const TIPS = {
-  rally: '🎯 Objetivo: tomar todos os estados dos rivais. Agora é o Comício: toque nos seus estados para colocar reforços, de preferência nos que fazem fronteira com inimigos.',
-  attack: '⚔️ Batalha: toque num estado seu com 2 ou mais exércitos e depois num inimigo vizinho que brilhar. Dá para atacar quantas vezes quiser.',
-  dice: '🎲 Quem decide são os dados: maior contra maior, e cada dado perdido custa 1 exército. Empate é da defesa. O ataque usa até 3 dados e sempre deixa 1 em casa.',
-  move: '🚚 Movimentação: passe tropas para estados seus vizinhos, para quantos quiser. Cada exército se move uma vez; quem chegou fica. Depois, “Encerrar turno”.',
+  rally: 'Coloque reforços nos seus estados. Priorize fronteiras.',
+  attack: 'Escolha um estado seu e toque em um inimigo vizinho.',
+  dice: 'Maior dado vence. Empate favorece a defesa.',
+  move: 'Transfira tropas para estados aliados. Cada exército se move uma vez.',
 };
 
 // The tip for this moment, or null. me: the faction looking at the screen.

@@ -6,106 +6,11 @@ import { calcReinforcements, controlledRegions, territoriesOf } from '../game/en
 import { describeEvent, eliminatorLine, fill, loseLine } from '../game/texts.js';
 import { play } from '../game/sound.js';
 import { DIARY_TYPES, isHighlight } from '../game/highlights.js';
-import { pairResults, rollSummary } from '../game/dice.js';
 
 const name = (f) => FACTIONS[f].name;
 const stateName = (id) => STATES[id].name;
 // "a Bahia", "o Ceará", "São Paulo"
 const withArticle = (id) => fill('{o_state}', { state: id });
-
-// result[i]: 'win' | 'lose' | 'tie' | 'idle' (a die without a pair). hidden: still rolling.
-function Dice({ values, side, result, hidden = false }) {
-  return (
-    <span className="dice-row">
-      {values.map((v, i) => (
-        <span key={i} className={`die ${side} ${hidden ? 'rolling' : result[i]}`} aria-hidden={hidden}>
-          {hidden ? '?' : v}
-        </span>
-      ))}
-    </span>
-  );
-}
-
-const reducedMotion = () =>
-  document.documentElement.classList.contains('reduce-motion') || (typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches);
-
-// The engine's own dice for one exchange, attack over defense so each compared
-// pair sits in the same column.
-function RollBody({ roll, hidden = false }) {
-  const { att, def } = pairResults(roll);
-  const s = rollSummary(roll);
-  return (
-    <>
-      <div className="roll-line">
-        <span className="roll-side">
-          ⚔️ ATAQUE <small>{stateName(roll.from)}</small>
-        </span>
-        <Dice values={roll.attackerDice} side={roll.attacker} result={att} hidden={hidden} />
-      </div>
-      <div className="roll-line">
-        <span className="roll-side">
-          🛡️ DEFESA <small>{stateName(roll.to)}</small>
-        </span>
-        <Dice values={roll.defenderDice} side={roll.defender} result={def} hidden={hidden} />
-      </div>
-      {hidden ? (
-        <p className="roll-result">Rolando os dados…</p>
-      ) : (
-        <>
-          <p className="roll-result">
-            {s.result}
-            {roll.conquered && <b className="roll-win"> 🎉 {name(roll.attacker)} conquistou {withArticle(roll.to)}!</b>}
-          </p>
-          {s.series && <p className="roll-series">{s.series}</p>}
-          <p className="roll-tie">{s.tie}</p>
-        </>
-      )}
-    </>
-  );
-}
-
-// Last exchange, kept in the side panel.
-export function RollPanel({ game }) {
-  const roll = game.lastRoll;
-  if (!roll) return null;
-  return (
-    <div className="panel roll" key={roll.id} aria-label={rollSummary(roll).dice}>
-      <RollBody roll={roll} />
-    </div>
-  );
-}
-
-const TRAY_ROLL_MS = 450;
-const TRAY_SHOW_MS = 3200;
-
-// Every new exchange pops up over the map for a few seconds: a short roll, then
-// the real dice. HTML over the map, so map zoom never shrinks it. Taps go
-// through to the map; ✕ closes it early.
-// at: 'map' (wide screens) or 'panel' (phones); CSS shows the one that fits.
-export function DiceTray({ game, at }) {
-  const roll = game.lastRoll;
-  const [stage, setStage] = useState('hidden');
-  useEffect(() => {
-    if (!roll) return setStage('hidden');
-    const quick = reducedMotion();
-    setStage(quick ? 'shown' : 'rolling');
-    const reveal = quick ? null : setTimeout(() => setStage('shown'), TRAY_ROLL_MS);
-    const hide = setTimeout(() => setStage('hidden'), (quick ? 0 : TRAY_ROLL_MS) + TRAY_SHOW_MS);
-    return () => {
-      clearTimeout(reveal);
-      clearTimeout(hide);
-    };
-  }, [roll?.id]);
-  if (!roll || stage === 'hidden') return null;
-  return (
-    <div className={`dice-tray at-${at} ${stage}`} role="status" aria-live="polite">
-      <button className="tray-close" onClick={() => setStage('hidden')} aria-label="Fechar os dados">
-        ✕
-      </button>
-      <RollBody roll={roll} hidden={stage === 'rolling'} />
-    </div>
-  );
-}
 
 // compact: smaller chip used for CPU rivals in 3-4 faction matches and in simulations.
 export function PlayerChip({ game, faction, compact = false }) {
@@ -153,12 +58,14 @@ export function PlayerChip({ game, faction, compact = false }) {
 }
 
 // `event` defaults to the latest one; the simulation passes a "held" event instead.
-export function SpeechBubble({ game, choose, event = game.log[0] }) {
+// at: 'map' (corner of the map) or 'panel' (phones: right above the action panel,
+// where the visible map ends); CSS shows the one that fits the screen.
+export function SpeechBubble({ game, choose, event = game.log[0], at = 'map' }) {
   if (!event) return null;
   const speech = describeEvent(event, choose);
   if (!speech.text) return null;
   return (
-    <div key={event.id} className={`speech ${speech.speaker}`}>
+    <div key={event.id} className={`speech ${speech.speaker} at-${at}`}>
       {speech.speaker === 'news' ? (
         <span className="news-tag">PLANTÃO</span>
       ) : (

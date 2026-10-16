@@ -22,3 +22,32 @@ export function rollSummary(roll) {
       : null,
   };
 }
+
+// The same exchange told from the viewer's side (me: the faction looking at the
+// screen, or null for spectators). names: faction -> display name; theState:
+// id -> name with its article ("o Amazonas", "Rondônia").
+const lost = (who, n) => `${who} ${n === 0 ? 'não perdeu' : `perdeu ${n}`}`;
+
+export function rollOutcome(roll, me, names, theState) {
+  const att = roll.attacker === me ? 'Você' : roll.defender === me ? 'Atacante' : names[roll.attacker];
+  const def = roll.defender === me ? 'Você' : roll.attacker === me ? 'Inimigo' : names[roll.defender];
+  // "Tudo ou nada": losses of the whole fight; the dice shown are the last roll's.
+  const a = roll.series ? roll.series.attackerLoss : roll.attackerLoss;
+  const d = roll.series ? roll.series.defenderLoss : roll.defenderLoss;
+  // Always "you" first when the viewer is in the fight.
+  const pair = roll.defender === me ? [lost(def, d), lost(att, a)] : [lost(att, a), lost(def, d)];
+  let conquest = null;
+  if (roll.conquered) {
+    if (roll.attacker === me) conquest = `🎉 Você conquistou ${theState(roll.to)}!`;
+    else if (roll.defender === me) conquest = `😱 Você perdeu ${theState(roll.to)}`;
+    else conquest = `🎉 ${names[roll.attacker]} conquistou ${theState(roll.to)}`;
+  }
+  const ties = pairResults(roll).att.includes('tie');
+  const s = roll.series;
+  return {
+    result: pair.join(' • '),
+    conquest,
+    tie: ties ? 'Empate: a defesa vence' : null,
+    series: s ? `Tudo ou nada: ${s.rolls} rolagens (dados da última)` : null,
+  };
+}

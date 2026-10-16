@@ -71,7 +71,7 @@ const board = (p) =>
   p.page.$$eval('path.state', (els, ids) => Object.fromEntries(els.map((e) => [e.dataset.id, { owner: ids.find((id) => e.classList.contains(id)), n: Number(e.getAttribute('aria-label').split(': ')[1].split(' ')[0]) }])), IDS);
 // Board, round and the official dice of the last exchange must match on every client.
 const snap = async (p) =>
-  JSON.stringify(await board(p)) + (await p.page.textContent('.round')) + ((await p.page.getAttribute('.panel.roll', 'aria-label', { timeout: 200 }).catch(() => '')) ?? '');
+  JSON.stringify(await board(p)) + (await p.page.textContent('.round')) + ((await p.page.getAttribute('.review-roll', 'aria-label', { timeout: 200 }).catch(() => '')) ?? '');
 async function inSync(timeout = 6000) {
   const t0 = Date.now();
   while (Date.now() - t0 < timeout) {
@@ -150,7 +150,7 @@ async function playTurn(p) {
       if (!selected) await tap(p, src);
       await tap(p, to);
       await p.page.waitForSelector('button:has-text("Mover")', { timeout: 5000 });
-      if (one) await p.page.getByRole('radio', { name: '1', exact: true }).click();
+      if (one) await p.page.getByRole('button', { name: /^Mínimo/ }).click();
       const before = await screenState(p);
       await p.page.getByRole('button', { name: /^Mover/ }).click();
       await afterServer(p, before);

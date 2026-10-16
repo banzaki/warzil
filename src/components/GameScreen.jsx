@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import BrazilMap from './BrazilMap.jsx';
 import Caricature from './Caricature.jsx';
-import Coach from './Coach.jsx';
-import { CampaignLog, DiceTray, EventBanner, PlayerChip, RegionsPanel, RollPanel, SpeechBubble, useGameSounds } from './BoardParts.jsx';
+import Coach, { useCoach } from './Coach.jsx';
+import DiceHud, { useDiceHud } from './DiceHud.jsx';
+import useSpeechQueue from './useSpeechQueue.js';
+import { CampaignLog, EventBanner, PlayerChip, RegionsPanel, SpeechBubble, useGameSounds } from './BoardParts.jsx';
 import SettingsButton from './SettingsPanel.jsx';
 import ShareSheet from './ShareSheet.jsx';
 import SupportButton from './SupportButton.jsx';
 import { cardModel } from '../game/share.js';
-import QuantityPicker from './QuantityPicker.jsx';
+import Stepper from './Stepper.jsx';
 import OrderDraw from './OrderDraw.jsx';
 import { FACTIONS, STATES, STATE_IDS } from '../game/data.js';
 import {
@@ -24,12 +26,13 @@ import { applyAction } from '../game/actions.js';
 import { aiStep } from '../game/ai.js';
 import { REINFORCE_AMOUNT } from '../game/settings.js';
 import { aiDelay } from '../game/pace.js';
+import { rollSummary } from '../game/dice.js';
 import { formatDailyKey } from '../game/daily.js';
 import { needsHandoff, viewerOf } from '../game/hotseat.js';
 import { abandonMatch, capture, completeMatch, noteProgress } from '../game/analytics.js';
 import { newClock, tick } from '../game/matchClock.js';
 import Handoff from './Handoff.jsx';
-import { DISCLAIMER, PHASE_HELP, PHASE_NAMES, VICTORY_TITLES, createLinePicker, defeatLine, describeEvent, fill } from '../game/texts.js';
+import { DISCLAIMER, PHASE_NAMES, VICTORY_TITLES, createLinePicker, defeatLine, describeEvent, fill } from '../game/texts.js';
 
 const EMPTY = new Set();
 
@@ -244,8 +247,15 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate, 
 
   const name = (f) => FACTIONS[f].name;
   const stateName = (id) => STATES[id].name;
+  const handoff = hotseat && !drawOpen && needsHandoff(localGame, hotseat.humans, readyFor);
+  const coach = useCoach(game, isHumanTurn && !handoff && !drawOpen ? human : null);
+  const dice = useDiceHud(game.lastRoll);
+  const speech = useSpeechQueue(game, choose);
 
   // ---------- Action panel ----------
+  // One instruction line, the controls for this step and the main button. Rules
+  // and round details live in "Detalhes"; the dice explain themselves on the map.
+  const hint = (text) => !coach.tip && <p className="hint one-line">{text}</p>;
   let panel = null;
   const iAmOut = game.eliminated.includes(human);
   if (online && iAmOut && game.phase !== 'over') {
@@ -264,32 +274,45 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate, 
       </div>
     );
   } else if (game.phase === 'reinforce') {
+    const extra = [
+      game.round === 1 && game.openingBonus?.[human] > 0 && `Inclui +${game.openingBonus[human]} de compensação de abertura (você começou com menos).`,
+      game.round === 1 &&
+        game.positionBonus?.[human] > 0 &&
+        `Inclui +${game.positionBonus[human]} por jogar em ${game.factions.indexOf(human) + 1}º (quem ataca depois recebe reforço extra no 1º comício).`,
+      game.round === 1 ? `Rodada 1: todos fazem o comício antes de qualquer ataque. Ordem sorteada: ${game.factions.map(name).join(' → ')}.` : null,
+    ].filter(Boolean);
     panel = (
       <div className="panel-body">
         <p className="big-number">
           <span>{game.reinforcements}</span> {game.reinforcements === 1 ? 'reforço para colocar' : 'reforços para colocar'}
         </p>
-        <div className="chips" role="radiogroup" aria-label="Tropas por toque">
-          {[1, 5, 'all', 'picker'].map((n) => (
+        <div className="chips compact" role="radiogroup" aria-label="Tropas por toque">
+          {[
+            [1, '+1', '+1 por toque'],
+            [5, '+5', '+5 por toque'],
+            ['all', 'Tudo', 'Tudo por toque'],
+            ['picker', 'Escolher', 'Escolher'],
+          ].map(([n, short, full]) => (
             <button
               key={n}
               role="radio"
               aria-checked={placeAmount === n}
+              aria-label={full}
               className={`chip ${placeAmount === n ? 'on' : ''}`}
               onClick={() => {
                 setPlaceAmount(n);
                 setPlaceTarget(null);
               }}
             >
-              {n === 'all' ? 'Tudo por toque' : n === 'picker' ? 'Escolher' : `+${n} por toque`}
+              {short}
             </button>
           ))}
         </div>
-        {placeAmount === 'all' && game.reinforcements > 0 && <p className="hint warn-text">Atenção: o próximo toque coloca todos os {game.reinforcements} reforços.</p>}
+        {placeAmount === 'all' && game.reinforcements > 0 && <p className="hint small warn-text">O próximo toque coloca todos os {game.reinforcements}.</p>}
         {placeAmount === 'picker' &&
           (placeTarget && game.reinforcements > 0 ? (
-            <>
-              <QuantityPicker
+            <div className="picker-row">
+              <Stepper
                 label={`Quantos em ${stateName(placeTarget)}?`}
                 min={1}
                 max={game.reinforcements}
@@ -303,36 +326,33 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate, 
                   setPlaceTarget(null);
                 }}
               >
-                Colocar {Math.min(placeCount, game.reinforcements)} em {stateName(placeTarget)}
+                Colocar em {stateName(placeTarget)}
               </button>
-            </>
+            </div>
           ) : (
-            game.reinforcements > 0 && <p className="hint">Toque num estado seu para escolher a quantidade.</p>
+            game.reinforcements > 0 && <p className="hint small">Toque num estado seu para escolher a quantidade.</p>
           ))}
-        <div className="buttons rally-undo">
-          <button className="btn ghost" onClick={() => act({ kind: 'undo' })} disabled={!game.rallyPlacements.length}>
-            ↶ Desfazer
+        <div className="action-row">
+          <button className="btn ghost icon" onClick={() => act({ kind: 'undo' })} disabled={!game.rallyPlacements.length} aria-label="Desfazer" title="Desfazer">
+            ↶
           </button>
-          <button className="btn ghost" onClick={() => act({ kind: 'resetRally' })} disabled={!game.rallyPlacements.length}>
-            Recomeçar
+          <button className="btn ghost icon" onClick={() => act({ kind: 'resetRally' })} disabled={!game.rallyPlacements.length} aria-label="Recomeçar" title="Recomeçar">
+            ⟲
+          </button>
+          <button className="btn primary main" onClick={() => act({ kind: 'finishRally' })} disabled={game.reinforcements > 0}>
+            {game.reinforcements > 0 ? `Faltam ${game.reinforcements}` : 'Concluir comício ✓'}
           </button>
         </div>
-        <button className="btn primary" onClick={() => act({ kind: 'finishRally' })} disabled={game.reinforcements > 0}>
-          {game.reinforcements > 0 ? `Faltam ${game.reinforcements}` : 'Concluir comício ✓'}
-        </button>
-        {game.round === 1 && game.openingBonus?.[human] > 0 && (
-          <p className="hint small">Inclui +{game.openingBonus[human]} de compensação de abertura (você começou com menos).</p>
+        {extra.length > 0 && (
+          <details className="panel-details">
+            <summary>ⓘ Detalhes da rodada</summary>
+            {extra.map((t) => (
+              <p key={t} className="hint small">
+                {t}
+              </p>
+            ))}
+          </details>
         )}
-        {game.round === 1 && game.positionBonus?.[human] > 0 && (
-          <p className="hint small">
-            Inclui +{game.positionBonus[human]} por jogar em {game.factions.indexOf(human) + 1}º (quem ataca depois recebe reforço extra no 1º comício).
-          </p>
-        )}
-        <p className="hint small">
-          {game.round === 1
-            ? `Rodada 1: todos fazem o comício antes de qualquer ataque. Ordem sorteada: ${game.factions.map(name).join(' → ')}.`
-            : 'Seu turno: comício, batalha e movimentação.'}
-        </p>
       </div>
     );
   } else if (game.phase === 'attack') {
@@ -344,15 +364,19 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate, 
         {ready ? (
           <>
             <p className="matchup">
-              <b className={human}>{stateName(from)} ({game.troops[from]})</b>
-              <span className="vs">x</span>
-              <b className={game.owner[game.target]}>{stateName(game.target)} ({game.troops[game.target]})</b>
+              <b className={human}>
+                {stateName(from)} {game.troops[from]}
+              </b>
+              <span className="vs">⚔</span>
+              <b className={game.owner[game.target]}>
+                {stateName(game.target)} {game.troops[game.target]}
+              </b>
+              <small className="dice-count">
+                🎲 {myDice} × {defenderDiceCount(game.troops[game.target])}
+              </small>
             </p>
-            <p className="dice-info">
-              🎲 {myDice} contra {defenderDiceCount(game.troops[game.target])} · toque no inimigo ou:
-            </p>
-            <div className="buttons">
-              <button className="btn primary" onClick={() => act({ kind: 'attack', from, to: game.target })}>
+            <div className="action-row">
+              <button className="btn primary main" onClick={() => act({ kind: 'attack', from, to: game.target })}>
                 🎲 Atacar
               </button>
               <button className="btn warn" onClick={() => act({ kind: 'blitz', from, to: game.target })}>
@@ -360,14 +384,14 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate, 
               </button>
             </div>
           </>
-        ) : (
-          <p className="hint">
-            {from
-              ? `Origem: ${stateName(from)} (${game.troops[from]}). Toque num inimigo brilhando para rolar ${myDice} ${myDice === 1 ? 'dado' : 'dados'}.`
-              : PHASE_HELP.attack}
+        ) : from ? (
+          <p className="hint one-line">
+            <b>{stateName(from)}</b> ({game.troops[from]}): toque num inimigo que brilha.
           </p>
+        ) : (
+          hint('Escolha um estado seu e toque em um inimigo vizinho.')
         )}
-        <button className="btn ghost" onClick={() => act({ kind: 'endAttack' })}>
+        <button className="btn ghost next-step" onClick={() => act({ kind: 'endAttack' })}>
           Ir para movimentação →
         </button>
       </div>
@@ -376,14 +400,14 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate, 
     const { from, to, min, max } = game.pendingOccupy;
     panel = (
       <div className="panel-body">
-        <p>
-          🎉 Você conquistou <b>{fill('{o_state}', { state: to })}</b>!
+        <p className="one-line">
+          🎉 <b>{fill('{O_state}', { state: to })}</b> é seu! Quantos exércitos entram?
         </p>
-        <QuantityPicker label="Quantos exércitos entram?" min={min} max={max} value={occupyTotal} onChange={setOccupyTotal} />
-        <p className="hint">
-          Mínimo {min} (dados do último ataque). {stateName(from)} fica com {game.troops[from] + min - occupyTotal}.
+        <Stepper label="Quantos exércitos entram?" min={min} max={max} value={occupyTotal} onChange={setOccupyTotal} />
+        <p className="hint small">
+          {stateName(from)} fica com {game.troops[from] + min - occupyTotal}. Mínimo {min}: os dados do último ataque.
         </p>
-        <button className="btn primary" onClick={() => act({ kind: 'occupy', total: occupyTotal })}>
+        <button className="btn primary main wide" onClick={() => act({ kind: 'occupy', total: occupyTotal })}>
           Confirmar {occupyTotal}
         </button>
       </div>
@@ -391,37 +415,36 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate, 
   } else if (game.phase === 'fortify') {
     const from = game.selected;
     const ready = from && game.target && canFortify(game, from, game.target);
+    const movable = from ? movableTroops(game, from) : 0;
+    const amount = Math.min(moveAmount, movable);
     panel = (
       <div className="panel-body">
         {ready ? (
           <>
-            <p>
-              De <b>{stateName(from)}</b> para <b>{stateName(game.target)}</b>
+            <p className="matchup">
+              <b className={human}>{stateName(from)}</b>
+              <span className="vs">→</span>
+              <b className={human}>{stateName(game.target)}</b>
             </p>
-            <QuantityPicker
-              label="Quantos exércitos deseja enviar?"
-              min={1}
-              max={movableTroops(game, from)}
-              value={moveAmount}
-              onChange={setMoveAmount}
-            />
-            <div className="buttons">
-              <button className="btn primary" onClick={() => act({ kind: 'fortify', from, to: game.target, amount: moveAmount })}>
-                Mover {moveAmount}
-              </button>
+            <Stepper label="Quantos exércitos deseja enviar?" min={1} max={movable} value={amount} onChange={setMoveAmount} />
+            <div className="action-row">
               <button className="btn ghost" onClick={() => act({ kind: 'select', id: null })}>
                 Cancelar
               </button>
+              <button className="btn primary main" onClick={() => act({ kind: 'fortify', from, to: game.target, amount })}>
+                Mover {amount}
+              </button>
             </div>
           </>
-        ) : (
-          <p className="hint">
-            {from
-              ? `${stateName(from)} pode enviar até ${movableTroops(game, from)}${game.received?.[from] ? ` (os ${game.received[from]} que chegaram ficam)` : ''}. Escolha um estado vizinho seu; o que sobrar pode ir para outro vizinho.`
-              : PHASE_HELP.fortify}
+        ) : from ? (
+          <p className="hint one-line">
+            <b>{stateName(from)}</b> pode enviar {movable}
+            {game.received?.[from] ? ` (os ${game.received[from]} que chegaram ficam)` : ''}. Toque num vizinho seu.
           </p>
+        ) : (
+          hint('Toque num estado seu e depois num vizinho seu.')
         )}
-        <button className="btn ghost" onClick={() => act({ kind: 'endTurn' })}>
+        <button className="btn ghost next-step" onClick={() => act({ kind: 'endTurn' })}>
           Encerrar turno →
         </button>
       </div>
@@ -434,10 +457,9 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate, 
   const humanWon = game.winner === human;
   const finalLoser = humanWon || hotseat ? game.eliminated.at(-1) : human;
   const loserFaces = humanWon || hotseat ? game.factions.filter((f) => f !== game.winner) : [human];
-  const handoff = hotseat && !drawOpen && needsHandoff(localGame, hotseat.humans, readyFor);
 
   return (
-    <div className={`game theme-${human}`}>
+    <div className={`game theme-${human} ${coach.tip ? `coach-${coach.tip}` : ''}`}>
       {drawOpen && (
         <OrderDraw
           order={game.factions}
@@ -480,8 +502,8 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate, 
             onSelect={onSelect}
           />
           <EventBanner game={game} choose={choose} />
-          <DiceTray game={game} at="map" />
-          <SpeechBubble game={game} choose={choose} />
+          <SpeechBubble game={game} choose={choose} event={speech} />
+          <DiceHud game={game} hud={dice} me={game.eliminated.includes(human) ? null : human} />
         </section>
 
         <aside className="sidebar">
@@ -490,15 +512,17 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate, 
               <span className={`turn-dot ${game.current}`} />
               {isHumanTurn ? 'Sua vez' : `Vez de ${name(game.current)}`}
               {game.phase !== 'over' && <span className="phase">{PHASE_NAMES[game.phase]}</span>}
+              {game.lastRoll && (
+                <button className="review-roll" onClick={dice.review} aria-label={`Rever último combate: ${rollSummary(game.lastRoll).dice}`} title="Rever último combate">
+                  🎲
+                </button>
+              )}
             </div>
-            {isHumanTurn && game.phase === 'reinforce' && <p className="hint">{PHASE_HELP.reinforce}</p>}
-            <Coach game={game} me={isHumanTurn && !handoff ? human : null} />
+            <Coach coach={coach} />
             {panel}
-            {/* Phones: the dice pop up right above the action panel, where the player is looking. */}
-            <DiceTray game={game} at="panel" />
+            <SpeechBubble game={game} choose={choose} event={speech} at="panel" />
           </div>
 
-          <RollPanel game={game} />
           <CampaignLog game={game} choose={choose} />
           <RegionsPanel game={game} />
 

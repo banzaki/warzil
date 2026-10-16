@@ -4,7 +4,8 @@ import { nextHeldEvent } from '../game/highlights.js';
 import BrazilMap from './BrazilMap.jsx';
 import Caricature from './Caricature.jsx';
 import OrderDraw from './OrderDraw.jsx';
-import { CampaignLog, EventBanner, PlayerChip, RegionsPanel, RollPanel, SpeechBubble, useGameSounds } from './BoardParts.jsx';
+import { CampaignLog, EventBanner, PlayerChip, RegionsPanel, SpeechBubble, useGameSounds } from './BoardParts.jsx';
+import DiceHud, { useDiceHud } from './DiceHud.jsx';
 import SettingsButton from './SettingsPanel.jsx';
 import ShareSheet from './ShareSheet.jsx';
 import { cardModel } from '../game/share.js';
@@ -53,6 +54,7 @@ export default function SimulationScreen({ factions, onMenu, prefs, match }) {
   const [choose, setChoose] = useState(createLinePicker);
   const { game } = sim;
   useGameSounds(game);
+  const dice = useDiceHud(game.lastRoll);
   // Order draw at the start of each simulation; the match waits for it.
   const [drawFor, setDrawFor] = useState(game);
   const drawOpen = drawFor === game && game.turn === 0;
@@ -109,6 +111,7 @@ export default function SimulationScreen({ factions, onMenu, prefs, match }) {
           <BrazilMap game={game} clickable={EMPTY} highlighted={EMPTY} spent={EMPTY} onSelect={() => {}} />
           <EventBanner game={game} choose={choose} />
           <SpeechBubble game={game} choose={choose} event={heldEvent} />
+          <DiceHud game={game} hud={dice} me={null} />
         </section>
 
         <aside className="sidebar">
@@ -146,7 +149,6 @@ export default function SimulationScreen({ factions, onMenu, prefs, match }) {
             </div>
           </div>
 
-          <RollPanel game={game} />
           <CampaignLog game={game} choose={choose} />
           <RegionsPanel game={game} />
 
