@@ -589,8 +589,9 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate, 
               <span className={`turn-dot ${game.current}`} />
               {isHumanTurn ? 'Sua vez' : `Vez de ${name(game.current)}`}
               {game.phase !== 'over' && <span className="phase">{PHASE_NAMES[game.phase]}</span>}
-              {game.lastRoll && (
-                <button className="review-roll" onClick={() => setInfoTab('battles')} aria-label={`Batalhas. Último combate: ${rollSummary(game.lastRoll).dice}`} title="Batalhas">
+              {/* The engine clears lastRoll at each turn start; the history keeps every fight. */}
+              {battles.length > 0 && (
+                <button className="review-roll" onClick={() => setInfoTab('battles')} aria-label={`Batalhas. Último combate: ${rollSummary(battles[0]).dice}`} title="Batalhas">
                   🎲
                 </button>
               )}

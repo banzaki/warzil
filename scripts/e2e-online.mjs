@@ -69,9 +69,9 @@ log('match started on all clients');
 // ---------- Board helpers ----------
 const board = (p) =>
   p.page.$$eval('path.state', (els, ids) => Object.fromEntries(els.map((e) => [e.dataset.id, { owner: ids.find((id) => e.classList.contains(id)), n: Number(e.getAttribute('aria-label').split(': ')[1].split(' ')[0]) }])), IDS);
-// Board, round and the official dice of the last exchange must match on every client.
-const snap = async (p) =>
-  JSON.stringify(await board(p)) + (await p.page.textContent('.round')) + ((await p.page.getAttribute('.review-roll', 'aria-label', { timeout: 200 }).catch(() => '')) ?? '');
+// Board and round (server state) must match on every client. The dice button shows
+// each tab's own battle history, which starts empty in a reopened tab, so it is not compared.
+const snap = async (p) => JSON.stringify(await board(p)) + (await p.page.textContent('.round'));
 async function inSync(timeout = 6000) {
   const t0 = Date.now();
   while (Date.now() - t0 < timeout) {
@@ -225,21 +225,26 @@ while (Date.now() - t0 < 420000) {
     log('reconnect:', JSON.stringify(reconnected));
   }
   // Battle history survives a reload of the same tab (kept in sessionStorage).
-  if (!historyCheck && turns >= 6 && (await host.page.$('.review-roll'))) {
+  if (!historyCheck && turns >= 6 && !(await over(host)) && (await host.page.locator('.review-roll').isVisible())) {
     const count = async () => {
-      await host.page.locator('.review-roll').click();
+      await host.page.locator('.review-roll').click({ timeout: 8000 });
       await host.page.waitForSelector('.info-sheet');
       await host.page.getByRole('tab', { name: 'Batalhas' }).click();
       const n = await host.page.locator('.info-sheet .battle').count();
       await host.page.getByRole('button', { name: 'Fechar' }).last().click();
       return n;
     };
-    const before = await count();
-    await host.page.reload();
-    await host.page.waitForSelector('.map', { timeout: 15000 });
-    await host.page.waitForTimeout(800);
-    const after = (await host.page.$('.review-roll')) ? await count() : 0;
-    historyCheck = { before, after, kept: after >= before && before > 0 };
+    try {
+      const before = await count();
+      await host.page.reload();
+      await host.page.waitForSelector('.map', { timeout: 15000 });
+      await host.page.waitForSelector('.review-roll', { state: 'visible', timeout: 15000 });
+      const after = await count();
+      historyCheck = { before, after, kept: after >= before && before > 0 };
+    } catch (e) {
+      await host.page.screenshot({ path: `${OUT}/${tag}-history-FAIL.png` }).catch(() => {});
+      historyCheck = { error: e.message.split(String.fromCharCode(10))[0] };
+    }
     log('battle history across a reload:', JSON.stringify(historyCheck));
   }
   if (!acted) await host.page.waitForTimeout(200);
@@ -250,7 +255,7 @@ const titles = await Promise.all(players.map((p) => p.page.textContent('#end-tit
 const stats = await Promise.all(players.map((p) => p.page.textContent('.end-stats')));
 log('end titles:', titles.map((t, i) => `${players[i].nick}: ${t.trim()}`).join(' | '));
 log('same result on every client:', new Set(stats.map((s) => s.trim())).size === 1, '|', stats[0].trim());
-log(`turns ${turns}, sync checks ${syncChecks} (board + official dice), out of sync ${syncFails}`);
+log(`turns ${turns}, sync checks ${syncChecks} (board + round), out of sync ${syncFails}`);
 log(`one state split between two neighbours: ${splitMoves.filter(Boolean).length} of ${splitMoves.length} correct`);
 await host.page.screenshot({ path: `${OUT}/${tag}-end-host.png` });
 await players[1].page.screenshot({ path: `${OUT}/${tag}-end-guest.png` });
