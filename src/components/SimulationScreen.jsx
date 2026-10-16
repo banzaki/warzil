@@ -147,6 +147,7 @@ export default function SimulationScreen({ factions, onMenu, prefs, match }) {
                 </button>
               ))}
             </div>
+            <SpeechBubble game={game} choose={choose} event={heldEvent} at="panel" />
           </div>
 
           <CampaignLog game={game} choose={choose} />
