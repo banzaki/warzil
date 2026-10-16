@@ -3434,3 +3434,596 @@ html.reduce-motion .draw-bonus {
   bottom: 0;
   box-shadow: 0 4px 0 var(--c-dark, var(--blue-dark)), 0 -10px 16px #fff;
 }
+
+/* ---------- v0.8.1 Entrega 2: diary, battles and bonuses in one place ---------- */
+
+.hud-compact {
+  display: none;
+}
+
+.info-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 900;
+  font-size: 0.95rem;
+  color: var(--ink);
+  text-align: left;
+}
+
+.info-badge {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--yellow);
+  color: var(--ink);
+  font-size: 0.68rem;
+  font-weight: 900;
+  line-height: 18px;
+  text-align: center;
+}
+
+.info-scrim,
+.info-footer {
+  display: none;
+}
+
+.info-card {
+  display: flex;
+  flex-direction: column;
+  max-height: 62vh;
+  overflow: hidden;
+  background: var(--panel);
+  color: var(--ink);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.18);
+}
+
+.info-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 6px 6px 0;
+  border-bottom: 1px solid #eceef4;
+}
+
+.info-tabs [role='tab'] {
+  flex: 1;
+  padding: 9px 4px 7px;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  font: inherit;
+  font-weight: 900;
+  font-size: 0.9rem;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.info-tabs [role='tab'].on {
+  color: var(--ink);
+  border-bottom-color: var(--yellow);
+}
+
+.info-close {
+  flex: none;
+  width: 40px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.info-body {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 6px 12px 12px;
+}
+
+.info-empty {
+  margin: 8px 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.info-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.info-list.diary li {
+  padding: 5px 0;
+  border-bottom: 1px solid #eceef4;
+  font-size: 0.85rem;
+}
+
+.info-list.diary li.highlight {
+  margin: 2px 0;
+  padding: 6px 8px;
+  border-bottom: none;
+  border-radius: 8px;
+  background: #fff8e1;
+}
+
+.info-list.diary li.log-round {
+  padding-top: 10px;
+  border-bottom: none;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.info-list.diary i {
+  color: var(--muted);
+}
+
+.info-list.bonus li {
+  display: flex;
+  justify-content: space-between;
+  padding: 5px 8px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.info-list.bonus li.lula,
+.info-list.bonus li.flavio,
+.info-list.bonus li.cury,
+.info-list.bonus li.renan,
+.info-list.bonus li.caiado {
+  background: var(--c-soft);
+  color: var(--c-dark);
+  font-weight: 800;
+}
+
+.battle {
+  padding: 8px 0;
+  border-bottom: 1px solid #eceef4;
+}
+
+.battle-title {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.battle-title small {
+  color: var(--muted);
+  font-weight: 900;
+}
+
+.battle-won {
+  color: #2e7d32;
+  font-weight: 900;
+}
+
+.battle-dice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 5px 0 3px;
+}
+
+.battle-side {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.battle-side small {
+  width: 2.3em;
+  font-size: 0.62rem;
+  font-weight: 900;
+  color: var(--muted);
+}
+
+.battle .die6 {
+  width: 22px;
+  height: 22px;
+}
+
+.battle .die6.win {
+  transform: none;
+}
+
+.battle-result {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+/* ---------- v0.8.1 Entrega 2: what the others did ---------- */
+
+.panel-body.thinking {
+  flex-wrap: wrap;
+}
+
+.turn-summary {
+  flex-basis: 100%;
+  margin: 4px 0 0;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.turn-summary.waited {
+  margin: 0 0 6px;
+  padding: 6px 9px;
+  border-radius: 10px;
+  background: #f1f3f8;
+}
+
+.turn-summary.waited small {
+  font-size: 0.72rem;
+  font-weight: 900;
+  color: var(--muted);
+}
+
+.turn-summary.waited p {
+  margin: 2px 0 0;
+  font-size: 0.84rem;
+}
+
+/* ---------- v0.8.1 Entrega 2: the whole match on one phone screen ---------- */
+
+@media (max-width: 860px) {
+  .game.play {
+    height: 100vh;
+    height: 100dvh;
+    min-height: 0;
+    gap: 6px;
+    padding: max(6px, env(safe-area-inset-top)) max(6px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-left));
+    overflow: hidden;
+  }
+
+  /* Header: one slim row instead of two rows of big cards. */
+  .game.play .hud.has-compact {
+    display: block;
+    flex: none;
+  }
+
+  .game.play .hud.has-compact > :not(.hud-compact) {
+    display: none;
+  }
+
+  .game.play .hud-compact {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 44px;
+  }
+
+  /* Map: everything that is left. */
+  .game.play .board {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .game.play .map-wrap {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .game.play .map {
+    width: 100%;
+    height: 100%;
+    max-height: none;
+  }
+
+  /* Action panel: its natural height, scrolling inside only when a small phone
+     needs it (the main buttons then stay pinned at its bottom). */
+  .game.play .sidebar {
+    display: flex;
+    flex-direction: column;
+    flex: none;
+    max-height: 58%;
+    min-height: 0;
+  }
+
+  .game.play .sidebar > .panel:first-child {
+    position: static;
+    order: 0;
+    max-height: 100%;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    box-shadow: 0 -4px 18px rgba(0, 0, 0, 0.3);
+  }
+
+  .game.play .panel-body .action-row,
+  .game.play .panel-body > .btn.main.wide,
+  .game.play .panel-body > .next-step {
+    position: sticky;
+    bottom: 0;
+    z-index: 1;
+  }
+
+  .game.play .panel-body .action-row {
+    padding-top: 6px;
+    background: var(--panel);
+  }
+
+  .game.play .info-toggle,
+  .game.play .side-quit {
+    display: none;
+  }
+
+  /* The speech line sits on the map's lower edge, which is always on screen now. */
+  .game.play .speech.at-map {
+    display: flex;
+    position: absolute;
+    left: 6px;
+    right: 6px;
+    bottom: 6px;
+    max-width: none;
+    margin: 0;
+    padding: 5px 10px 5px 6px;
+    z-index: 5;
+  }
+
+  .game.play .speech.at-map p {
+    font-size: 0.84rem;
+    line-height: 1.3;
+  }
+
+  .game.play .speech.at-map .caricature {
+    width: 34px;
+    height: 34px;
+  }
+
+  /* Spectator mode keeps its scrolling layout with the speech under the map. */
+  .game.sim .speech.at-map {
+    display: flex;
+  }
+
+  /* Diary, battles and bonuses: a bottom sheet over the game. */
+  .game.play .info-sheet {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+
+  .game.play .info-scrim {
+    display: block;
+    position: absolute;
+    inset: 0;
+    background: rgba(10, 16, 36, 0.6);
+    animation: fade 0.2s ease-out;
+  }
+
+  .game.play .info-card {
+    position: relative;
+    max-height: 80vh;
+    max-height: 80dvh;
+    border-radius: 18px 18px 0 0;
+    padding-bottom: env(safe-area-inset-bottom);
+    animation: sheet-up 0.22s ease-out;
+  }
+
+  .game.play .info-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px 12px 10px;
+    border-top: 1px solid #eceef4;
+  }
+
+  .game.play .info-footer .quit {
+    background: #eef0f6;
+    color: var(--ink);
+  }
+
+  .game.play .info-footer .disclaimer {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.72rem;
+  }
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(40px);
+    opacity: 0;
+  }
+}
+
+/* Compact header pieces. */
+.info-btn {
+  position: relative;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.info-btn .info-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+}
+
+.mini-chips {
+  display: flex;
+  flex: 1;
+  justify-content: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.mini-chip {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex: none;
+  padding: 2px 8px 2px 2px;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.mini-chip.active {
+  border-color: var(--c);
+  box-shadow: 0 0 0 3px rgba(255, 202, 40, 0.7);
+}
+
+.mini-chip.out {
+  opacity: 0.45;
+}
+
+.mini-chip b {
+  color: var(--c-dark);
+  font-size: 0.88rem;
+}
+
+.mini-chip small {
+  position: absolute;
+  left: 50%;
+  bottom: -8px;
+  transform: translateX(-50%);
+  padding: 0 4px;
+  border-radius: 6px;
+  background: var(--c);
+  color: #fff;
+  font-size: 0.55rem;
+  font-weight: 900;
+  line-height: 1.35;
+}
+
+.round-mini {
+  flex: none;
+  color: #fff;
+  font-weight: 900;
+  font-size: 0.85rem;
+}
+
+.hud-compact .gear {
+  margin: 0;
+}
+
+@media (max-width: 380px) {
+  .hud-compact {
+    gap: 4px;
+  }
+
+  .info-btn,
+  .hud-compact .gear {
+    width: 34px;
+    height: 34px;
+  }
+
+  .mini-chips {
+    gap: 3px;
+  }
+
+  .mini-chip {
+    padding: 1px 5px 1px 1px;
+  }
+
+  .mini-chip .caricature {
+    width: 22px;
+    height: 22px;
+  }
+
+  .mini-chip b {
+    font-size: 0.78rem;
+  }
+}
+
+/* Phone held sideways: map on the left at full height; header and panel in the
+   right column, which scrolls on its own if it must. */
+@media (orientation: landscape) and (max-height: 520px) {
+  .game.play {
+    height: 100vh;
+    height: 100dvh;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 42%);
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas:
+      'map hud'
+      'map side';
+    gap: 6px;
+    overflow: hidden;
+  }
+
+  .game.play .board {
+    display: contents;
+  }
+
+  .game.play .hud {
+    grid-area: hud;
+  }
+
+  .game.play .hud.has-compact {
+    display: block;
+  }
+
+  .game.play .hud.has-compact > :not(.hud-compact) {
+    display: none;
+  }
+
+  .game.play .hud-compact {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .game.play .map-wrap {
+    grid-area: map;
+    min-height: 0;
+  }
+
+  .game.play .map {
+    height: 100%;
+    max-height: none;
+  }
+
+  .game.play .sidebar {
+    grid-area: side;
+    position: static;
+    max-height: none;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .game.play .sidebar > .panel:first-child {
+    max-height: none;
+    overflow: visible;
+    box-shadow: none;
+  }
+
+  .game.play .speech.at-map {
+    left: 8px;
+    right: auto;
+    max-width: 75%;
+  }
+}
+
+/* Narrow columns (small phones, landscape side panel): the four rally chips stay on one line. */
+.chips.compact .chip {
+  font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

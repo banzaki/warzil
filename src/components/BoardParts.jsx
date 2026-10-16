@@ -102,7 +102,7 @@ export function RegionsPanel({ game }) {
   );
 }
 
-function DiaryRow({ e, choose }) {
+export function DiaryRow({ e, choose }) {
   switch (e.type) {
     case 'conquer':
       return (

@@ -4,14 +4,18 @@ import Caricature from './Caricature.jsx';
 import Coach, { useCoach } from './Coach.jsx';
 import DiceHud, { useDiceHud } from './DiceHud.jsx';
 import useSpeechQueue from './useSpeechQueue.js';
-import { CampaignLog, EventBanner, PlayerChip, RegionsPanel, SpeechBubble, useGameSounds } from './BoardParts.jsx';
+import { EventBanner, PlayerChip, SpeechBubble, useGameSounds } from './BoardParts.jsx';
+import MatchInfo from './MatchInfo.jsx';
+import useBattleHistory from './useBattleHistory.js';
 import SettingsButton from './SettingsPanel.jsx';
 import ShareSheet from './ShareSheet.jsx';
 import SupportButton from './SupportButton.jsx';
 import { cardModel } from '../game/share.js';
 import Stepper from './Stepper.jsx';
 import OrderDraw from './OrderDraw.jsx';
-import { FACTIONS, STATES, STATE_IDS } from '../game/data.js';
+import { FACTIONS, REGIONS, STATES, STATE_IDS } from '../game/data.js';
+import { turnSummary } from '../game/summary.js';
+import { DIARY_TYPES } from '../game/highlights.js';
 import {
   attackTargets,
   canAttack,
@@ -72,6 +76,24 @@ function sendOnlineTime(matchRef, round, clock, reason) {
     // ignore
   }
   capture('online_match_time', { mode: 'online', match_id: matchRef, reason, round_reached: round, active_s: clock.active, waiting_s: clock.waiting, idle_s: clock.idle, hidden_s: clock.hidden });
+}
+
+// Phone header: caricature, states held, a ring on whoever plays now.
+function MiniChip({ game, faction, you }) {
+  const lands = STATE_IDS.filter((id) => game.owner[id] === faction).length;
+  const out = game.eliminated.includes(faction);
+  const active = game.current === faction && game.phase !== 'over';
+  return (
+    <span
+      className={`mini-chip ${faction} ${active ? 'active' : ''} ${out ? 'out' : ''}`}
+      title={`${FACTIONS[faction].name}${you ? ' (você)' : ''}: ${lands} estados`}
+      aria-label={`${FACTIONS[faction].name}${you ? ' (você)' : ''}: ${out ? 'fora' : `${lands} estados`}`}
+    >
+      <Caricature who={faction} mood={out ? 'sad' : 'neutral'} size={28} />
+      <b>{out ? '✕' : lands}</b>
+      {you && <small>você</small>}
+    </span>
+  );
 }
 
 // online (optional): { game, me, names, isHost, dispatch, onRematch, onLeave } for a
@@ -251,6 +273,33 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate, 
   const coach = useCoach(game, isHumanTurn && !handoff && !drawOpen ? human : null);
   const dice = useDiceHud(game.lastRoll);
   const speech = useSpeechQueue(game, choose);
+  const battles = useBattleHistory(game, online?.matchRef ? `warzil-battles-${online.matchRef}` : null);
+
+  // Diary, battles and bonuses: one secondary area, closed by default.
+  const [infoTab, setInfoTab] = useState(null);
+  const closeInfo = useCallback(() => setInfoTab(null), []);
+  const latestId = game.log[0]?.id ?? 0;
+  const [seenDiary, setSeenDiary] = useState(latestId);
+  useEffect(() => {
+    if (infoTab === 'diary') setSeenDiary(latestId);
+  }, [infoTab, latestId]);
+  const unread = game.log.filter((e) => e.id > seenDiary && DIARY_TYPES.includes(e.type)).length;
+
+  // What the others did: the running turn of whoever plays now, and, when your
+  // turn comes back, everything since your previous one.
+  const turnEnds = useRef({});
+  const mountedAt = useRef(latestId);
+  const playing = useRef(game.current);
+  if (playing.current !== game.current) {
+    turnEnds.current[playing.current] = latestId;
+    playing.current = game.current;
+  }
+  const names = useMemo(() => Object.fromEntries(game.factions.map((f) => [f, FACTIONS[f].name])), [game.factions]);
+  const regionNames = useMemo(() => Object.fromEntries(Object.entries(REGIONS).map(([k, r]) => [k, r.name])), []);
+  const since = (id) => game.log.filter((e) => e.id > id);
+  const waited = isHumanTurn && game.phase === 'reinforce' && game.round > 1 ? turnSummary(since(turnEnds.current[human] ?? mountedAt.current), human, names, regionNames) : [];
+  const turnStart = game.log.find((e) => e.type === 'turn' && e.faction === game.current);
+  const live = !isHumanTurn && turnStart && game.phase !== 'reinforce' && game.phase !== 'over' ? turnSummary(since(turnStart.id), human, names, regionNames) : [];
 
   // ---------- Action panel ----------
   // One instruction line, the controls for this step and the main button. Rules
@@ -270,7 +319,14 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate, 
       <div className="panel-body thinking">
         <span className="spinner" aria-hidden="true" />
         {name(game.current)}
-        {who ? ` (${who})` : ''} está {game.phase === 'attack' ? 'atacando' : game.phase === 'reinforce' ? 'no comício, distribuindo reforços' : 'armando a próxima'}…
+        <span>
+          {who ? ` (${who})` : ''} está {game.phase === 'attack' ? 'atacando' : game.phase === 'reinforce' ? 'no comício, distribuindo reforços' : 'armando a próxima'}…
+        </span>
+        {live.map((l) => (
+          <p key={l} className="turn-summary">
+            📊 {l}
+          </p>
+        ))}
       </div>
     );
   } else if (game.phase === 'reinforce') {
@@ -283,6 +339,14 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate, 
     ].filter(Boolean);
     panel = (
       <div className="panel-body">
+        {waited.length > 0 && (
+          <div className="turn-summary waited">
+            <small>Enquanto você esperava:</small>
+            {waited.slice(0, 3).map((l) => (
+              <p key={l}>{l}</p>
+            ))}
+          </div>
+        )}
         <p className="big-number">
           <span>{game.reinforcements}</span> {game.reinforcements === 1 ? 'reforço para colocar' : 'reforços para colocar'}
         </p>
@@ -459,7 +523,7 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate, 
   const loserFaces = humanWon || hotseat ? game.factions.filter((f) => f !== game.winner) : [human];
 
   return (
-    <div className={`game theme-${human} ${coach.tip ? `coach-${coach.tip}` : ''}`}>
+    <div className={`game play theme-${human} ${coach.tip ? `coach-${coach.tip}` : ''}`}>
       {drawOpen && (
         <OrderDraw
           order={game.factions}
@@ -470,7 +534,7 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate, 
         />
       )}
       {handoff && <Handoff faction={game.current} name={hotseat.names[game.current]} onReady={() => setReadyFor(game.current)} />}
-      <header className={`hud ${rivals.length > 1 ? 'multi' : ''}`}>
+      <header className={`hud has-compact ${rivals.length > 1 ? 'multi' : ''}`}>
         <PlayerChip game={game} faction={human} />
         <div className="round">
           <span className="logo small">
@@ -490,6 +554,19 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate, 
             ))}
           </div>
         )}
+        {/* Phones: one slim row (menu, every candidate in turn order, round, settings). */}
+        <div className="hud-compact">
+          <button className="info-btn" onClick={() => setInfoTab('diary')} aria-label={`Diário, batalhas e bônus${unread ? ` (${unread} novidades)` : ''}`}>
+            ☰{unread > 0 && <span className="info-badge">{unread > 9 ? '9+' : unread}</span>}
+          </button>
+          <div className="mini-chips">
+            {game.factions.map((f) => (
+              <MiniChip key={f} game={game} faction={f} you={f === human} />
+            ))}
+          </div>
+          <span className="round-mini">R{game.round}</span>
+          <SettingsButton {...prefs} />
+        </div>
       </header>
 
       <div className="board">
@@ -513,23 +590,43 @@ export default function GameScreen({ initialGame, onRematch, onChangeCandidate, 
               {isHumanTurn ? 'Sua vez' : `Vez de ${name(game.current)}`}
               {game.phase !== 'over' && <span className="phase">{PHASE_NAMES[game.phase]}</span>}
               {game.lastRoll && (
-                <button className="review-roll" onClick={dice.review} aria-label={`Rever último combate: ${rollSummary(game.lastRoll).dice}`} title="Rever último combate">
+                <button className="review-roll" onClick={() => setInfoTab('battles')} aria-label={`Batalhas. Último combate: ${rollSummary(game.lastRoll).dice}`} title="Batalhas">
                   🎲
                 </button>
               )}
             </div>
             <Coach coach={coach} />
             {panel}
-            <SpeechBubble game={game} choose={choose} event={speech} at="panel" />
           </div>
 
-          <CampaignLog game={game} choose={choose} />
-          <RegionsPanel game={game} />
+          {!infoTab && (
+            <button className="panel info-toggle" onClick={() => setInfoTab('diary')}>
+              📜 Diário · Batalhas · Bônus
+              {unread > 0 && <span className="info-badge">{unread > 9 ? '9+' : unread} novas</span>}
+            </button>
+          )}
+          <MatchInfo
+            game={game}
+            choose={choose}
+            battles={battles}
+            me={human}
+            tab={infoTab}
+            onTab={setInfoTab}
+            onClose={closeInfo}
+            footer={
+              <>
+                <button className="btn ghost quit" onClick={online ? online.onLeave : onChangeCandidate}>
+                  {online ? '⟲ Sair da sala' : '⟲ Voltar ao menu'}
+                </button>
+                <p className="disclaimer">{DISCLAIMER}</p>
+              </>
+            }
+          />
 
-          <button className="btn ghost quit" onClick={online ? online.onLeave : onChangeCandidate}>
+          <button className="btn ghost quit side-quit" onClick={online ? online.onLeave : onChangeCandidate}>
             {online ? '⟲ Sair da sala' : '⟲ Voltar ao menu'}
           </button>
-          <p className="disclaimer">{DISCLAIMER}</p>
+          <p className="disclaimer side-quit">{DISCLAIMER}</p>
         </aside>
       </div>
 

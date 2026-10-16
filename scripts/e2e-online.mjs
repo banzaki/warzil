@@ -171,6 +171,7 @@ let syncChecks = 0;
 let syncFails = 0;
 let turns = 0;
 let reconnected = null;
+let historyCheck = null;
 const t0 = Date.now();
 while (Date.now() - t0 < 420000) {
   if (await over(host)) break;
@@ -222,6 +223,24 @@ while (Date.now() - t0 < 420000) {
     const chip = await p.page.$eval('.hud .player-chip', (e) => e.textContent);
     reconnected = { sameCandidate: chip.includes('(você)') && chip.includes(FACTIONS[p.faction].name), inSync: await inSync(), hostSaw: dropped.slice(0, 40) };
     log('reconnect:', JSON.stringify(reconnected));
+  }
+  // Battle history survives a reload of the same tab (kept in sessionStorage).
+  if (!historyCheck && turns >= 6 && (await host.page.$('.review-roll'))) {
+    const count = async () => {
+      await host.page.locator('.review-roll').click();
+      await host.page.waitForSelector('.info-sheet');
+      await host.page.getByRole('tab', { name: 'Batalhas' }).click();
+      const n = await host.page.locator('.info-sheet .battle').count();
+      await host.page.getByRole('button', { name: 'Fechar' }).last().click();
+      return n;
+    };
+    const before = await count();
+    await host.page.reload();
+    await host.page.waitForSelector('.map', { timeout: 15000 });
+    await host.page.waitForTimeout(800);
+    const after = (await host.page.$('.review-roll')) ? await count() : 0;
+    historyCheck = { before, after, kept: after >= before && before > 0 };
+    log('battle history across a reload:', JSON.stringify(historyCheck));
   }
   if (!acted) await host.page.waitForTimeout(200);
 }
