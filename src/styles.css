@@ -2958,7 +2958,8 @@ html.reduce-motion .draw-bonus {
   gap: 4px;
   padding: 8px 10px 7px;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.96);
+  /* Opaque: when it has to cover the speech line, nothing shows through. */
+  background: #fff;
   color: var(--ink);
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
   max-width: min(250px, calc(100% - 16px));
