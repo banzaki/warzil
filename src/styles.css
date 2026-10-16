@@ -3425,3 +3425,11 @@ html.reduce-motion .draw-bonus {
     padding: 3px 8px;
   }
 }
+
+/* The order draw can be taller than a phone held sideways: its button stays in
+   sight at the bottom while the cards scroll. */
+.draw-card > .btn {
+  position: sticky;
+  bottom: 0;
+  box-shadow: 0 4px 0 var(--c-dark, var(--blue-dark)), 0 -10px 16px #fff;
+}
